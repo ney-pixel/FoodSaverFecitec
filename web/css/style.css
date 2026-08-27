@@ -1,0 +1,1652 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html{
+    scroll-behavior: smooth;
+}
+
+body{
+    background: #0B0F14 !important;
+    overflow-x: hidden;
+
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+body.fade-in{
+    opacity: 1;
+}
+
+body.fade-out{
+    opacity: 0;
+}
+
+/* NAVBAR */
+
+.navbar{
+    background: rgba(17,22,29,0.85) !important;
+    backdrop-filter: blur(10px);
+
+    padding: 14px 0;
+
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.navCustom{
+    padding: 0 50px;
+}
+
+.logoArea{
+    text-decoration: none;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo{
+    width: 42px;
+    height: 42px;
+}
+
+.titNav{
+    font-family: "Zalando Sans Expanded", sans-serif;
+    font-size: 28px;
+    color: white;
+}
+
+.navBtns{
+    display: flex;
+    gap: 15px;
+}
+
+.btnNav{
+    padding: 11px 24px;
+
+    border-radius: 12px;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+    font-size: 12px;
+
+    text-decoration: none;
+
+    transition: 0.3s;
+}
+
+.cadastrar{
+    background: #16DB65;
+    color: #11161D;
+
+    font-weight: bold;
+}
+
+.cadastrar:hover{
+    transform: translateY(-3px);
+
+    background: #1eff7a;
+}
+
+.entrar{
+    border: 1px solid rgba(255,255,255,0.15);
+
+    color: white;
+}
+
+.entrar:hover{
+    border-color: #16DB65;
+    color: #16DB65;
+}
+
+.custom-toggler{
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.navbar-toggler-icon{
+    filter: invert(1);
+}
+
+/* HERO */
+
+/* HERO */
+
+.heroSection{
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+
+    position: relative;
+
+    overflow: hidden;
+
+    padding: 140px 6% 80px;
+}
+
+/* GLOW */
+
+.bgGlow{
+    position: absolute;
+
+    width: 550px;
+    height: 550px;
+
+    background: rgba(22,219,101,0.12);
+
+    filter: blur(110px);
+
+    border-radius: 50%;
+
+    top: -120px;
+    right: -120px;
+
+    z-index: 0;
+}
+
+/* CONTAINER */
+
+.heroContainer{
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+     gap: 150px;
+
+ 
+}
+
+/* TEXTO */
+
+.heroText{
+    max-width: 620px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 22px;
+}
+
+.miniText{
+    color: #16DB65;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+
+    font-size: 13px;
+
+    letter-spacing: 2px;
+}
+
+.heroText h1{
+    font-size: 82px;
+
+    line-height: 0.98;
+
+    letter-spacing: -3px;
+
+    color: white;
+
+    font-weight: 800;
+}
+
+.heroText h1 span{
+    color: #16DB65;
+}
+
+.heroText p{
+    color: #CFCFCF;
+
+    font-size: 20px;
+
+    line-height: 1.7;
+
+    max-width: 560px;
+}
+
+/* BOTÕES */
+
+.heroButtons{
+    display: flex;
+
+    gap: 15px;
+
+    margin-top: 10px;
+}
+
+.heroBtn{
+    padding: 15px 30px;
+
+    border-radius: 18px;
+
+    text-decoration: none;
+
+    transition: 0.3s;
+
+    font-weight: 600;
+}
+
+.greenBtn{
+    background: #16DB65;
+
+    color: #111;
+
+    box-shadow: 0 10px 30px rgba(22,219,101,0.20);
+}
+
+.darkBtn{
+    border: 2px solid #16DB65;
+
+    color: #16DB65;
+
+    background: transparent;
+}
+
+.heroBtn:hover{
+    transform: translateY(-4px);
+}
+
+/* IMAGEM */
+
+.heroImage{
+    flex: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    position: relative;
+}
+
+/* GLOW ATRÁS DA IMAGEM */
+
+.heroImage::before{
+    content: "";
+
+    position: absolute;
+
+    width: 420px;
+    height: 420px;
+
+    background: rgba(22,219,101,0.18);
+
+    filter: blur(80px);
+
+    border-radius: 50%;
+
+    z-index: -1;
+}
+
+/* IMG */
+
+.heroImage img{
+    width: 100%;
+    max-width: 560px;
+
+    height: auto;
+
+    object-fit: contain;
+
+    animation: floatHero 5s ease-in-out infinite;
+
+    filter:
+    drop-shadow(0 25px 40px rgba(0,0,0,0.55));
+}
+
+/* ANIMAÇÃO */
+
+@keyframes floatHero{
+
+    0%{
+        transform: translateY(0px);
+    }
+
+    50%{
+        transform: translateY(-14px);
+    }
+
+    100%{
+        transform: translateY(0px);
+    }
+
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 1100px){
+
+    .heroContainer{
+        flex-direction: column;
+
+        text-align: center;
+    }
+
+    .heroText{
+        align-items: center;
+    }
+
+    .heroButtons{
+        justify-content: center;
+    }
+
+    .heroText h1{
+        font-size: 64px;
+    }
+
+    .heroImage img{
+        max-width: 430px;
+    }
+
+}
+
+@media(max-width: 768px){
+
+    .heroSection{
+        padding-top: 120px;
+    }
+
+    .heroText h1{
+        font-size: 48px;
+    }
+
+    .heroText p{
+        font-size: 17px;
+    }
+
+    .heroButtons{
+        flex-direction: column;
+
+        width: 100%;
+    }
+
+    .heroBtn{
+        width: 100%;
+
+        text-align: center;
+    }
+
+    .heroImage img{
+        max-width: 320px;
+    }
+
+}
+/* TITLES */
+
+.titleBox{
+    margin-bottom: 60px;
+}
+
+.center{
+    text-align: center;
+}
+
+.miniSection,
+.featureMini{
+    color: #16DB65;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+
+    font-size: 13px;
+
+    letter-spacing: 2px;
+}
+
+.titleBox h2{
+    color: white;
+
+    font-size: 48px;
+
+    margin-top: 12px;
+}
+
+/* CARDS */
+
+/* ===== CARDS SECTION ===== */
+
+.cardsSection{
+    padding: 40px 6% 140px;
+
+    position: relative;
+}
+
+/* CONTAINER */
+
+.cards{
+    display: flex;
+    justify-content: center;
+
+    gap: 35px;
+
+    flex-wrap: wrap;
+}
+
+/* CARD */
+
+/* ===== CARDS ===== */
+
+.cardsSection{
+    padding: 60px 6% 130px;
+}
+
+/* GRID */
+
+.cards{
+    display: flex;
+    justify-content: center;
+
+    gap: 30px;
+
+    flex-wrap: wrap;
+}
+
+/* CARD */
+
+.cardFood{
+    width: 290px;
+    min-height: 280px;
+
+    padding: 38px 30px;
+
+    background: linear-gradient(
+        180deg,
+        #141B23,
+        #10151B
+    );
+
+    border-radius: 30px;
+
+    position: relative;
+
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    border: 1px solid rgba(255,255,255,0.05);
+
+    transition: 0.4s;
+}
+
+/* CARD CENTRAL */
+
+.destaqueCard{
+    transform: translateY(-12px);
+
+    border-color: rgba(22,219,101,0.15);
+}
+
+/* GLOW */
+
+.cardFood::before{
+    content: "";
+
+    position: absolute;
+
+    width: 220px;
+    height: 220px;
+
+    background: rgba(22,219,101,0.15);
+
+    filter: blur(80px);
+
+    border-radius: 50%;
+
+    top: -120px;
+    right: -100px;
+
+    opacity: 0;
+
+    transition: 0.4s;
+}
+
+/* LINHA TOP */
+
+.cardFood::after{
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: 0%;
+    height: 3px;
+
+    background: #16DB65;
+
+    border-radius: 50px;
+
+    transition: 0.4s;
+}
+
+/* HOVER */
+
+.cards:hover .cardFood{
+    opacity: 0.65;
+
+    transform: scale(0.97);
+}
+
+.cards .cardFood:hover{
+    opacity: 1;
+
+    transform: translateY(-12px) scale(1.02);
+
+    border-color: rgba(22,219,101,0.25);
+
+    box-shadow:
+    0 20px 40px rgba(0,0,0,0.35),
+    0 0 30px rgba(22,219,101,0.08);
+}
+
+.cards .cardFood:hover::before{
+    opacity: 1;
+}
+
+.cards .cardFood:hover::after{
+    width: 75%;
+}
+
+/* MINI */
+
+.cardMini{
+    color: #16DB65;
+
+    font-size: 12px;
+
+    letter-spacing: 2px;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+}
+
+/* TÍTULO */
+
+.cardFood h3{
+    color: white;
+
+    font-size: 30px;
+
+    line-height: 1.2;
+
+    margin: 18px 0;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+}
+
+/* TEXTO */
+
+.cardFood p{
+    color: #B8C0C7;
+
+    line-height: 1.8;
+
+    font-size: 16px;
+
+    font-family: "Inter", sans-serif;
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 768px){
+
+    .cardsSection{
+        padding-bottom: 100px;
+    }
+
+    .cardFood{
+        width: 100%;
+        max-width: 340px;
+
+        min-height: auto;
+    }
+
+    .destaqueCard{
+        transform: none;
+    }
+
+}
+/* SOBRE */
+
+/* ===== SOBRE ===== */
+
+.sobreSection{
+    padding: 140px 6%;
+
+    position: relative;
+}
+
+/* SUBTÍTULO */
+
+.sobreSubtitle{
+    max-width: 780px;
+
+    margin: 18px auto 0;
+
+    color: #B8C0C7;
+
+    font-size: 19px;
+
+    line-height: 1.8;
+
+    font-family: "Inter", sans-serif;
+}
+
+/* GRID */
+
+.sobreGrid{
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 30px;
+
+    margin-top: 70px;
+}
+
+/* CARD */
+
+.sobreCard{
+    background: linear-gradient(
+        180deg,
+        #141B23,
+        #10151B
+    );
+
+    padding: 42px 36px;
+
+    border-radius: 32px;
+
+    border: 1px solid rgba(255,255,255,0.05);
+
+    position: relative;
+
+    overflow: hidden;
+
+    transition: 0.4s;
+}
+
+/* CARD CENTRAL */
+
+.destaqueCard{
+    border-color: rgba(22,219,101,0.16);
+
+    transform: translateY(-12px);
+}
+
+/* GLOW */
+
+.sobreCard::before{
+    content: "";
+
+    position: absolute;
+
+    width: 260px;
+    height: 260px;
+
+    background: rgba(22,219,101,0.10);
+
+    filter: blur(90px);
+
+    border-radius: 50%;
+
+    top: -140px;
+    right: -120px;
+
+    opacity: 0;
+
+    transition: 0.4s;
+}
+
+/* HOVER */
+
+.sobreGrid:hover .sobreCard{
+    opacity: 0.7;
+
+    transform: scale(0.98);
+}
+
+.sobreGrid .sobreCard:hover{
+    opacity: 1;
+
+    transform: translateY(-12px);
+
+    border-color: rgba(22,219,101,0.18);
+
+    box-shadow:
+    0 20px 40px rgba(0,0,0,0.35),
+    0 0 30px rgba(22,219,101,0.08);
+}
+
+.sobreGrid .sobreCard:hover::before{
+    opacity: 1;
+}
+
+
+/* MINI */
+
+.sobreMini{
+    color: #16DB65;
+
+    font-size: 12px;
+
+    letter-spacing: 2px;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+}
+
+/* TITLE */
+
+.sobreCard h3{
+    color: white;
+
+    font-size: 30px;
+
+    line-height: 1.2;
+
+    margin: 18px 0;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+}
+
+/* TEXTO */
+
+.sobreCard p{
+    color: #B8C0C7;
+
+    line-height: 1.9;
+
+    font-size: 17px;
+
+    font-family: "Inter", sans-serif;
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 1100px){
+
+    .sobreGrid{
+        grid-template-columns: 1fr;
+    }
+
+    .destaqueCard{
+        transform: none;
+    }
+
+}
+
+@media(max-width: 768px){
+
+    .sobreSection{
+        padding: 110px 6%;
+    }
+
+    .sobreCard{
+        padding: 38px 28px;
+    }
+
+    .sobreCard h3{
+        font-size: 25px;
+    }
+
+    .sobreCard p{
+        font-size: 15px;
+    }
+
+    .sobreSubtitle{
+        font-size: 16px;
+    }
+
+    .sobreNumber{
+        font-size: 62px;
+    }
+
+}
+
+
+
+/* ===== FEATURES ===== */
+
+.featureSection{
+    padding: 70px 6%;
+}
+
+/* BOX */
+
+.featureBox{
+    background: linear-gradient(
+        180deg,
+        #141B23,
+        #10151B
+    );
+
+    border-radius: 34px;
+
+    padding: 80px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 70px;
+
+    border: 1px solid rgba(255,255,255,0.05);
+
+    position: relative;
+
+    overflow: hidden;
+
+    transition: 0.4s;
+}
+
+/* GLOW */
+
+.featureBox::before{
+    content: "";
+
+    position: absolute;
+
+    width: 400px;
+    height: 400px;
+
+    background: rgba(22,219,101,0.10);
+
+    filter: blur(100px);
+
+    border-radius: 50%;
+
+    top: -180px;
+    right: -120px;
+}
+
+/* HOVER */
+
+.featureBox:hover{
+    transform: translateY(-6px);
+
+    border-color: rgba(22,219,101,0.18);
+
+    box-shadow:
+    0 20px 40px rgba(0,0,0,0.35),
+    0 0 30px rgba(22,219,101,0.06);
+}
+
+/* REVERSE */
+
+.reverseBox{
+    flex-direction: row-reverse;
+}
+
+/* IMAGEM */
+
+.featureImage1{
+    flex: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 500px;
+    height: 500px;
+    position: relative;
+}
+
+
+.featureImage{
+    flex: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    position: relative;
+}
+
+/* GLOW DA IMG */
+
+.featureGlow{
+    position: absolute;
+
+    width: 320px;
+    height: 320px;
+
+    background: rgba(22,219,101,0.16);
+
+    filter: blur(80px);
+
+    border-radius: 50%;
+
+    z-index: 0;
+}
+
+/* IMG */
+
+.featureImage img{
+    width: 100%;
+    max-width: 430px;
+
+    position: relative;
+    z-index: 2;
+
+    animation: floatFeature 5s ease-in-out infinite;
+
+    filter:
+    drop-shadow(0 25px 40px rgba(0,0,0,0.45));
+}
+
+/* TEXTO */
+
+.featureContent{
+    flex: 1;
+
+    max-width: 580px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 18px;
+
+    position: relative;
+    z-index: 2;
+}
+
+/* MINI */
+
+.featureMini{
+    color: #16DB65;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+
+    font-size: 13px;
+
+    letter-spacing: 2px;
+}
+
+/* TITLE */
+
+.featureContent h2{
+    color: white;
+
+    font-size: 58px;
+
+    line-height: 1.05;
+
+    letter-spacing: -2px;
+
+    font-weight: 800;
+}
+
+/* TEXTO */
+
+.featureContent p{
+    color: #B8C0C7;
+
+    font-size: 20px;
+
+    line-height: 1.8;
+}
+
+/* BENEFÍCIOS */
+
+.featureBenefits{
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+
+    margin-top: 10px;
+}
+
+/* ITEM */
+
+.benefitItem{
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    color: white;
+
+    font-size: 16px;
+}
+
+/* ÍCONE */
+
+.benefitItem i{
+    width: 42px;
+    height: 42px;
+
+    border-radius: 14px;
+
+    background: rgba(22,219,101,0.12);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #16DB65;
+
+    font-size: 18px;
+}
+
+/* FLOAT */
+
+@keyframes floatFeature{
+
+    0%{
+        transform: translateY(0px);
+    }
+
+    50%{
+        transform: translateY(-12px);
+    }
+
+    100%{
+        transform: translateY(0px);
+    }
+
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 1100px){
+
+    .featureBox,
+    .reverseBox{
+        flex-direction: column;
+
+        text-align: center;
+    }
+
+    .featureContent{
+        align-items: center;
+    }
+
+    .featureBenefits{
+        align-items: center;
+    }
+
+    .featureContent h2{
+        font-size: 46px;
+    }
+
+}
+
+@media(max-width: 768px){
+
+    .featureSection{
+        padding: 50px 6%;
+    }
+
+    .featureBox{
+        padding: 50px 30px;
+    }
+
+    .featureContent h2{
+        font-size: 36px;
+    }
+
+    .featureContent p{
+        font-size: 17px;
+    }
+
+    .featureImage img{
+        max-width: 300px;
+    }
+
+}
+/* STEPS */
+
+/* ===== COMO FUNCIONA ===== */
+
+.stepsSection{
+    padding: 140px 6%;
+
+    position: relative;
+}
+
+/* GRID */
+
+.stepsGrid{
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 30px;
+
+    margin-top: 70px;
+}
+
+/* CARD */
+
+.stepCard{
+    background: linear-gradient(
+        180deg,
+        #141B23,
+        #10151B
+    );
+
+    padding: 45px 38px;
+
+    border-radius: 32px;
+
+    position: relative;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(255,255,255,0.05);
+
+    transition: 0.4s;
+}
+
+/* GLOW */
+
+.stepCard::before{
+    content: "";
+
+    position: absolute;
+
+    width: 240px;
+    height: 240px;
+
+    background: rgba(22,219,101,0.12);
+
+    filter: blur(90px);
+
+    border-radius: 50%;
+
+    top: -120px;
+    right: -120px;
+
+    opacity: 0;
+
+    transition: 0.4s;
+}
+
+/* HOVER */
+
+.stepsGrid:hover .stepCard{
+    opacity: 0.65;
+
+    transform: scale(0.98);
+}
+
+.stepsGrid .stepCard:hover{
+    opacity: 1;
+
+    transform: translateY(-12px) scale(1.02);
+
+    border-color: rgba(22,219,101,0.18);
+
+    box-shadow:
+    0 20px 40px rgba(0,0,0,0.35),
+    0 0 30px rgba(22,219,101,0.08);
+}
+
+.stepsGrid .stepCard:hover::before{
+    opacity: 1;
+}
+
+/* NÚMERO */
+
+.stepNumber{
+    font-size: 82px;
+
+    font-weight: 800;
+
+    line-height: 1;
+
+    color: rgba(22,219,101,0.15);
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+
+    margin-bottom: 25px;
+}
+
+/* TÍTULO */
+
+.stepCard h3{
+    color: white;
+
+    font-size: 28px;
+
+    margin-bottom: 18px;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+}
+
+/* TEXTO */
+
+.stepCard p{
+    color: #B8C0C7;
+
+    line-height: 1.8;
+
+    font-size: 17px;
+
+    font-family: "Inter", sans-serif;
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 1100px){
+
+    .stepsGrid{
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media(max-width: 768px){
+
+    .stepsSection{
+        padding: 110px 6%;
+    }
+
+    .stepCard{
+        padding: 38px 28px;
+    }
+
+    .stepCard h3{
+        font-size: 24px;
+    }
+
+    .stepCard p{
+        font-size: 15px;
+    }
+
+    .stepNumber{
+        font-size: 68px;
+    }
+
+}
+
+/* ===== CRIADORES ===== */
+
+.devSectionPadrao{
+    padding: 120px 6%;
+    text-align: center;
+}
+
+/* MINI SECTION */
+
+.miniSection{
+    display: inline-block;
+
+    color: #16DB65;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    letter-spacing: 2px;
+
+    margin-bottom: 18px;
+}
+
+/* TÍTULO */
+
+.devTituloPadrao{
+    display: block;
+
+    font-size: 42px;
+    font-weight: 700;
+
+    color: #fff;
+}
+
+/* CONTAINER */
+
+.devCardsPadrao{
+    display: flex;
+    justify-content: center;
+    gap: 35px;
+
+    flex-wrap: wrap;
+
+    margin-top: 65px;
+}
+
+/* CARD */
+
+.devCardPadrao{
+    width: 310px;
+
+    padding: 38px 28px;
+
+    border-radius: 30px;
+
+    background: linear-gradient(
+        180deg,
+        #141B23,
+        #10151B
+    );
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 14px;
+
+    border: 1px solid rgba(255,255,255,0.05);
+
+    transition: 0.4s;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+/* BRILHO */
+
+.devCardPadrao::before{
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    background: radial-gradient(
+        circle at top,
+        rgba(22,219,101,0.12),
+        transparent 60%
+    );
+
+    opacity: 0;
+
+    transition: 0.4s;
+}
+
+/* HOVER */
+
+.devCardsPadrao:hover .devCardPadrao{
+    opacity: 0.65;
+    transform: scale(0.98);
+}
+
+.devCardsPadrao .devCardPadrao:hover{
+    opacity: 1;
+
+    transform: translateY(-12px) scale(1.02);
+
+    border-color: rgba(22,219,101,0.25);
+
+    box-shadow:
+    0 15px 35px rgba(0,0,0,0.35),
+    0 0 30px rgba(22,219,101,0.08);
+}
+
+.devCardPadrao:hover::before{
+    opacity: 1;
+}
+
+/* IMAGEM */
+
+.devImg{
+    width: 185px;
+    height: 185px;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    border: 3px solid rgba(22,219,101,0.15);
+
+    box-shadow: 0 0 25px rgba(22,219,101,0.12);
+
+    transition: 0.4s;
+}
+
+.devCardPadrao:hover .devImg{
+    transform: scale(1.05);
+}
+
+/* NOME */
+
+.devCardPadrao span{
+    font-size: 24px;
+    font-weight: 600;
+
+    color: #fff;
+
+    margin-top: 10px;
+}
+
+/* FUNÇÃO */
+
+.devCardPadrao small{
+    font-size: 12px;
+
+    letter-spacing: 1.5px;
+
+    color: #16DB65;
+
+    text-transform: uppercase;
+}
+
+/* TEXTO */
+
+.devCardPadrao p{
+    color: #AEB7BF;
+
+    font-size: 15px;
+
+    line-height: 1.7;
+
+    margin-top: 8px;
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 768px){
+
+    .devTituloPadrao{
+        font-size: 34px;
+    }
+
+    .devCardPadrao{
+        width: 100%;
+        max-width: 340px;
+    }
+
+}
+
+/* ===== FOOTER ===== */
+
+.footerFS{
+    margin-top: 120px;
+
+    background: #11161D;
+
+    border-top: 1px solid rgba(255,255,255,0.05);
+
+    padding: 40px 6% 20px;
+}
+
+/* CONTEÚDO */
+
+.footerContent{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 30px;
+
+    flex-wrap: wrap;
+}
+
+/* LOGO */
+
+.footerBrand{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.footerLogo{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footerLogo img{
+    width: 38px;
+    height: 38px;
+}
+
+.footerTitle{
+    color: white;
+
+    font-family: "Zalando Sans Expanded", sans-serif;
+    font-size: 22px;
+}
+
+.footerDesc{
+    color: #8D98A3;
+
+    font-size: 14px;
+}
+
+/* LINKS */
+
+.footerLinks{
+    display: flex;
+    gap: 25px;
+
+    flex-wrap: wrap;
+}
+
+.footerLinks a{
+    color: #AEB7BF;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition: 0.3s;
+}
+
+.footerLinks a:hover{
+    color: #16DB65;
+}
+
+/* REDES */
+
+/* REDES */
+
+.socialIcons{
+    display: flex;
+    gap: 15px;
+}
+
+.socialIcons a{
+    color: #CFCFCF;
+
+    font-size: 22px;
+
+    transition: 0.3s;
+
+    text-decoration: none;
+}
+
+.socialIcons a:hover{
+    color: #16DB65;
+
+    transform: translateY(-3px);
+}
+
+/* BOTTOM */
+
+.footerBottom{
+    margin-top: 30px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid rgba(255,255,255,0.06);
+
+    text-align: center;
+}
+
+.footerBottom span{
+    color: #6F7882;
+
+    font-size: 13px;
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 991px){
+
+    .footerContent{
+        flex-direction: column;
+
+        text-align: center;
+    }
+
+    .footerLinks{
+        justify-content: center;
+    }
+
+}
+/* RESPONSIVO */
+
+@media(max-width: 991px){
+
+    .navCustom{
+        padding: 0 20px;
+    }
+
+    .navBtns{
+        flex-direction: column;
+
+        margin-top: 20px;
+    }
+
+    .btnNav{
+        width: 100%;
+        text-align: center;
+    }
+
+    .heroContainer,
+    .featureBox,
+    .reverseBox,
+    .criadoresCard{
+        flex-direction: column;
+
+        text-align: center;
+    }
+
+    .heroText h1{
+        font-size: 52px;
+    }
+
+    .heroButtons{
+        justify-content: center;
+    }
+
+    .heroImage img,
+    .featureImage img{
+        width: 100%;
+        max-width: 350px;
+    }
+
+    .sobreGrid,
+    .stepsGrid{
+        grid-template-columns: 1fr;
+    }
+
+    .titleBox h2,
+    .featureContent h2{
+        font-size: 36px;
+    }
+
+    .featureBox,
+    .criadoresCard{
+        padding: 40px 25px;
+    }
+
+}
+

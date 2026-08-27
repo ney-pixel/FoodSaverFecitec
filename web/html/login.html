@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - FoodSaver</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:wght@300;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/cadastro.css">
+</head>
+
+<body>
+
+<!-- VOLTAR -->
+<a href="index.html" class="authBack">&larr; Voltar para o início</a>
+
+<div class="authWrapper">
+
+  <div class="authBox">
+
+    <!-- LOGO -->
+    <div class="authLogo">
+      <img src="../imagens/logo.png" alt="FoodSaver">
+      <span>FoodSaver</span>
+    </div>
+
+    <!-- TITULO -->
+    <h1 class="authTitle">Entrar na sua conta</h1>
+    <p class="authSubtitle">Acesse e continue economizando</p>
+
+    <!-- FORM LOGIN -->
+    <form class="authForm" id="formLogin" novalidate>
+
+      <!-- Alerta verde (cadastro ok / conta reativada) -->
+      <div id="msgSucesso" style="display:none; color: #16DB65; font-size: 13px; text-align: center; margin-bottom: 15px;"></div>
+
+      <input type="email" name="email" id="email" placeholder="Email" required>
+      <div class="erro" id="erroEmail"></div>
+
+      <input type="password" name="senha" id="senha" placeholder="Senha" required>
+      <div class="erro" id="erroSenha"></div>
+
+      <button type="submit">Entrar</button>
+
+    </form>
+
+    <!-- LINK -->
+    <div class="authSwitch">
+      Não tem conta? <a href="cadastro.html">Cadastre-se</a>
+    </div>
+
+  </div>
+
+</div>
+<script src="../js/global.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth-login.js"></script>
+
+</body>
+
+</html>

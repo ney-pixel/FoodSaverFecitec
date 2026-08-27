@@ -1,0 +1,25 @@
+# Flutter
+mobile/**/.dart_tool/
+mobile/**/build/
+
+# IDE
+**/.idea/
+**/*.iml
+
+# Android
+mobile/**/.gradle/
+
+# PHP
+api/vendor/
+
+# Node
+web/node_modules/
+web/dist/
+
+# Arquivos de ambiente e credenciais
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

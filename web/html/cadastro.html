@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro - FoodSaver</title>
+
+  <link href="https://googleapis.com" rel="stylesheet">
+  <link rel="stylesheet" href="../css/cadastro.css">
+</head>
+
+<body>
+
+<!-- VOLTAR -->
+<a href="index.html" class="authBack">&larr; Voltar para o início</a>
+
+<div class="authWrapper">
+
+  <div class="authBox">
+
+    <!-- LOGO -->
+    <div class="authLogo">
+      <img src="../imagens/logo.png" alt="FoodSaver">
+      <span>FoodSaver</span>
+    </div>
+
+    <!-- TÍTULO -->
+    <h1 class="authTitle">Crie sua conta</h1>
+    <p class="authSubtitle">Comece a economizar e evitar desperdícios</p>
+
+    <!-- FORM -->
+    <form class="authForm" id="formCadastro" novalidate>
+
+      <div class="erro" id="erroGeral" style="text-align: center; margin-bottom: 15px;"></div>
+
+      <input type="text" name="username" id="username" placeholder="Nome de usuário" required>
+      <div class="erro" id="erroUsername"></div>
+
+      <input type="email" name="email" id="email" placeholder="Email" required>
+      <div class="erro" id="erroEmail"></div>
+
+      <input type="password" name="senha" id="senha" placeholder="Senha" required>
+      <div class="erro" id="erroSenha"></div>
+
+      <button type="submit">Cadastrar</button>
+    </form>
+
+    <!-- LINK -->
+    <div class="authSwitch">
+      Já tem conta? <a href="login.html">Entrar</a>
+    </div>
+
+  </div>
+
+</div>
+<script src="../js/global.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/auth-cadastro.js"></script>
+
+</body>
+</html>
