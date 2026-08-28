@@ -85,7 +85,6 @@ function renderTudo() {
 
 // ── SIDEBAR ───────────────────────────────────────────────────
 function renderSidebar() {
-  const qtdAlimentos = ESTADO.alimentos.length;
   const qtdReceitas = ESTADO.receitas.length;
   const nivel = Math.floor(qtdReceitas / 2) + 1;
   const plano = (ESTADO.config?.plano || 'gratuito') === 'premium' ? 'Premium' : 'Free';
@@ -95,11 +94,6 @@ function renderSidebar() {
   document.getElementById('sbNivel').textContent = nivel;
   document.getElementById('sbNome').textContent = nome;
   document.getElementById('sbPlano').textContent = `Plano ${plano}`;
-
-  const xp = qtdAlimentos * 50;
-  document.getElementById('xpCount').textContent = `${xp} / 2.000`;
-  document.getElementById('xpFill').style.width = `${Math.min(100, xp / 20)}%`;
-  document.getElementById('xpLabel').textContent = `Próximo nível: ${nivel + 1}`;
 }
 
 // ── NAVEGAÇÃO ENTRE SEÇÕES ───────────────────────────────────
@@ -119,6 +113,26 @@ function bindNav() {
       mostrarSecao(el.dataset.sec);
     });
   });
+}
+
+// ── MODAL DE CONFIRMAÇÃO (substitui o confirm() nativo do navegador) ──
+let _confirmResolve = null;
+function abrirConfirm(texto, opts = {}) {
+  document.getElementById('confirmTitulo').textContent = opts.titulo || 'Tem certeza?';
+  document.getElementById('confirmTexto').textContent = texto;
+  document.getElementById('confirmBtnOk').innerHTML = `<i class="bi ${opts.icone || 'bi-trash3-fill'}"></i> ${opts.botao || 'Excluir'}`;
+  document.getElementById('modalConfirm').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  return new Promise((resolve) => { _confirmResolve = resolve; });
+}
+function fecharConfirm(resultado) {
+  document.getElementById('modalConfirm').classList.add('hidden');
+  document.body.style.overflow = '';
+  if (_confirmResolve) {
+    const resolve = _confirmResolve;
+    _confirmResolve = null;
+    resolve(resultado);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -154,7 +168,7 @@ function renderInventario() {
 
 function abrirModalAdd() {
   document.getElementById('modalInvTitulo').textContent = 'Adicionar Alimento';
-  document.getElementById('invSubmitBtn').textContent = 'Adicionar';
+  document.getElementById('invSubmitBtn').innerHTML = '<i class="bi bi-check2"></i> Adicionar';
   document.getElementById('invId').value = '0';
   document.getElementById('invNome').value = '';
   document.getElementById('invQuantidade').value = '';
@@ -168,7 +182,7 @@ function abrirModalEdit(id) {
   const it = ESTADO.alimentos.find((a) => a.id === id);
   if (!it) return;
   document.getElementById('modalInvTitulo').textContent = 'Editar Alimento';
-  document.getElementById('invSubmitBtn').textContent = 'Salvar Alterações';
+  document.getElementById('invSubmitBtn').innerHTML = '<i class="bi bi-check2"></i> Salvar Alterações';
   document.getElementById('invId').value = it.id;
   document.getElementById('invNome').value = it.nome;
   document.getElementById('invQuantidade').value = it.quantidade;
@@ -214,7 +228,7 @@ async function submitFormInv(e) {
 }
 
 async function excluirAlimento(id) {
-  if (!confirm('Remover este item?')) return;
+  if (!(await abrirConfirm('Remover este item do seu inventário?', { titulo: 'Remover alimento' }))) return;
   const resp = await apiFetch('/estoque/excluir_alimento.php', { method: 'DELETE', body: { id } });
   if (resp.sucesso) {
     await carregarTudo();
@@ -238,6 +252,8 @@ function filtrarInventario(query) {
 // ══════════════════════════════════════════════════════════════
 // RECEITAS
 // ══════════════════════════════════════════════════════════════
+let filtroReceitas = 'todas';
+
 function mudarTabReceita(tab) {
   document.querySelectorAll('.rtab-btn[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('tabReceitasSalvas').classList.toggle('hidden', tab !== 'salvas');
@@ -245,10 +261,21 @@ function mudarTabReceita(tab) {
   if (tab === 'criar') renderIngredientesCheckboxes();
 }
 
+function filtrarReceitas(tipo) {
+  filtroReceitas = tipo;
+  document.querySelectorAll('.rfilter-btn[data-filtro]').forEach((b) => b.classList.toggle('active', b.dataset.filtro === tipo));
+  renderReceitas();
+}
+
 function renderReceitas() {
+  const lista = filtroReceitas === 'favoritas' ? ESTADO.receitas.filter((r) => r.favorito) : ESTADO.receitas;
+
+  document.getElementById('receitasFiltros').style.display = ESTADO.receitas.length === 0 ? 'none' : '';
   document.getElementById('recEmpty').style.display = ESTADO.receitas.length === 0 ? '' : 'none';
-  document.getElementById('receitasGrid').innerHTML = ESTADO.receitas.map((rec) => `
-    <div class="receita-card-saved">
+  document.getElementById('recEmptyFav').style.display = (ESTADO.receitas.length > 0 && filtroReceitas === 'favoritas' && lista.length === 0) ? '' : 'none';
+
+  document.getElementById('receitasGrid').innerHTML = lista.map((rec) => `
+    <div class="receita-card-saved ${rec.favorito ? 'is-fav' : ''}">
       <div class="rc-head">
         <div>
           <div class="rc-titulo">${esc(rec.titulo)}</div>
@@ -257,17 +284,26 @@ function renderReceitas() {
           </div>` : ''}
         </div>
         <div style="display:flex;gap:6px">
-          <button type="button" class="rc-fav ${rec.favorito ? 'active' : ''}" title="Favoritar" onclick="favoritarReceita(${rec.id})">
+          <button type="button" class="rc-fav ${rec.favorito ? 'active' : ''}" title="${rec.favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" onclick="favoritarReceita(${rec.id})">
             <i class="bi ${rec.favorito ? 'bi-star-fill' : 'bi-star'}"></i>
           </button>
-          <button type="button" class="rc-delete" onclick="excluirReceita(${rec.id})"><i class="bi bi-trash3-fill"></i></button>
+          <button type="button" class="rc-delete" title="Excluir receita" onclick="excluirReceita(${rec.id})"><i class="bi bi-trash3-fill"></i></button>
         </div>
       </div>
       ${rec.descricao ? `<div class="rc-desc">${esc(rec.descricao).replace(/\n/g, '<br>')}</div>` : ''}
-      ${rec.ingredientes?.length ? `<div class="rc-ings">${rec.ingredientes.map((i) => `<span class="rc-ing">${esc(i)}</span>`).join('')}</div>` : ''}
-      ${rec.modo_preparo ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px"><i class="bi bi-list-check"></i> ${esc(rec.modo_preparo).replace(/\n/g, '<br>')}</div>` : ''}
+      ${rec.ingredientes?.length ? `<div class="rc-ings">${rec.ingredientes.map((i) => `<span class="rc-ing"><i class="bi bi-check2"></i> ${esc(i)}</span>`).join('')}</div>` : ''}
+      ${rec.modo_preparo ? `<details class="rc-preparo">
+        <summary><i class="bi bi-list-ol"></i> Modo de preparo <i class="bi bi-chevron-down rc-chevron"></i></summary>
+        <div class="rc-preparo-texto">${esc(rec.modo_preparo).replace(/\n/g, '<br>')}</div>
+      </details>` : ''}
     </div>
   `).join('');
+}
+
+function atualizarContadorIngredientes() {
+  const marcados = document.querySelectorAll('#recIngCheckboxes input:checked').length;
+  const el = document.getElementById('recIngCounter');
+  if (el) el.textContent = marcados === 0 ? 'nenhum selecionado' : `${marcados} selecionado${marcados > 1 ? 's' : ''}`;
 }
 
 function renderIngredientesCheckboxes() {
@@ -281,20 +317,30 @@ function renderIngredientesCheckboxes() {
     const dias = diasValidade(it.validade);
     const classe = classeValidade(dias);
     return `<label class="ing-chk-label">
-      <input type="checkbox" value="${it.id}">
+      <input type="checkbox" value="${it.id}" onchange="atualizarContadorIngredientes()">
       ${esc(it.nome)}
       <span class="expiry-pill ${classe}">${Math.abs(dias)}d</span>
     </label>`;
   }).join('');
+  atualizarContadorIngredientes();
 }
 
 async function submitFormReceita(e) {
   e.preventDefault();
+  const modoPreparo = document.getElementById('recModoPreparo').value.trim();
+  if (!modoPreparo) {
+    msgFeedback('recMsg', 'erro', 'Descreva o modo de preparo da receita.');
+    return;
+  }
   const ingredientesSel = Array.from(document.querySelectorAll('#recIngCheckboxes input:checked')).map((el) => parseInt(el.value, 10));
+  if (ingredientesSel.length === 0) {
+    msgFeedback('recMsg', 'erro', 'Selecione pelo menos um ingrediente do inventário.');
+    return;
+  }
   const payload = {
     titulo: document.getElementById('recTitulo').value.trim(),
     descricao: document.getElementById('recDescricao').value.trim(),
-    modo_preparo: document.getElementById('recModoPreparo').value.trim(),
+    modo_preparo: modoPreparo,
     porcoes: parseInt(document.getElementById('recPorcoes').value, 10) || 2,
     ingredientes_sel: ingredientesSel,
   };
@@ -314,7 +360,7 @@ async function submitFormReceita(e) {
 }
 
 async function excluirReceita(id) {
-  if (!confirm('Excluir esta receita?')) return;
+  if (!(await abrirConfirm('Essa receita será apagada permanentemente.', { titulo: 'Excluir receita' }))) return;
   const resp = await apiFetch('/receitas/excluir_receita.php', { method: 'DELETE', body: { id } });
   if (resp.sucesso) {
     await carregarTudo();
@@ -395,7 +441,7 @@ async function toggleCompra(id) {
 }
 
 async function removerCompra(id) {
-  if (!confirm('Remover este item da lista?')) return;
+  if (!(await abrirConfirm('Remover este item da sua lista de compras?', { titulo: 'Remover item' }))) return;
   const resp = await apiFetch('/compras/editar_compra.php', { method: 'DELETE', body: { id } });
   if (resp.sucesso) {
     ESTADO.compras = ESTADO.compras.filter((c) => c.id !== id);
@@ -660,7 +706,12 @@ async function fazerLogout() {
   window.location.href = 'login.html';
 }
 async function desativarConta() {
-  if (!confirm('Tem certeza que deseja desativar sua conta? Você poderá reativá-la fazendo login novamente.')) return;
+  const ok = await abrirConfirm('Você poderá reativá-la fazendo login novamente quando quiser.', {
+    titulo: 'Desativar sua conta?',
+    botao: 'Desativar conta',
+    icone: 'bi-pause-circle-fill',
+  });
+  if (!ok) return;
   await apiFetch('/usuarios/desativar_conta.php', { method: 'POST' });
   window.location.href = 'login.html?desativada=1';
 }
@@ -707,10 +758,14 @@ async function main() {
   document.getElementById('modalCompra').addEventListener('click', (e) => {
     if (e.target.id === 'modalCompra') fecharModalCompra();
   });
+  document.getElementById('modalConfirm').addEventListener('click', (e) => {
+    if (e.target.id === 'modalConfirm') fecharConfirm(false);
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       fecharModalInv();
       fecharModalCompra();
+      fecharConfirm(false);
     }
   });
 

@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro - FoodSaver</title>
 
-  <link href="https://googleapis.com" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:wght@300;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="../css/cadastro.css">
+  <link rel="icon" type="image/png" href="../imagens/logo.png">
 </head>
 
 <body>
 
 <!-- VOLTAR -->
-<a href="index.html" class="authBack">&larr; Voltar para o início</a>
+<a href="index.html" class="authBack"><i class="bi bi-arrow-left"></i> Voltar para o início</a>
 
 <div class="authWrapper">
 
@@ -26,23 +28,50 @@
 
     <!-- TÍTULO -->
     <h1 class="authTitle">Crie sua conta</h1>
-    <p class="authSubtitle">Comece a economizar e evitar desperdícios</p>
+    <p class="authSubtitle">Comece a economizar e evitar desperdícios </p>
 
     <!-- FORM -->
     <form class="authForm" id="formCadastro" novalidate>
 
-      <div class="erro" id="erroGeral" style="text-align: center; margin-bottom: 15px;"></div>
+      <div class="erroGeral" id="erroGeral"></div>
 
-      <input type="text" name="username" id="username" placeholder="Nome de usuário" required>
-      <div class="erro" id="erroUsername"></div>
+      <div class="campo">
+        <div class="inputIcon">
+          <i class="bi bi-person"></i>
+          <input type="text" name="username" id="username" placeholder="Nome de usuário" autocomplete="username" maxlength="30" required>
+        </div>
+        <div class="dica" id="dicaUsername">5–30 caracteres: letras, números, ponto, hífen ou underscore</div>
+        <div class="erro" id="erroUsername"></div>
+      </div>
 
-      <input type="email" name="email" id="email" placeholder="Email" required>
-      <div class="erro" id="erroEmail"></div>
+      <div class="campo">
+        <div class="inputIcon">
+          <i class="bi bi-envelope"></i>
+          <input type="email" name="email" id="email" placeholder="Email" autocomplete="email" maxlength="150" required>
+        </div>
+        <div class="erro" id="erroEmail"></div>
+      </div>
 
-      <input type="password" name="senha" id="senha" placeholder="Senha" required>
-      <div class="erro" id="erroSenha"></div>
+      <div class="campo">
+        <div class="inputIcon">
+          <i class="bi bi-lock"></i>
+          <input type="password" name="senha" id="senha" placeholder="Senha" autocomplete="new-password" maxlength="72" required>
+          <button type="button" class="toggleSenha" data-alvo="senha" tabindex="-1" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button>
+        </div>
+        <div class="dica" id="dicaSenha">Mínimo de 6 caracteres, com letras e números</div>
+        <div class="erro" id="erroSenha"></div>
+      </div>
 
-      <button type="submit">Cadastrar</button>
+      <div class="campo">
+        <div class="inputIcon">
+          <i class="bi bi-lock-fill"></i>
+          <input type="password" name="confirmarSenha" id="confirmarSenha" placeholder="Confirmar senha" autocomplete="new-password" maxlength="72" required>
+          <button type="button" class="toggleSenha" data-alvo="confirmarSenha" tabindex="-1" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button>
+        </div>
+        <div class="erro" id="erroConfirmarSenha"></div>
+      </div>
+
+      <button type="submit" id="btnCadastrar"><span class="btnTexto">Cadastrar</span></button>
     </form>
 
     <!-- LINK -->
