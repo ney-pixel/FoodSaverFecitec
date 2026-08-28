@@ -151,6 +151,57 @@
           </form>
         </div>
       </div>
+
+      <!-- MODAL: REGISTRAR CONSUMO / DESCARTE -->
+      <div class="modal-overlay hidden" id="modalMov">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-arrow-down-circle-fill"></i></div>
+              <h3>Registrar uso do alimento</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="fecharModalMov()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <form id="formMov">
+            <input type="hidden" id="movAlimentoId" value="0">
+            <input type="hidden" id="movTipo" value="consumo">
+            <div class="modal-body">
+              <p class="campo-hint" style="margin:0">
+                <i class="bi bi-box-seam"></i> <strong id="movNomeAlimento">—</strong>
+                · disponível: <span id="movDisponivel">0</span>
+              </p>
+              <div class="form-group">
+                <label><i class="bi bi-arrow-left-right"></i> O que aconteceu com o alimento?</label>
+                <div class="mov-tipo-toggle">
+                  <button type="button" class="mov-tipo-btn active" data-tipo="consumo" onclick="selecionarTipoMov('consumo')">
+                    <i class="bi bi-egg-fried"></i> Consumido
+                  </button>
+                  <button type="button" class="mov-tipo-btn" data-tipo="desperdicio" onclick="selecionarTipoMov('desperdicio')">
+                    <i class="bi bi-trash3"></i> Descartado
+                  </button>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label><i class="bi bi-123"></i> Quantidade</label>
+                  <input type="text" id="movQuantidade" placeholder="Ex: 1" required>
+                </div>
+                <div class="form-group">
+                  <label><i class="bi bi-rulers"></i> Unidade</label>
+                  <select id="movUnidade">
+                    <option>kg</option><option>g</option><option>L</option><option>und</option>
+                  </select>
+                </div>
+              </div>
+              <p class="campo-hint" style="margin:0">Kg e g são convertidos automaticamente para a unidade do estoque; para L e und, escolha a mesma unidade do alimento.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-ghost" onclick="fecharModalMov()">Cancelar</button>
+              <button type="submit" class="btn-primary" id="movSubmitBtn"><i class="bi bi-check2"></i> Registrar</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </section>
 
     <!-- ══════════════════════════════════════════
@@ -440,15 +491,32 @@
       <div class="page-header">
         <div><h1 class="page-title">Relatórios</h1><p class="page-sub">Seu impacto</p></div>
       </div>
-      <div class="relatorio-mini-stats">
-        <div class="rmini-card"><span class="rmini-icon">🥬</span><div><span class="rmini-val" id="relAlimentos">0</span><span class="rmini-label">No Estoque</span></div></div>
-        <div class="rmini-card"><span class="rmini-icon">🍽️</span><div><span class="rmini-val" id="relReceitas">0</span><span class="rmini-label">Receitas</span></div></div>
-        <div class="rmini-card"><span class="rmini-icon">⭐</span><div><span class="rmini-val" id="relNivel">1</span><span class="rmini-label">Nível</span></div></div>
-        <div class="rmini-card"><span class="rmini-icon">💰</span><div><span class="rmini-val" id="relEconomia">R$0</span><span class="rmini-label">Economizados (est.)</span></div></div>
-      </div>
-      <div class="glass-card mt-20">
-        <div class="card-head"><h3><i class="bi bi-bar-chart-line-fill"></i> Métricas de Impacto</h3></div>
-        <div class="metrics-list" id="metricsList"></div>
+      <!-- CARDS DE DESTAQUE -->
+      <div class="rel-stats-grid" id="relStatsGrid"></div>
+
+      <!-- PAINEL PRINCIPAL: validade à esquerda, gráficos empilhados à direita -->
+      <div class="rel-grid-principal">
+        <div class="glass-card rel-panel" id="relValidadeCard">
+          <div class="card-head"><h3><i class="bi bi-calendar-heart-fill"></i> Situação de Validade</h3></div>
+          <div class="rel-validade-resumo" id="relValidadeResumo"></div>
+          <div class="rel-validade-lista" id="relAlertaLista"></div>
+        </div>
+
+        <div class="rel-coluna-direita">
+          <div class="glass-card rel-panel">
+            <div class="card-head">
+              <h3><i class="bi bi-graph-up"></i> Consumo x Desperdício</h3>
+              <span class="rel-chart-sub">Últimos 30 dias</span>
+            </div>
+            <div class="rel-legend" id="relLinhaLegenda"></div>
+            <div class="rel-chart-wrap" id="relGraficoLinha"></div>
+          </div>
+
+          <div class="glass-card rel-panel rel-gauge-card">
+            <div class="card-head"><h3><i class="bi bi-speedometer2"></i> Taxa de Aproveitamento</h3></div>
+            <div class="rel-gauge-wrap" id="relGauge"></div>
+          </div>
+        </div>
       </div>
     </section>
 

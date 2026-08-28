@@ -22,14 +22,19 @@ $stmtMinimos->execute([$uid]);
 $alimentosComMinimo = $stmtMinimos->fetchAll();
 
 $stmtBuscaAuto = $pdo->prepare(
-    "SELECT id FROM FS_lista_compras WHERE usuario_id = ? AND nome_alimento = ? AND automatico = 1 AND comprado = 0"
+    "SELECT id, quantidade FROM FS_lista_compras WHERE usuario_id = ? AND nome_alimento = ? AND automatico = 1 AND comprado = 0"
 );
 $stmtInsereAuto = $pdo->prepare(
     "INSERT INTO FS_lista_compras (usuario_id, nome_alimento, quantidade, unidade_medida, automatico) VALUES (?, ?, ?, ?, 1)"
 );
+$stmtAtualizaAuto = $pdo->prepare(
+    "UPDATE FS_lista_compras SET quantidade = ? WHERE id = ?"
+);
 $stmtRemoveAuto = $pdo->prepare(
     "DELETE FROM FS_lista_compras WHERE id = ?"
 );
+
+$nomesAindaAbaixoDoMinimo = [];
 
 foreach ($alimentosComMinimo as $a) {
     $abaixoDoMinimo = (float) $a['quantidade'] < (float) $a['quantidade_minima'];
@@ -40,9 +45,34 @@ foreach ($alimentosComMinimo as $a) {
     if ($abaixoDoMinimo && !$existente) {
         $deficit = (float) $a['quantidade_minima'] - (float) $a['quantidade'];
         $stmtInsereAuto->execute([$uid, $a['descricao'], $deficit, $a['unidade_medida']]);
+    } elseif ($abaixoDoMinimo && $existente) {
+        // Já existe um item automático: mantém a quantidade necessária em dia
+        // (ex.: consumiu de novo e o déficit aumentou).
+        $deficit = round((float) $a['quantidade_minima'] - (float) $a['quantidade'], 2);
+        if ($deficit !== round((float) $existente['quantidade'], 2)) {
+            $stmtAtualizaAuto->execute([$deficit, $existente['id']]);
+        }
     } elseif (!$abaixoDoMinimo && $existente) {
         // Voltou a ficar acima do mínimo: remove o item automático ainda não comprado
         $stmtRemoveAuto->execute([$existente['id']]);
+    }
+
+    if ($abaixoDoMinimo) {
+        $nomesAindaAbaixoDoMinimo[] = $a['descricao'];
+    }
+}
+
+// 1.1) Limpa itens automáticos "órfãos": o alimento que os gerou não está
+// mais abaixo do mínimo por ter sido excluído ou por ter tido a própria
+// quantidade mínima removida (nesses casos ele nem aparece no laço acima,
+// então o item automático nunca seria reavaliado sem esta checagem extra).
+$stmtAutosPendentes = $pdo->prepare(
+    "SELECT id, nome_alimento FROM FS_lista_compras WHERE usuario_id = ? AND automatico = 1 AND comprado = 0"
+);
+$stmtAutosPendentes->execute([$uid]);
+foreach ($stmtAutosPendentes->fetchAll() as $auto) {
+    if (!in_array($auto['nome_alimento'], $nomesAindaAbaixoDoMinimo, true)) {
+        $stmtRemoveAuto->execute([$auto['id']]);
     }
 }
 
