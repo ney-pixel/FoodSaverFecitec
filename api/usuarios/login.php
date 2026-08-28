@@ -29,7 +29,7 @@ if (!$usuario) {
     responder(false, 'E-mail não encontrado.', ['erros' => ['email' => 'E-mail não encontrado.']], 401);
 }
 
-if (!password_verify($senha, $usuario['senha'])) {
+if (empty($usuario['senha']) || !password_verify($senha, $usuario['senha'])) {
     responder(false, 'Senha incorreta.', ['erros' => ['senha' => 'Senha incorreta.']], 401);
 }
 

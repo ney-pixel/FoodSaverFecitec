@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'visual.dart';
 import 'usuario.dart';
-import 'banco_dados.dart';
-import 'banco_receitas.dart';
 import 'receita.dart';
 import 'alimento.dart';
+import 'api_cliente.dart';
 
 class TelaReceitas extends StatefulWidget {
   final Usuario usuario;
@@ -17,36 +16,92 @@ class _TelaReceitasState extends State<TelaReceitas>
     with SingleTickerProviderStateMixin {
   late TabController _controladorSubabas;
 
-  final List<Receita> _favoritas = [];
+  bool _carregando = true;
+  String? _erro;
+  List<Receita> _biblioteca = [];
+  List<GrupoReceitas> _grupos = [];
+  List<AlimentoEstoque> _estoque = [];
 
-  final List<_GrupoReceitas> _grupos = [];
-
-  void _aoFavoritar(Receita receita) {
-    setState(() {
-      if (!_favoritas.any((r) => r.id == receita.id)) {
-        receita.favorita = true;
-        _favoritas.add(receita);
-      }
-    });
-  }
-
-  void _aoDesfavoritar(Receita receita) {
-    setState(() {
-      receita.favorita = false;
-      _favoritas.removeWhere((r) => r.id == receita.id);
-    });
-  }
+  List<Receita> get _favoritas => _biblioteca.where((r) => r.favorita).toList();
 
   @override
   void initState() {
     super.initState();
     _controladorSubabas = TabController(length: 4, vsync: this);
+    _carregarTudo();
   }
 
   @override
   void dispose() {
     _controladorSubabas.dispose();
     super.dispose();
+  }
+
+  Future<void> _carregarTudo() async {
+    setState(() { _carregando = true; _erro = null; });
+    try {
+      await Future.wait([_carregarBiblioteca(), _carregarGrupos(), _carregarEstoque()]);
+      setState(() => _carregando = false);
+    } on ApiException catch (e) {
+      setState(() { _carregando = false; _erro = e.mensagem; });
+    }
+  }
+
+  Future<void> _carregarBiblioteca() async {
+    final resp = await ApiCliente.get('/biblioteca/listar_biblioteca.php');
+    final lista = (resp['receitas'] as List)
+        .map((j) => Receita.fromJson(j as Map<String, dynamic>))
+        .toList();
+    if (mounted) setState(() => _biblioteca = lista);
+  }
+
+  Future<void> _carregarGrupos() async {
+    final resp = await ApiCliente.get('/biblioteca/gerenciar_grupo_biblioteca.php');
+    final lista = (resp['grupos'] as List).map((j) {
+      final grupo = j as Map<String, dynamic>;
+      final itens = (grupo['receitas'] as List).map((it) {
+        final id = it['id'] as int;
+        // Hidrata com o objeto completo da biblioteca (o endpoint de grupo
+        // só devolve id/título/porções); cai pra um objeto mínimo se por
+        // acaso não achar (não deveria acontecer, biblioteca é fixa).
+        return _biblioteca.firstWhere(
+          (r) => r.id == id,
+          orElse: () => Receita(
+            id: id,
+            nome: it['titulo'] as String,
+            descricao: '', categoria: '', dificuldade: 'Fácil',
+            tempoPreparo: 0, porcoes: (it['porcoes'] as num?)?.toInt() ?? 1, calorias: 0, imagem: '',
+            ingredientes: [], ingredientesNecessarios: [], preparo: [], dicas: [],
+          ),
+        );
+      }).toList();
+      return GrupoReceitas(id: '${grupo['id']}', nome: grupo['nome'] as String, receitas: itens);
+    }).toList();
+    if (mounted) setState(() => _grupos = lista);
+  }
+
+  Future<void> _carregarEstoque() async {
+    final resp = await ApiCliente.get('/estoque/listar_alimentos.php');
+    final lista = (resp['alimentos'] as List)
+        .map((j) => AlimentoEstoque.fromJson(j as Map<String, dynamic>))
+        .toList();
+    if (mounted) setState(() => _estoque = lista);
+  }
+
+  void _mostrarErro(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: const Color(0xFFFF4444)),
+    );
+  }
+
+  Future<void> _alternarFavorito(Receita receita) async {
+    try {
+      await ApiCliente.post('/biblioteca/favoritar_biblioteca.php', corpo: {'id': receita.id});
+      await _carregarBiblioteca();
+    } on ApiException catch (e) {
+      _mostrarErro(e.mensagem);
+    }
   }
 
   @override
@@ -84,26 +139,82 @@ class _TelaReceitasState extends State<TelaReceitas>
           ),
         ),
         Expanded(
-          child: TabBarView(
-            controller: _controladorSubabas,
-            children: [
-              _SubabaCriar(aoFavoritar: _aoFavoritar, favoritas: _favoritas),
-              _SubabaFavoritas(favoritas: _favoritas, aoDesfavoritar: _aoDesfavoritar),
-              _SubabaGruposReceitas(grupos: _grupos, todasFavoritas: _favoritas),
-              _SubabaBiblioteca(aoFavoritar: _aoFavoritar, favoritas: _favoritas),
-            ],
-          ),
+          child: _carregando
+              ? const Center(child: CircularProgressIndicator(color: verdePrimario))
+              : _erro != null
+                  ? _telaErro(_erro!, _carregarTudo)
+                  : TabBarView(
+                      controller: _controladorSubabas,
+                      children: [
+                        _SubabaCriar(
+                          estoque: _estoque,
+                          biblioteca: _biblioteca,
+                          aoFavoritar: _alternarFavorito,
+                        ),
+                        _SubabaFavoritas(favoritas: _favoritas, aoDesfavoritar: _alternarFavorito),
+                        _SubabaGruposReceitas(
+                          grupos: _grupos,
+                          todasReceitas: _biblioteca,
+                          aoCriarGrupo: (nome) async {
+                            await ApiCliente.post('/biblioteca/criar_grupo_biblioteca.php', corpo: {'nome': nome});
+                            await _carregarGrupos();
+                          },
+                          aoAtualizarGrupo: (grupo, idsAntes, idsDepois) async {
+                            final paraAdicionar = idsDepois.difference(idsAntes);
+                            final paraRemover   = idsAntes.difference(idsDepois);
+                            for (final id in paraAdicionar) {
+                              await ApiCliente.post('/biblioteca/gerenciar_grupo_biblioteca.php', corpo: {
+                                'grupo_id': int.parse(grupo.id), 'receita_id': id,
+                              });
+                            }
+                            for (final id in paraRemover) {
+                              await ApiCliente.delete('/biblioteca/gerenciar_grupo_biblioteca.php', corpo: {
+                                'grupo_id': int.parse(grupo.id), 'receita_id': id,
+                              });
+                            }
+                            await _carregarGrupos();
+                          },
+                          aoExcluirGrupo: (grupo) async {
+                            await ApiCliente.post('/biblioteca/excluir_grupo_biblioteca.php', corpo: {'grupo_id': int.parse(grupo.id)});
+                            await _carregarGrupos();
+                          },
+                          aoErro: _mostrarErro,
+                        ),
+                        _SubabaBiblioteca(biblioteca: _biblioteca, aoFavoritar: _alternarFavorito),
+                      ],
+                    ),
         ),
       ],
     );
   }
+
+  Widget _telaErro(String mensagem, Future<void> Function() aoTentar) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 48),
+            const SizedBox(height: 16),
+            Text(mensagem, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: aoTentar,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(color: verdePrimario, borderRadius: BorderRadius.circular(10)),
+                child: const Text('Tentar novamente', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ),
+          ]),
+        ),
+      );
 }
 
 //subaba criar receitas
 class _SubabaCriar extends StatefulWidget {
-  final void Function(Receita) aoFavoritar;
-  final List<Receita> favoritas;
-  const _SubabaCriar({required this.aoFavoritar, required this.favoritas});
+  final List<AlimentoEstoque> estoque;
+  final List<Receita> biblioteca;
+  final Future<void> Function(Receita) aoFavoritar;
+  const _SubabaCriar({required this.estoque, required this.biblioteca, required this.aoFavoritar});
   @override
   State<_SubabaCriar> createState() => _SubabaCriarState();
 }
@@ -119,9 +230,9 @@ class _SubabaCriarState extends State<_SubabaCriar> {
   int get _totalSelecionados => _ingredientesSelecionados.length;
   List<String> get _nomesSelecionados => _ingredientesSelecionados;
 
-  //alimentos do estoque disponiveis para sugestao em receitas (com IA ativada)
+  //alimentos do estoque disponiveis para sugestao em receitas
   List<String> get _alimentosDisponiveis =>
-      BancoDados.estoque.where((a) => a.entrarNaIA).map((a) => a.nome).toList();
+      widget.estoque.map((a) => a.nome).toList();
 
   //sugestoes filtradas a partir do texto digitado (letras ou silabas), ja
   //verificando se o alimento existe no estoque e ainda nao foi selecionado
@@ -161,8 +272,21 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     super.dispose();
   }
 
+  //busca na biblioteca a primeira receita cujos ingredientes necessarios
+  //estejam todos cobertos pelos ingredientes selecionados
+  List<Receita> _buscarPorIngredientes(List<String> nomesSelecionados) {
+    final selecionadosLower = nomesSelecionados.map((n) => n.toLowerCase()).toList();
+    return widget.biblioteca.where((r) {
+      return r.ingredientesNecessarios.every(
+        (necessario) => selecionadosLower.any((sel) =>
+            sel.contains(necessario.toLowerCase()) ||
+            necessario.toLowerCase().contains(sel)),
+      );
+    }).toList();
+  }
+
   void _gerarReceita() {
-    final receitasEncontradas = BancoReceitas.buscarPorIngredientes(_nomesSelecionados);
+    final receitasEncontradas = _buscarPorIngredientes(_nomesSelecionados);
     if (receitasEncontradas.isEmpty) {
       _mostrarSemResultado();
     } else {
@@ -189,8 +313,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
   }
 
   void _mostrarReceita(Receita receita) {
-    final jaFavorita = widget.favoritas.any((r) => r.id == receita.id);
-    bool _favoritado = jaFavorita;
+    bool favoritado = receita.favorita;
 
     showModalBottomSheet(
       context: context,
@@ -221,21 +344,19 @@ class _SubabaCriarState extends State<_SubabaCriar> {
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
-                    onTap: () {
-                      setB(() => _favoritado = !_favoritado);
-                      if (_favoritado) {
-                        widget.aoFavoritar(receita);
-                      }
+                    onTap: () async {
+                      setB(() => favoritado = !favoritado);
+                      await widget.aoFavoritar(receita);
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       width: 46, height: 46,
                       decoration: BoxDecoration(
-                        color: _favoritado ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
+                        color: favoritado ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
                         shape: BoxShape.circle,
-                        border: Border.all(color: _favoritado ? Colors.amber.withOpacity(0.5) : Colors.white12),
+                        border: Border.all(color: favoritado ? Colors.amber.withOpacity(0.5) : Colors.white12),
                       ),
-                      child: Icon(_favoritado ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: _favoritado ? Colors.amber : Colors.white38, size: 22),
+                      child: Icon(favoritado ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: favoritado ? Colors.amber : Colors.white38, size: 22),
                     ),
                   ),
                 ]),
@@ -511,55 +632,10 @@ class _SubabaCriarState extends State<_SubabaCriar> {
       );
 }
 
-//cartao de receita
-class _CartaoReceitaSimples extends StatelessWidget {
-  final Receita receita;
-  final VoidCallback aoAbrir;
-  const _CartaoReceitaSimples({required this.receita, required this.aoAbrir});
-
-  @override
-  Widget build(BuildContext context) {
-    final cor = receita.dificuldade == 'Fácil' ? verdePrimario : const Color(0xFFFFA726);
-    return GestureDetector(
-      onTap: aoAbrir,
-      child: Container(
-        padding: const EdgeInsets.all(13),
-        decoration: BoxDecoration(color: cartaoEscuro, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.18))),
-        child: Row(children: [
-          Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.2))), child: const Icon(Icons.restaurant_rounded, color: Color(0xFF9B8FFF), size: 20)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9B59B6)]), borderRadius: BorderRadius.circular(4)), child: const Text('IA', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800))),
-              const SizedBox(width: 6),
-              Flexible(child: Text(receita.nome, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white))),
-            ]),
-            const SizedBox(height: 3),
-            Text(receita.ingredientesNecessarios.join(' · '), style: const TextStyle(fontSize: 10, color: Colors.white38), overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 5),
-            Row(children: [
-              _pildora(Icons.timer_rounded, '${receita.tempoPreparo} min', Colors.white38),
-              const SizedBox(width: 6),
-              _pildora(Icons.bar_chart_rounded, receita.dificuldade, cor),
-            ]),
-          ])),
-          const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 18),
-        ]),
-      ),
-    );
-  }
-
-  Widget _pildora(IconData icone, String rotulo, Color cor) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: cor.withOpacity(0.2))),
-        child: Row(children: [Icon(icone, size: 10, color: cor), const SizedBox(width: 3), Text(rotulo, style: TextStyle(fontSize: 10, color: cor))]),
-      );
-}
-
 //subaba favoritas
 class _SubabaFavoritas extends StatelessWidget {
   final List<Receita> favoritas;
-  final void Function(Receita) aoDesfavoritar;
+  final Future<void> Function(Receita) aoDesfavoritar;
   const _SubabaFavoritas({required this.favoritas, required this.aoDesfavoritar});
 
   @override
@@ -570,7 +646,7 @@ class _SubabaFavoritas extends StatelessWidget {
         const SizedBox(height: 16),
         const Text('Nenhuma receita favoritada', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
-        const Text('Gere uma receita e favorite\npara ela aparecer aqui', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+        const Text('Favorite uma receita na Biblioteca\npara ela aparecer aqui', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
       ]));
     }
 
@@ -642,16 +718,24 @@ class _CartaoFavorita extends StatelessWidget {
 }
 
 //subaba grupos
-class _SubabaGruposReceitas extends StatefulWidget {
-  final List<_GrupoReceitas> grupos;
-  final List<Receita> todasFavoritas;
-  const _SubabaGruposReceitas({required this.grupos, required this.todasFavoritas});
-  @override
-  State<_SubabaGruposReceitas> createState() => _SubabaGruposReceitasState();
-}
+class _SubabaGruposReceitas extends StatelessWidget {
+  final List<GrupoReceitas> grupos;
+  final List<Receita> todasReceitas;
+  final Future<void> Function(String nome) aoCriarGrupo;
+  final Future<void> Function(GrupoReceitas grupo, Set<int> idsAntes, Set<int> idsDepois) aoAtualizarGrupo;
+  final Future<void> Function(GrupoReceitas grupo) aoExcluirGrupo;
+  final void Function(String) aoErro;
 
-class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
-  void _criarGrupo() {
+  const _SubabaGruposReceitas({
+    required this.grupos,
+    required this.todasReceitas,
+    required this.aoCriarGrupo,
+    required this.aoAtualizarGrupo,
+    required this.aoExcluirGrupo,
+    required this.aoErro,
+  });
+
+  void _criarGrupo(BuildContext context) {
     final ctrl = TextEditingController();
     showDialog(
       context: context,
@@ -669,10 +753,15 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () {
+            onPressed: () async {
               final nome = ctrl.text.trim();
-              if (nome.isNotEmpty) setState(() => widget.grupos.add(_GrupoReceitas(id: DateTime.now().millisecondsSinceEpoch.toString(), nome: nome)));
+              if (nome.isEmpty) return;
               Navigator.pop(ctx);
+              try {
+                await aoCriarGrupo(nome);
+              } on ApiException catch (e) {
+                aoErro(e.mensagem);
+              }
             },
             child: const Text('Criar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
           ),
@@ -681,9 +770,8 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
     );
   }
 
-  void _adicionarReceitas(_GrupoReceitas grupo) {
-    final todas = BancoReceitas.receitas;
-    final sels = List<bool>.generate(todas.length, (i) => grupo.receitas.any((r) => r.id == todas[i].id));
+  void _adicionarReceitas(BuildContext context, GrupoReceitas grupo) {
+    final sels = List<bool>.generate(todasReceitas.length, (i) => grupo.receitas.any((r) => r.id == todasReceitas[i].id));
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -695,12 +783,12 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: todas.length,
+              itemCount: todasReceitas.length,
               itemBuilder: (_, i) => CheckboxListTile(
                 value: sels[i], onChanged: (v) => setD(() => sels[i] = v ?? false),
                 activeColor: verdePrimario, checkColor: Colors.black,
-                title: Text(todas[i].nome, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                subtitle: Text(todas[i].categoria, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                title: Text(todasReceitas[i].nome, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                subtitle: Text(todasReceitas[i].categoria, style: const TextStyle(color: Colors.white38, fontSize: 11)),
               ),
             ),
           ),
@@ -708,13 +796,15 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              onPressed: () {
-                final escolhidas = [for (int i = 0; i < todas.length; i++) if (sels[i]) todas[i]];
-                setState(() {
-                  final idx = widget.grupos.indexWhere((g) => g.id == grupo.id);
-                  if (idx >= 0) widget.grupos[idx] = grupo.copiarCom(receitas: escolhidas);
-                });
+              onPressed: () async {
+                final idsAntes = grupo.receitas.map((r) => r.id).toSet();
+                final idsDepois = {for (int i = 0; i < todasReceitas.length; i++) if (sels[i]) todasReceitas[i].id};
                 Navigator.pop(ctx);
+                try {
+                  await aoAtualizarGrupo(grupo, idsAntes, idsDepois);
+                } on ApiException catch (e) {
+                  aoErro(e.mensagem);
+                }
               },
               child: const Text('Salvar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
             ),
@@ -724,7 +814,7 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
     );
   }
 
-  void _excluirGrupo(_GrupoReceitas grupo) {
+  void _excluirGrupo(BuildContext context, GrupoReceitas grupo) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -736,7 +826,14 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () { setState(() => widget.grupos.removeWhere((g) => g.id == grupo.id)); Navigator.pop(ctx); },
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await aoExcluirGrupo(grupo);
+              } on ApiException catch (e) {
+                aoErro(e.mensagem);
+              }
+            },
             child: const Text('Excluir', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -750,7 +847,7 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
         child: GestureDetector(
-          onTap: _criarGrupo,
+          onTap: () => _criarGrupo(context),
           child: Container(
             width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 13),
             decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.3))),
@@ -763,7 +860,7 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
         ),
       ),
       Expanded(
-        child: widget.grupos.isEmpty
+        child: grupos.isEmpty
             ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Container(width: 72, height: 72, decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.08), shape: BoxShape.circle), child: const Icon(Icons.folder_outlined, color: Color(0xFF9B8FFF), size: 32)),
                 const SizedBox(height: 16),
@@ -774,9 +871,13 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
             : ListView.separated(
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                itemCount: widget.grupos.length,
+                itemCount: grupos.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => _CartaoGrupoReceitas(grupo: widget.grupos[i], aoAdicionarReceitas: _adicionarReceitas, aoExcluir: _excluirGrupo),
+                itemBuilder: (_, i) => _CartaoGrupoReceitas(
+                  grupo: grupos[i],
+                  aoAdicionarReceitas: () => _adicionarReceitas(context, grupos[i]),
+                  aoExcluir: () => _excluirGrupo(context, grupos[i]),
+                ),
               ),
       ),
     ]);
@@ -784,9 +885,9 @@ class _SubabaGruposReceitasState extends State<_SubabaGruposReceitas> {
 }
 
 class _CartaoGrupoReceitas extends StatelessWidget {
-  final _GrupoReceitas grupo;
-  final void Function(_GrupoReceitas) aoAdicionarReceitas;
-  final void Function(_GrupoReceitas) aoExcluir;
+  final GrupoReceitas grupo;
+  final VoidCallback aoAdicionarReceitas;
+  final VoidCallback aoExcluir;
   const _CartaoGrupoReceitas({required this.grupo, required this.aoAdicionarReceitas, required this.aoExcluir});
 
   @override
@@ -808,7 +909,7 @@ class _CartaoGrupoReceitas extends StatelessWidget {
               color: const Color(0xFF1C1C1C),
               icon: const Icon(Icons.more_vert_rounded, color: Colors.white38, size: 18),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              onSelected: (a) { if (a == 'add') aoAdicionarReceitas(grupo); if (a == 'del') aoExcluir(grupo); },
+              onSelected: (a) { if (a == 'add') aoAdicionarReceitas(); if (a == 'del') aoExcluir(); },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'add', child: Row(children: [Icon(Icons.add_rounded, color: Color(0xFF9B8FFF), size: 16), SizedBox(width: 8), Text('Adicionar receitas', style: TextStyle(color: Colors.white, fontSize: 13))])),
                 const PopupMenuItem(value: 'del', child: Row(children: [Icon(Icons.delete_outline_rounded, color: Color(0xFFFF4444), size: 16), SizedBox(width: 8), Text('Excluir grupo', style: TextStyle(color: Color(0xFFFF4444), fontSize: 13))])),
@@ -829,7 +930,7 @@ class _CartaoGrupoReceitas extends StatelessWidget {
         ],
         if (grupo.receitas.isEmpty)
           GestureDetector(
-            onTap: () => aoAdicionarReceitas(grupo),
+            onTap: aoAdicionarReceitas,
             child: Container(margin: const EdgeInsets.fromLTRB(14, 0, 14, 12), padding: const EdgeInsets.symmetric(vertical: 9), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(10), border: Border.all(color: bordaCartao)), child: const Center(child: Text('+ Adicionar receitas', style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.w500)))),
           ),
       ]),
@@ -837,23 +938,15 @@ class _CartaoGrupoReceitas extends StatelessWidget {
   }
 }
 
-class _GrupoReceitas {
-  final String id;
-  final String nome;
-  final List<Receita> receitas;
-  _GrupoReceitas({required this.id, required this.nome, List<Receita>? receitas}) : receitas = receitas ?? [];
-  _GrupoReceitas copiarCom({List<Receita>? receitas}) => _GrupoReceitas(id: id, nome: nome, receitas: receitas ?? this.receitas);
-}
-
 // ─────────────────────────────────────────────
 //  Subaba: Biblioteca de Receitas
-//  Todas as receitas pré-cadastradas, com filtro
-//  por ingrediente/alimento e busca por nome
+//  Catálogo fixo, mantido pelos desenvolvedores, igual para todo mundo.
+//  Filtro por nome/categoria e favoritar direto por aqui.
 // ─────────────────────────────────────────────
 class _SubabaBiblioteca extends StatefulWidget {
-  final void Function(Receita) aoFavoritar;
-  final List<Receita> favoritas;
-  const _SubabaBiblioteca({required this.aoFavoritar, required this.favoritas});
+  final List<Receita> biblioteca;
+  final Future<void> Function(Receita) aoFavoritar;
+  const _SubabaBiblioteca({required this.biblioteca, required this.aoFavoritar});
   @override
   State<_SubabaBiblioteca> createState() => _SubabaBibliotecaState();
 }
@@ -863,16 +956,13 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
   String _textoBusca = '';
 
   List<Receita> get _receitasFiltradas {
-    var lista = BancoReceitas.receitas;
-
-    // Filtro por texto de busca (nome ou categoria)
+    var lista = widget.biblioteca;
     if (_textoBusca.isNotEmpty) {
       final b = _textoBusca.toLowerCase();
       lista = lista.where((r) =>
           r.nome.toLowerCase().contains(b) ||
           r.categoria.toLowerCase().contains(b)).toList();
     }
-
     return lista;
   }
 
@@ -888,9 +978,8 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
     super.dispose();
   }
 
-  // Abre o detalhe da receita (mesmo bottom sheet do Criar)
   void _verReceita(BuildContext context, Receita receita) {
-    bool favoritado = widget.favoritas.any((r) => r.id == receita.id);
+    bool favoritado = receita.favorita;
 
     showModalBottomSheet(
       context: context,
@@ -919,9 +1008,9 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
                   ),
                   const SizedBox(width: 12),
                   GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       setB(() => favoritado = !favoritado);
-                      if (favoritado) widget.aoFavoritar(receita);
+                      await widget.aoFavoritar(receita);
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -1097,10 +1186,9 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (_, i) {
                     final r = filtradas[i];
-                    final isFav = widget.favoritas.any((f) => f.id == r.id);
                     return _CartaoBiblioteca(
                       receita: r,
-                      isFavorita: isFav,
+                      isFavorita: r.favorita,
                       aoAbrir: () => _verReceita(context, r),
                     );
                   },
@@ -1140,7 +1228,6 @@ class _CartaoBiblioteca extends StatelessWidget {
           border: Border.all(color: bordaCartao),
         ),
         child: Row(children: [
-          // Ícone da categoria
           Container(
             width: 48, height: 48,
             decoration: BoxDecoration(

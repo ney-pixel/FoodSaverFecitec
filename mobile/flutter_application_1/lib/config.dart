@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'visual.dart';
 import 'usuario.dart';
+import 'api_cliente.dart';
 import 'login.dart';
 import 'sobre_foodsaver.dart';
 import 'sobre_nos.dart';
@@ -15,18 +16,200 @@ class TelaConfig extends StatefulWidget {
 }
 
 class _TelaConfigState extends State<TelaConfig> {
-  bool _notifValidade = true;
+  // "Novas receitas IA" e "XP e conquistas" não têm coluna correspondente
+  // na API ainda — ficam só como preferência local nesta sessão.
   bool _notifReceitas = false;
   bool _notifXP       = true;
-  bool _modoEscuro    = true;
+
+  bool _carregando = true;
+  String? _erro;
+  String _username = '';
+  String _email = '';
+  String _plano = 'gratis';
+  bool _alertasValidade = true;
+  bool _modoEscuro = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _username = widget.usuario.nome;
+    _email = widget.usuario.email;
+    _carregarConfiguracoes();
+  }
+
+  Future<void> _carregarConfiguracoes() async {
+    setState(() { _carregando = true; _erro = null; });
+    try {
+      final resp = await ApiCliente.get('/configuracoes/listar_configuracoes.php');
+      final cfg = resp['configuracoes'] as Map<String, dynamic>;
+      setState(() {
+        _username = (cfg['username'] as String?) ?? _username;
+        _email = (cfg['email'] as String?) ?? _email;
+        _plano = (cfg['plano'] as String?) ?? 'gratis';
+        _alertasValidade = cfg['alertas_validade'] == true;
+        _modoEscuro = (cfg['modo_tela'] as String?) == 'escuro';
+        _carregando = false;
+      });
+    } on ApiException catch (e) {
+      setState(() { _carregando = false; _erro = e.mensagem; });
+    }
+  }
+
+  void _mostrarErro(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: const Color(0xFFFF4444)),
+    );
+  }
+
+  void _mostrarSucesso(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: verdeEscuro),
+    );
+  }
+
+  Future<void> _salvarPreferencia(Map<String, dynamic> corpo) async {
+    try {
+      await ApiCliente.post('/configuracoes/atualizar_configuracoes.php', corpo: corpo);
+    } on ApiException catch (e) {
+      _mostrarErro(e.mensagem);
+      await _carregarConfiguracoes(); // reverte visualmente em caso de erro
+    }
+  }
+
+  void _editarCampoTexto({
+    required String titulo,
+    required String valorAtual,
+    required String campo, // 'username' ou 'email'
+    TextInputType? tipoTeclado,
+  }) {
+    final ctrl = TextEditingController(text: valorAtual);
+    String? erro;
+    bool enviando = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: cartaoEscuro,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(titulo, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: TextField(
+            controller: ctrl,
+            keyboardType: tipoTeclado,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              errorText: erro,
+              filled: true, fillColor: const Color(0xFF1C1C1C),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: verdePrimario, width: 1.2)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: enviando ? null : () async {
+                final valor = ctrl.text.trim();
+                if (valor.isEmpty) { setD(() => erro = 'Campo obrigatório'); return; }
+                setD(() => enviando = true);
+                try {
+                  await ApiCliente.post('/configuracoes/atualizar_configuracoes.php', corpo: {campo: valor});
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _carregarConfiguracoes();
+                  _mostrarSucesso('Atualizado com sucesso!');
+                } on ApiException catch (e) {
+                  setD(() { enviando = false; erro = e.mensagem; });
+                }
+              },
+              child: const Text('Salvar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _abrirDialogoAlterarSenha() {
+    final ctrlAtual = TextEditingController();
+    final ctrlNova = TextEditingController();
+    final ctrlConf = TextEditingController();
+    String? erro;
+    bool enviando = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: cartaoEscuro,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Alterar senha', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: ctrlAtual, obscureText: true, style: const TextStyle(color: Colors.white), decoration: _decoracao('Senha atual')),
+            const SizedBox(height: 10),
+            TextField(controller: ctrlNova, obscureText: true, style: const TextStyle(color: Colors.white), decoration: _decoracao('Nova senha (mín. 6 caracteres)')),
+            const SizedBox(height: 10),
+            TextField(controller: ctrlConf, obscureText: true, style: const TextStyle(color: Colors.white), decoration: _decoracao('Confirmar nova senha')),
+            if (erro != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(erro!, style: const TextStyle(color: Colors.redAccent, fontSize: 12))),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: enviando ? null : () async {
+                if (ctrlNova.text.length < 6) { setD(() => erro = 'A nova senha deve ter ao menos 6 caracteres.'); return; }
+                if (ctrlNova.text != ctrlConf.text) { setD(() => erro = 'As senhas não coincidem.'); return; }
+                setD(() => enviando = true);
+                try {
+                  await ApiCliente.post('/configuracoes/atualizar_configuracoes.php', corpo: {
+                    'senha_atual': ctrlAtual.text,
+                    'senha_nova': ctrlNova.text,
+                    'senha_conf': ctrlConf.text,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _mostrarSucesso('Senha alterada com sucesso!');
+                } on ApiException catch (e) {
+                  setD(() { enviando = false; erro = e.mensagem; });
+                }
+              },
+              child: const Text('Salvar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _decoracao(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+        filled: true, fillColor: const Color(0xFF1C1C1C),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: verdePrimario, width: 1.2)),
+        isDense: true,
+      );
+
+  // FS_usuarios.plano é um ENUM('gratuito','premium') no banco.
+  String get _rotuloPlano => switch (_plano.toLowerCase()) {
+        'gratuito' || 'gratis' || '' => 'Plano Grátis',
+        'premium' => 'Plano Premium',
+        _ => 'Plano ${_plano[0].toUpperCase()}${_plano.substring(1)}',
+      };
 
   @override
   Widget build(BuildContext context) {
+    final iniciais = Usuario.iniciaisDe(_username);
+
     return Column(
       children: [
         cabecalhoPagina("Configurações"),
         Expanded(
-          child: ListView(
+          child: _carregando
+              ? const Center(child: CircularProgressIndicator(color: verdePrimario))
+              : _erro != null
+                  ? _telaErro(_erro!, _carregarConfiguracoes)
+                  : ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
             physics: const BouncingScrollPhysics(),
             children: [
@@ -41,65 +224,61 @@ class _TelaConfigState extends State<TelaConfig> {
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: bordaCartao)),
                 child: Row(children: [
-                  Stack(children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: verdePrimario.withOpacity(0.12),
-                          border: Border.all(
-                              color: verdePrimario.withOpacity(0.3))),
-                      child: Center(
-                        child: Text(widget.usuario.iniciais,
-                            style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: verdePrimario)),
-                      ),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: verdePrimario.withOpacity(0.12),
+                        border: Border.all(
+                            color: verdePrimario.withOpacity(0.3))),
+                    child: Center(
+                      child: Text(iniciais,
+                          style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: verdePrimario)),
                     ),
-                    Positioned(
-                      bottom: 0, right: 0,
-                      child: Container(
-                        width: 17, height: 17,
-                        decoration: BoxDecoration(
-                            color: verdePrimario,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                                color: cartaoEscuro, width: 2)),
-                        child: const Icon(Icons.edit_rounded,
-                            size: 8, color: Colors.black)),
-                    ),
-                  ]),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.usuario.nome,
+                        Text(_username,
                             style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white)),
                         const SizedBox(height: 2),
-                        Text(widget.usuario.email,
+                        Text(_email,
                             style: const TextStyle(
                                 fontSize: 11, color: Colors.white38)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: Colors.white24, size: 18),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: verdePrimario.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text(_rotuloPlano, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: verdePrimario)),
+                  ),
                 ]),
               ),
               const SizedBox(height: 8),
-              _itemNav(Icons.badge_outlined,       "Nickname",
-                  valor: "Humberto"),
+              GestureDetector(
+                onTap: () => _editarCampoTexto(titulo: 'Nickname', valorAtual: _username, campo: 'username'),
+                child: _itemNav(Icons.badge_outlined, "Nickname", valor: _username),
+              ),
               const SizedBox(height: 8),
-              _itemNav(Icons.lock_outline_rounded,  "Alterar senha"),
+              GestureDetector(
+                onTap: _abrirDialogoAlterarSenha,
+                child: _itemNav(Icons.lock_outline_rounded, "Alterar senha"),
+              ),
               const SizedBox(height: 8),
-              _itemNav(Icons.email_outlined,        "E-mail",
-                  valor: widget.usuario.email),
+              GestureDetector(
+                onTap: () => _editarCampoTexto(titulo: 'E-mail', valorAtual: _email, campo: 'email', tipoTeclado: TextInputType.emailAddress),
+                child: _itemNav(Icons.email_outlined, "E-mail", valor: _email),
+              ),
 
               const SizedBox(height: 20),
 
@@ -109,20 +288,23 @@ class _TelaConfigState extends State<TelaConfig> {
               _itemToggle(
                 "Alertas de validade",
                 "Avisar quando alimentos vencerão",
-                _notifValidade,
-                () => setState(() => _notifValidade = !_notifValidade),
+                _alertasValidade,
+                () {
+                  setState(() => _alertasValidade = !_alertasValidade);
+                  _salvarPreferencia({'alertas_validade': _alertasValidade});
+                },
               ),
               const SizedBox(height: 8),
               _itemToggle(
-                "Novas receitas IA",
-                "Sugestões diárias personalizadas",
+                "Novas receitas",
+                "Sugestões diárias personalizadas (em breve)",
                 _notifReceitas,
                 () => setState(() => _notifReceitas = !_notifReceitas),
               ),
               const SizedBox(height: 8),
               _itemToggle(
                 "XP e conquistas",
-                "Ao subir de nível ou ganhar conquista",
+                "Ao subir de nível ou ganhar conquista (em breve)",
                 _notifXP,
                 () => setState(() => _notifXP = !_notifXP),
               ),
@@ -136,17 +318,11 @@ class _TelaConfigState extends State<TelaConfig> {
                 "Modo escuro",
                 "Interface com fundo escuro",
                 _modoEscuro,
-                () => setState(() => _modoEscuro = !_modoEscuro),
+                () {
+                  setState(() => _modoEscuro = !_modoEscuro);
+                  _salvarPreferencia({'modo_tela': _modoEscuro ? 'escuro' : 'claro'});
+                },
               ),
-
-              const SizedBox(height: 20),
-
-              //privacidade
-              rotuloSecao("Privacidade"),
-              const SizedBox(height: 10),
-              _itemNav(Icons.security_outlined, "Permissões do app"),
-              const SizedBox(height: 8),
-              _itemNav(Icons.download_outlined,  "Exportar meus dados"),
 
               const SizedBox(height: 20),
 
@@ -168,10 +344,6 @@ class _TelaConfigState extends State<TelaConfig> {
                 child: _itemNav(Icons.people_outline_rounded,
                     "Sobre nós"),
               ),
-              const SizedBox(height: 8),
-              _itemNav(Icons.help_outline_rounded,   "Central de ajuda"),
-              const SizedBox(height: 8),
-              _itemNav(Icons.feedback_outlined,      "Enviar feedback"),
 
               const SizedBox(height: 20),
 
@@ -196,12 +368,40 @@ class _TelaConfigState extends State<TelaConfig> {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              Center(
+                child: TextButton(
+                  onPressed: () => _confirmarDesativarConta(context),
+                  child: const Text("Desativar minha conta",
+                      style: TextStyle(color: Colors.white24, fontSize: 12, decoration: TextDecoration.underline)),
+                ),
+              ),
             ],
           ),
         ),
       ],
     );
   }
+
+  Widget _telaErro(String mensagem, Future<void> Function() aoTentar) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 48),
+            const SizedBox(height: 16),
+            Text(mensagem, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: aoTentar,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(color: verdePrimario, borderRadius: BorderRadius.circular(10)),
+                child: const Text('Tentar novamente', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ),
+          ]),
+        ),
+      );
 
   void _confirmarSaida(BuildContext context) {
     showDialog(
@@ -226,8 +426,15 @@ class _TelaConfigState extends State<TelaConfig> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              try {
+                await ApiCliente.post('/usuarios/logout.php');
+              } on ApiException catch (_) {
+                // Mesmo se der erro no servidor, ainda limpamos a sessão local.
+              }
+              await ApiCliente.encerrarSessaoLocal();
+              if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const TelaLogin()),
@@ -236,6 +443,43 @@ class _TelaConfigState extends State<TelaConfig> {
             },
             child: const Text("Sair",
                 style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarDesativarConta(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cartaoEscuro,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Desativar conta?", style: TextStyle(color: Colors.white)),
+        content: const Text(
+            "Sua conta será desativada. Você pode reativá-la a qualquer momento fazendo login novamente.",
+            style: TextStyle(color: Colors.white54, fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancelar", style: TextStyle(color: Colors.white38))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ApiCliente.post('/usuarios/desativar_conta.php');
+              } on ApiException catch (e) {
+                _mostrarErro(e.mensagem);
+                return;
+              }
+              await ApiCliente.encerrarSessaoLocal();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const TelaLogin()),
+                (_) => false,
+              );
+            },
+            child: const Text("Desativar", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -260,9 +504,12 @@ class _TelaConfigState extends State<TelaConfig> {
                     fontWeight: FontWeight.w500)),
           ),
           if (valor != null) ...[
-            Text(valor,
-                style: const TextStyle(
-                    fontSize: 12, color: Colors.white38)),
+            Flexible(
+              child: Text(valor,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.white38)),
+            ),
             const SizedBox(width: 6),
           ],
           const Icon(Icons.chevron_right_rounded,

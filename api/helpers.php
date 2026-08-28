@@ -2,11 +2,52 @@
 // Funções e bootstrap comuns a todos os endpoints da API.
 // Inclui sessão, conexão PDO e helpers de resposta/validação.
 
+// Blindagem: qualquer erro/aviso/exceção do PHP que não seja tratado pelo
+// próprio endpoint NUNCA deve ser impresso na resposta (isso quebraria o
+// JSON e o app receberia "resposta inválida do servidor"). Em vez disso,
+// registramos no log do servidor (visível no terminal onde o `php -S`
+// está rodando) e devolvemos um JSON de erro genérico.
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
+set_error_handler(function (int $codigo, string $mensagem, string $arquivo, int $linha): bool {
+    error_log("[PHP] $mensagem em $arquivo:$linha");
+    return true; // impede o handler padrão do PHP de também imprimir o erro
+});
+
+set_exception_handler(function (Throwable $e): void {
+    error_log('[EXCEÇÃO NÃO TRATADA] ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    echo json_encode(['sucesso' => false, 'mensagem' => 'Erro interno do servidor.']);
+    exit;
+});
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 header('Content-Type: application/json; charset=utf-8');
+
+// CORS: necessário quando quem chama a API roda em outra origem (porta)
+// da mesma máquina — por exemplo o Flutter em modo Web/Chrome (ex:
+// http://localhost:5000) enquanto a API roda em http://localhost:8000.
+// Apps nativos (Android/iOS/Windows) ignoram CORS e não são afetados.
+// Como a sessão usa cookie, é obrigatório ecoar a origem específica (e
+// não "*") e habilitar credenciais.
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    // Requisição de "preflight" do navegador: só confirma os cabeçalhos acima.
+    http_response_code(204);
+    exit;
+}
 
 require_once __DIR__ . '/conexao.php';
 

@@ -58,7 +58,7 @@ if (array_key_exists('senha_nova', $dados)) {
     $stmt->execute([$uid]);
     $row = $stmt->fetch();
 
-    if (!password_verify($senhaAtual, $row['senha'])) {
+    if (empty($row['senha']) || !password_verify($senhaAtual, $row['senha'])) {
         responder(false, 'Senha atual incorreta.', [], 401);
     }
 

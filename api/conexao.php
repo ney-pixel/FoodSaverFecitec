@@ -2,10 +2,10 @@
 // Conexão com o banco de dados via PDO (prepared statements nativos).
 // Mesmas credenciais/host/banco usados anteriormente com mysqli.
 
-$host   = "";
-$usuario = "";
-$senha   = "";
-$banco   = "";
+$host   = "143.106.241.4";
+$usuario = "cl204211";
+$senha   = "cl#08112008";
+$banco   = "cl204211";
 
 try {
     $pdo = new PDO(

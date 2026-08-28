@@ -18,7 +18,7 @@ if (!$alimentoId || !in_array($tipo, $tiposValidos, true) || $quantidade <= 0) {
     responder(false, 'Dados inválidos para movimentação.', [], 422);
 }
 
-$stmtAlimento = $pdo->prepare("SELECT id, quantidade, unidade_medida FROM FS_alimentos WHERE id = ? AND usuario_id = ?");
+$stmtAlimento = $pdo->prepare("SELECT id, descricao, quantidade, unidade_medida FROM FS_alimentos WHERE id = ? AND usuario_id = ?");
 $stmtAlimento->execute([$alimentoId, $uid]);
 $alimento = $stmtAlimento->fetch();
 
@@ -37,9 +37,9 @@ if ($tipo === 'consumo' || $tipo === 'desperdicio') {
 $pdo->beginTransaction();
 try {
     $stmtMov = $pdo->prepare(
-        "INSERT INTO FS_movimentacoes (usuario_id, alimento_id, tipo, quantidade, unidade_medida) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO FS_movimentacoes (usuario_id, alimento_id, descricao_alimento, tipo, quantidade, unidade_medida) VALUES (?, ?, ?, ?, ?, ?)"
     );
-    $stmtMov->execute([$uid, $alimentoId, $tipo, $quantidade, $unidade]);
+    $stmtMov->execute([$uid, $alimentoId, $alimento['descricao'], $tipo, $quantidade, $unidade]);
 
     if ($tipo === 'entrada') {
         $stmtUpd = $pdo->prepare("UPDATE FS_alimentos SET quantidade = quantidade + ? WHERE id = ?");

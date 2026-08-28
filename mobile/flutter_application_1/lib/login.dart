@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'visual.dart';
 import 'usuario.dart';
-import 'banco_dados.dart';
+import 'api_cliente.dart';
 import 'home.dart';
 
 class TelaLogin extends StatefulWidget {
@@ -20,7 +20,7 @@ class _TelaLoginState extends State<TelaLogin>
 
   Map<String, String?> _erros = {};
   bool _carregando    = false;
-  bool _lembrarDeMin  = false; 
+  bool _lembrarDeMin  = false;
 
   @override
   void initState() {
@@ -53,41 +53,37 @@ class _TelaLoginState extends State<TelaLogin>
     if (!_validarFormulario()) return;
 
     setState(() => _carregando = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (!mounted) return;
-    setState(() => _carregando = false);
 
-    //busca usuario
-    final dadosUsuario = BancoDados.buscarUsuario(
-      _controladorEmail.text.trim(),
-      _controladorSenha.text,
-    );
+    try {
+      final resp = await ApiCliente.post('/usuarios/login.php', corpo: {
+        'email': _controladorEmail.text.trim(),
+        'senha': _controladorSenha.text,
+      });
 
-    if (dadosUsuario == null) {
-      setState(() => _erros = {'senha': 'Email ou senha incorretos'});
-      return;
+      final u = resp['usuario'] as Map<String, dynamic>;
+      final username = (u['username'] as String?) ?? '';
+
+      final usuarioLogado = Usuario(
+        id: u['id'] as int?,
+        nome: username,
+        email: _controladorEmail.text.trim(),
+        iniciais: Usuario.iniciaisDe(username),
+      );
+
+      if (!mounted) return;
+      setState(() => _carregando = false);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => TelaHome(usuario: usuarioLogado)),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _carregando = false;
+        _erros = e.erros ?? {'senha': e.mensagem};
+      });
     }
-
-    //monta as inicias a partir do nome
-    final nomeCompleto = dadosUsuario['nome']!;
-    final partes       = nomeCompleto.trim().split(' ');
-    final iniciais     = partes.length >= 2
-        ? '${partes.first[0]}${partes.last[0]}'.toUpperCase()
-        : nomeCompleto.substring(0, 2).toUpperCase();
-
-    final usuarioLogado = Usuario(
-      nome:     nomeCompleto,
-      email:    dadosUsuario['email']!,
-      iniciais: iniciais,
-      nivel:    7,
-      xpAtual:  1240,
-      xpMaximo: 2000,
-    );
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => TelaHome(usuario: usuarioLogado)),
-    );
   }
 
   @override
@@ -136,11 +132,11 @@ class _TelaLoginState extends State<TelaLogin>
                   ),
                   const SizedBox(height: 12),
 
-                 
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                 
+
                       Row(children: [
                         GestureDetector(
                           onTap: () => setState(

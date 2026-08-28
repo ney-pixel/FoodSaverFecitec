@@ -3,7 +3,7 @@ import 'visual.dart';
 import 'usuario.dart';
 import 'alimento.dart';
 import 'grupo.dart';
-import 'banco_dados.dart';
+import 'api_cliente.dart';
 
 class TelaEstoque extends StatefulWidget {
   final Usuario usuario;
@@ -17,10 +17,12 @@ class _TelaEstoqueState extends State<TelaEstoque>
   late TabController _controladorSubabas;
   final _controladorBusca = TextEditingController();
   String _textoBusca      = '';
-  int _indiceFiltroStatus = 0;    
+  int _indiceFiltroStatus = 0;
 
-  List<AlimentoEstoque> get _estoque => BancoDados.estoque;
-  final List<GrupoAlimentos> _grupos = [];
+  bool _carregando = true;
+  String? _erro;
+  List<AlimentoEstoque> _estoque = [];
+  List<GrupoAlimentos> _grupos = [];
 
   static const _rotulosStatus = ['Todos', 'Urgente', 'Atenção', 'OK'];
   static const _coresStatus   = [
@@ -51,6 +53,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     _controladorSubabas = TabController(length: 2, vsync: this);
     _controladorBusca
         .addListener(() => setState(() => _textoBusca = _controladorBusca.text));
+    _carregarTudo();
   }
 
   @override
@@ -58,6 +61,49 @@ class _TelaEstoqueState extends State<TelaEstoque>
     _controladorSubabas.dispose();
     _controladorBusca.dispose();
     super.dispose();
+  }
+
+  Future<void> _carregarTudo() async {
+    setState(() { _carregando = true; _erro = null; });
+    try {
+      await Future.wait([_carregarEstoque(), _carregarGrupos()]);
+      setState(() => _carregando = false);
+    } on ApiException catch (e) {
+      setState(() { _carregando = false; _erro = e.mensagem; });
+    }
+  }
+
+  Future<void> _carregarEstoque() async {
+    final resp = await ApiCliente.get('/estoque/listar_alimentos.php');
+    final lista = (resp['alimentos'] as List)
+        .map((j) => AlimentoEstoque.fromJson(j as Map<String, dynamic>))
+        .toList();
+    if (mounted) setState(() => _estoque = lista);
+  }
+
+  Future<void> _carregarGrupos() async {
+    final resp = await ApiCliente.get('/grupos/gerenciar_grupo_alimentos.php');
+    final lista = (resp['grupos'] as List)
+        .map((j) => GrupoAlimentos.fromJson(j as Map<String, dynamic>))
+        .toList();
+    if (mounted) setState(() => _grupos = lista);
+  }
+
+  String _formatarIso(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  void _mostrarErro(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: const Color(0xFFFF4444)),
+    );
+  }
+
+  void _mostrarSucesso(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: verdeEscuro),
+    );
   }
 
   //dialogue para adicionar
@@ -69,11 +115,20 @@ class _TelaEstoqueState extends State<TelaEstoque>
                 ? edicao.quantidade.toInt().toString()
                 : edicao.quantidade.toString())
             : '');
-    final ctrlValidade = TextEditingController(text: edicao?.validade ?? '');
+    final ctrlMinimo = TextEditingController(
+        text: edicao?.quantidadeMinima != null
+            ? (edicao!.quantidadeMinima! == edicao.quantidadeMinima!.truncateToDouble()
+                ? edicao.quantidadeMinima!.toInt().toString()
+                : edicao.quantidadeMinima.toString())
+            : '');
 
-    String unidadeSelecionada   = edicao?.unidade   ?? unidadesMedida.first;
-    bool entrarNaIA             = edicao?.entrarNaIA ?? true;
+    String unidadeSelecionada = edicao?.unidade ?? unidadesMedida.first;
+    DateTime? dataValidade;
+    if (edicao != null && edicao.validade.isNotEmpty) {
+      dataValidade = DateTime.tryParse(edicao.validade);
+    }
     String? erroNome, erroQtd, erroVal;
+    bool salvando = false;
 
     showDialog(
       context: context,
@@ -101,56 +156,100 @@ class _TelaEstoqueState extends State<TelaEstoque>
                     Expanded(child: _dropdownDialog(valor: unidadeSelecionada, itens: unidadesMedida, aoMudar: (v) => setD(() => unidadeSelecionada = v!))),
                   ]),
                   const SizedBox(height: 14),
-                  _campoDialog('Validade (dd/mm)', Icons.calendar_today_rounded, ctrlValidade, erro: erroVal),
+                  _rotuloDialog('Validade'),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () async {
+                      final agora = DateTime.now();
+                      final escolhida = await showDatePicker(
+                        context: ctx,
+                        initialDate: dataValidade ?? agora,
+                        firstDate: DateTime(agora.year - 1),
+                        lastDate: DateTime(agora.year + 5),
+                      );
+                      if (escolhida != null) setD(() => dataValidade = escolhida);
+                    },
+                    child: Container(
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C1C),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: erroVal != null ? Colors.redAccent : bordaCartao),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.calendar_today_rounded, color: verdePrimario, size: 16),
+                        const SizedBox(width: 10),
+                        Text(
+                          dataValidade == null
+                              ? 'Selecione a data'
+                              : '${dataValidade!.day.toString().padLeft(2, '0')}/${dataValidade!.month.toString().padLeft(2, '0')}/${dataValidade!.year}',
+                          style: TextStyle(color: dataValidade == null ? Colors.white38 : Colors.white, fontSize: 13),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  if (erroVal != null) Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 4),
+                    child: Text(erroVal!, style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
+                  ),
                   const SizedBox(height: 14),
-                  _switchIA(entrarNaIA, () => setD(() => entrarNaIA = !entrarNaIA)),
+                  _rotuloDialog('Quantidade mínima (opcional)'),
+                  const SizedBox(height: 6),
+                  _campoDialog('Avisar quando estiver abaixo de...', Icons.warning_amber_rounded, ctrlMinimo, tipo: TextInputType.number),
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+            TextButton(onPressed: salvando ? null : () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              onPressed: () {
+              onPressed: salvando ? null : () async {
                 String? en, eq, ev;
                 if (ctrlNome.text.trim().isEmpty) en = 'Obrigatório';
                 final qtd = double.tryParse(ctrlQuantidade.text.replaceAll(',', '.'));
                 if (qtd == null || qtd <= 0) eq = 'Valor inválido';
-                if (ctrlValidade.text.trim().isEmpty) ev = 'Obrigatório';
+                if (dataValidade == null) ev = 'Selecione a data de validade';
                 if (en != null || eq != null || ev != null) {
                   setD(() { erroNome = en; erroQtd = eq; erroVal = ev; });
                   return;
                 }
-                setState(() {
+
+                final minimoTexto = ctrlMinimo.text.trim().replaceAll(',', '.');
+                final minimoValor = minimoTexto.isEmpty ? null : double.tryParse(minimoTexto);
+
+                final corpo = <String, dynamic>{
+                  'nome': ctrlNome.text.trim(),
+                  'quantidade': qtd,
+                  'unidade': unidadeSelecionada,
+                  'validade': _formatarIso(dataValidade!),
+                };
+                if (minimoTexto.isEmpty) {
+                  // Se estava com mínimo e o campo foi limpo, remove o mínimo existente.
+                  if (edicao?.quantidadeMinima != null) corpo['quantidade_minima'] = '';
+                } else {
+                  corpo['quantidade_minima'] = minimoValor;
+                }
+
+                setD(() => salvando = true);
+                try {
                   if (edicao == null) {
-                    BancoDados.estoque.add(AlimentoEstoque(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      nome: ctrlNome.text.trim(),
-                      quantidade: qtd!,
-                      unidade: unidadeSelecionada,
-                      validade: ctrlValidade.text.trim(),
-                      status: 'OK',
-                      entrarNaIA: entrarNaIA,
-                    ));
+                    await ApiCliente.post('/estoque/cadastrar_alimento.php', corpo: corpo);
                   } else {
-                    final idx = BancoDados.estoque.indexWhere((a) => a.id == edicao.id);
-                    if (idx >= 0) {
-                      BancoDados.estoque[idx] = AlimentoEstoque(
-                        id: edicao.id,
-                        nome: ctrlNome.text.trim(),
-                        quantidade: qtd!,
-                        unidade: unidadeSelecionada,
-                        validade: ctrlValidade.text.trim(),
-                        status: edicao.status,
-                        entrarNaIA: entrarNaIA,
-                      );
-                    }
+                    corpo['id'] = int.parse(edicao.id);
+                    await ApiCliente.post('/estoque/editar_alimento.php', corpo: corpo);
                   }
-                });
-                Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _carregarEstoque();
+                  _mostrarSucesso(edicao == null ? 'Item adicionado!' : 'Item atualizado!');
+                } on ApiException catch (e) {
+                  setD(() { salvando = false; erroVal = e.mensagem; });
+                }
               },
-              child: Text(edicao == null ? 'Adicionar' : 'Salvar', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+              child: salvando
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : Text(edicao == null ? 'Adicionar' : 'Salvar', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -170,9 +269,15 @@ class _TelaEstoqueState extends State<TelaEstoque>
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () {
-              setState(() => BancoDados.estoque.removeWhere((a) => a.id == item.id));
+            onPressed: () async {
               Navigator.pop(ctx);
+              try {
+                await ApiCliente.post('/estoque/excluir_alimento.php', corpo: {'id': int.parse(item.id)});
+                await _carregarEstoque();
+                _mostrarSucesso('Alimento excluído com sucesso.');
+              } on ApiException catch (e) {
+                _mostrarErro(e.mensagem);
+              }
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.white)),
           ),
@@ -181,46 +286,148 @@ class _TelaEstoqueState extends State<TelaEstoque>
     );
   }
 
-  void _abrirDialogoCriarGrupo() {
-    final ctrl = TextEditingController();
+  // Registra consumo ou desperdício de parte (ou todo) do item — é o que
+  // alimenta os relatórios de aproveitamento/desperdício.
+  void _abrirDialogoMovimentar(AlimentoEstoque item) {
+    final ctrlQtd = TextEditingController();
+    String tipo = 'consumo';
+    String? erro;
+    bool enviando = false;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: cartaoEscuro,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Novo Grupo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Dê um nome ao grupo.\nEx: "Janta do dia 15/06"', style: TextStyle(color: Colors.white54, fontSize: 13)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Nome do grupo...',
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                filled: true,
-                fillColor: const Color(0xFF1C1C1C),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: verdePrimario, width: 1.2)),
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: cartaoEscuro,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Text('Registrar uso — ${item.nome}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Disponível: ${item.quantidadeFormatada}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: GestureDetector(
+                  onTap: () => setD(() => tipo = 'consumo'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: tipo == 'consumo' ? verdePrimario.withOpacity(0.15) : const Color(0xFF1C1C1C),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: tipo == 'consumo' ? verdePrimario : bordaCartao),
+                    ),
+                    child: Center(child: Text('Consumi', style: TextStyle(color: tipo == 'consumo' ? verdePrimario : Colors.white54, fontWeight: FontWeight.w600, fontSize: 12))),
+                  ),
+                )),
+                const SizedBox(width: 8),
+                Expanded(child: GestureDetector(
+                  onTap: () => setD(() => tipo = 'desperdicio'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: tipo == 'desperdicio' ? const Color(0xFFFF4444).withOpacity(0.15) : const Color(0xFF1C1C1C),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: tipo == 'desperdicio' ? const Color(0xFFFF4444) : bordaCartao),
+                    ),
+                    child: Center(child: Text('Descartei', style: TextStyle(color: tipo == 'desperdicio' ? const Color(0xFFFF4444) : Colors.white54, fontWeight: FontWeight.w600, fontSize: 12))),
+                  ),
+                )),
+              ]),
+              const SizedBox(height: 14),
+              _campoDialog('Quantidade (${item.unidade})', Icons.numbers_rounded, ctrlQtd, tipo: TextInputType.number, erro: erro),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: enviando ? null : () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: enviando ? null : () async {
+                final qtd = double.tryParse(ctrlQtd.text.replaceAll(',', '.'));
+                if (qtd == null || qtd <= 0) {
+                  setD(() => erro = 'Valor inválido');
+                  return;
+                }
+                if (qtd > item.quantidade) {
+                  setD(() => erro = 'Maior que o estoque disponível');
+                  return;
+                }
+                setD(() => enviando = true);
+                try {
+                  await ApiCliente.post('/estoque/movimentar_alimento.php', corpo: {
+                    'alimento_id': int.parse(item.id),
+                    'tipo': tipo,
+                    'quantidade': qtd,
+                    'unidade_medida': item.unidade,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _carregarEstoque();
+                  _mostrarSucesso(tipo == 'consumo' ? 'Consumo registrado.' : 'Desperdício registrado.');
+                } on ApiException catch (e) {
+                  setD(() { enviando = false; erro = e.mensagem; });
+                }
+              },
+              child: enviando
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Text('Registrar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () {
-              final nome = ctrl.text.trim();
-              if (nome.isNotEmpty) setState(() => _grupos.add(GrupoAlimentos(id: DateTime.now().millisecondsSinceEpoch.toString(), nome: nome)));
-              Navigator.pop(ctx);
-            },
-            child: const Text('Criar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+
+  void _abrirDialogoCriarGrupo() {
+    final ctrl = TextEditingController();
+    bool enviando = false;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: cartaoEscuro,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Novo Grupo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Dê um nome ao grupo.\nEx: "Janta do dia 15/06"', style: TextStyle(color: Colors.white54, fontSize: 13)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Nome do grupo...',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  filled: true,
+                  fillColor: const Color(0xFF1C1C1C),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: verdePrimario, width: 1.2)),
+                ),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: enviando ? null : () async {
+                final nome = ctrl.text.trim();
+                if (nome.isEmpty) return;
+                setD(() => enviando = true);
+                try {
+                  await ApiCliente.post('/grupos/criar_grupo_alimentos.php', corpo: {'nome': nome});
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  await _carregarGrupos();
+                } on ApiException catch (e) {
+                  setD(() => enviando = false);
+                  _mostrarErro(e.mensagem);
+                }
+              },
+              child: const Text('Criar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -253,13 +460,28 @@ class _TelaEstoqueState extends State<TelaEstoque>
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              onPressed: () {
-                final escolhidos = [for (int i = 0; i < _estoque.length; i++) if (selecionados[i]) _estoque[i]];
-                setState(() {
-                  final idx = _grupos.indexWhere((g) => g.id == grupo.id);
-                  if (idx >= 0) _grupos[idx] = grupo.copiarCom(alimentos: escolhidos);
-                });
+              onPressed: () async {
+                final idsAntes = grupo.alimentos.map((a) => a.id).toSet();
+                final idsDepois = {for (int i = 0; i < _estoque.length; i++) if (selecionados[i]) _estoque[i].id};
+                final paraAdicionar = idsDepois.difference(idsAntes);
+                final paraRemover   = idsAntes.difference(idsDepois);
+
                 Navigator.pop(ctx);
+                try {
+                  for (final id in paraAdicionar) {
+                    await ApiCliente.post('/grupos/gerenciar_grupo_alimentos.php', corpo: {
+                      'grupo_id': int.parse(grupo.id), 'alimento_id': int.parse(id),
+                    });
+                  }
+                  for (final id in paraRemover) {
+                    await ApiCliente.delete('/grupos/gerenciar_grupo_alimentos.php', corpo: {
+                      'grupo_id': int.parse(grupo.id), 'alimento_id': int.parse(id),
+                    });
+                  }
+                  await _carregarGrupos();
+                } on ApiException catch (e) {
+                  _mostrarErro(e.mensagem);
+                }
               },
               child: const Text('Salvar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
             ),
@@ -281,9 +503,14 @@ class _TelaEstoqueState extends State<TelaEstoque>
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            onPressed: () {
-              setState(() => _grupos.removeWhere((g) => g.id == grupo.id));
+            onPressed: () async {
               Navigator.pop(ctx);
+              try {
+                await ApiCliente.post('/grupos/excluir_grupo_alimentos.php', corpo: {'grupo_id': int.parse(grupo.id)});
+                await _carregarGrupos();
+              } on ApiException catch (e) {
+                _mostrarErro(e.mensagem);
+              }
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.white)),
           ),
@@ -292,7 +519,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     );
   }
 
- 
+
   Widget _campoDialog(String hint, IconData icone, TextEditingController ctrl, {TextInputType tipo = TextInputType.text, String? erro}) =>
       TextField(
         controller: ctrl,
@@ -328,38 +555,6 @@ class _TelaEstoqueState extends State<TelaEstoque>
         ),
       );
 
-  Widget _switchIA(bool ativo, VoidCallback aoAlternar) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1C),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ativo ? verdePrimario.withOpacity(0.3) : bordaCartao),
-        ),
-        child: Row(children: [
-          Icon(Icons.auto_awesome_rounded, color: ativo ? verdePrimario : Colors.white38, size: 16),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Sugerir em receitas IA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: ativo ? Colors.white : Colors.white54)),
-              const SizedBox(height: 1),
-              const Text('Aparece nas sugestões automáticas', style: TextStyle(fontSize: 10, color: Colors.white30)),
-            ]),
-          ),
-          GestureDetector(
-            onTap: aoAlternar,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 38, height: 22,
-              decoration: BoxDecoration(color: ativo ? verdePrimario : const Color(0xFF2A2A2A), borderRadius: BorderRadius.circular(11)),
-              child: AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                alignment: ativo ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(width: 16, height: 16, margin: const EdgeInsets.symmetric(horizontal: 3), decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-              ),
-            ),
-          ),
-        ]),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -391,32 +586,62 @@ class _TelaEstoqueState extends State<TelaEstoque>
           ),
         ),
         Expanded(
-          child: TabBarView(
-            controller: _controladorSubabas,
-            children: [
-              _SubabaAlimentos(
-                alimentos:          _alimentosFiltrados,
-                totalEstoque:       _estoque,
-                indiceFiltroStatus: _indiceFiltroStatus,
-                rotulosStatus:      _rotulosStatus,
-                coresStatus:        _coresStatus,
-                controladorBusca:   _controladorBusca,
-                aoMudarStatus:      (i) => setState(() => _indiceFiltroStatus = i),
-                aoEditar:           (a) => _abrirDialogoAdicionarAlimento(edicao: a),
-                aoExcluir:          _confirmarExclusao,
-              ),
-              _SubabaGrupos(
-                grupos:                    _grupos,
-                aoCriarGrupo:              _abrirDialogoCriarGrupo,
-                aoAdicionarAlimentosGrupo: _abrirDialogoAdicionarAoGrupo,
-                aoExcluirGrupo:            _excluirGrupo,
-              ),
-            ],
-          ),
+          child: _carregando
+              ? const Center(child: CircularProgressIndicator(color: verdePrimario))
+              : _erro != null
+                  ? _telaErro(_erro!, _carregarTudo)
+                  : RefreshIndicator(
+                      color: verdePrimario,
+                      backgroundColor: cartaoEscuro,
+                      onRefresh: _carregarTudo,
+                      child: TabBarView(
+                        controller: _controladorSubabas,
+                        children: [
+                          _SubabaAlimentos(
+                            alimentos:          _alimentosFiltrados,
+                            totalEstoque:       _estoque,
+                            indiceFiltroStatus: _indiceFiltroStatus,
+                            rotulosStatus:      _rotulosStatus,
+                            coresStatus:        _coresStatus,
+                            controladorBusca:   _controladorBusca,
+                            aoMudarStatus:      (i) => setState(() => _indiceFiltroStatus = i),
+                            aoEditar:           (a) => _abrirDialogoAdicionarAlimento(edicao: a),
+                            aoExcluir:          _confirmarExclusao,
+                            aoMovimentar:       _abrirDialogoMovimentar,
+                          ),
+                          _SubabaGrupos(
+                            grupos:                    _grupos,
+                            aoCriarGrupo:              _abrirDialogoCriarGrupo,
+                            aoAdicionarAlimentosGrupo: _abrirDialogoAdicionarAoGrupo,
+                            aoExcluirGrupo:            _excluirGrupo,
+                          ),
+                        ],
+                      ),
+                    ),
         ),
       ],
     );
   }
+
+  Widget _telaErro(String mensagem, Future<void> Function() aoTentar) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.wifi_off_rounded, color: Colors.white24, size: 48),
+            const SizedBox(height: 16),
+            Text(mensagem, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: aoTentar,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(color: verdePrimario, borderRadius: BorderRadius.circular(10)),
+                child: const Text('Tentar novamente', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ),
+          ]),
+        ),
+      );
 }
 
 //subaba de alimnetos
@@ -430,6 +655,7 @@ class _SubabaAlimentos extends StatelessWidget {
   final void Function(int) aoMudarStatus;
   final void Function(AlimentoEstoque) aoEditar;
   final void Function(AlimentoEstoque) aoExcluir;
+  final void Function(AlimentoEstoque) aoMovimentar;
 
   const _SubabaAlimentos({
     required this.alimentos,
@@ -441,6 +667,7 @@ class _SubabaAlimentos extends StatelessWidget {
     required this.aoMudarStatus,
     required this.aoEditar,
     required this.aoExcluir,
+    required this.aoMovimentar,
   });
 
   @override
@@ -522,11 +749,11 @@ class _SubabaAlimentos extends StatelessWidget {
           child: alimentos.isEmpty
               ? _vazio(controladorBusca.text)
               : ListView.separated(
-                  physics: const BouncingScrollPhysics(),
+                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                   itemCount: alimentos.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => _CartaoAlimento(item: alimentos[i], aoEditar: aoEditar, aoExcluir: aoExcluir),
+                  itemBuilder: (_, i) => _CartaoAlimento(item: alimentos[i], aoEditar: aoEditar, aoExcluir: aoExcluir, aoMovimentar: aoMovimentar),
                 ),
         ),
       ],
@@ -558,8 +785,9 @@ class _CartaoAlimento extends StatelessWidget {
   final AlimentoEstoque item;
   final void Function(AlimentoEstoque) aoEditar;
   final void Function(AlimentoEstoque) aoExcluir;
+  final void Function(AlimentoEstoque) aoMovimentar;
 
-  const _CartaoAlimento({required this.item, required this.aoEditar, required this.aoExcluir});
+  const _CartaoAlimento({required this.item, required this.aoEditar, required this.aoExcluir, required this.aoMovimentar});
 
   @override
   Widget build(BuildContext context) {
@@ -595,15 +823,17 @@ class _CartaoAlimento extends StatelessWidget {
             Row(children: [
               Icon(Icons.calendar_today_rounded, size: 10, color: item.corStatus.withOpacity(0.7)),
               const SizedBox(width: 3),
-              Text('Vence ${item.validade}', style: TextStyle(fontSize: 10, color: item.corStatus.withOpacity(0.85), fontWeight: FontWeight.w500)),
-              if (item.entrarNaIA) ...[
-                const SizedBox(width: 8),
-                const Icon(Icons.auto_awesome_rounded, size: 10, color: Colors.white24),
-              ],
+              Expanded(child: Text(item.textoValidade.isNotEmpty ? item.textoValidade : 'Vence ${item.validadeFormatadaBr}',
+                  style: TextStyle(fontSize: 10, color: item.corStatus.withOpacity(0.85), fontWeight: FontWeight.w500))),
             ]),
           ]),
         ),
         Column(children: [
+          GestureDetector(
+            onTap: () => aoMovimentar(item),
+            child: _acao(Icons.remove_circle_outline_rounded, const Color(0xFF4FC3F7)),
+          ),
+          const SizedBox(height: 6),
           GestureDetector(
             onTap: () => aoEditar(item),
             child: _acao(Icons.edit_outlined, verdePrimario),
@@ -619,9 +849,9 @@ class _CartaoAlimento extends StatelessWidget {
   }
 
   Widget _acao(IconData icone, Color cor) => Container(
-        width: 29, height: 29,
+        width: 26, height: 26,
         decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(7), border: Border.all(color: cor.withOpacity(0.2))),
-        child: Icon(icone, size: 13, color: cor));
+        child: Icon(icone, size: 12, color: cor));
 }
 
 //subaba grupos
@@ -655,17 +885,20 @@ class _SubabaGrupos extends StatelessWidget {
         ),
         Expanded(
           child: grupos.isEmpty
-              ? Center(
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(width: 72, height: 72, decoration: BoxDecoration(color: verdePrimario.withOpacity(0.07), shape: BoxShape.circle), child: const Icon(Icons.folder_outlined, color: verdePrimario, size: 32)),
-                    const SizedBox(height: 16),
-                    const Text('Nenhum grupo criado ainda', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 6),
-                    const Text('Crie grupos para organizar seus\nalimentos por ocasião ou refeição', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
-                  ]),
-                )
+              ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 60),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Container(width: 72, height: 72, decoration: BoxDecoration(color: verdePrimario.withOpacity(0.07), shape: BoxShape.circle), child: const Icon(Icons.folder_outlined, color: verdePrimario, size: 32)),
+                      const SizedBox(height: 16),
+                      const Text('Nenhum grupo criado ainda', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+                      const SizedBox(height: 6),
+                      const Text('Crie grupos para organizar seus\nalimentos por ocasião ou refeição', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    ]),
+                  ),
+                ])
               : ListView.separated(
-                  physics: const BouncingScrollPhysics(),
+                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: grupos.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),

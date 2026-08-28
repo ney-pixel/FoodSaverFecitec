@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'visual.dart';
 import 'usuario.dart';
-import 'banco_dados.dart';
+import 'api_cliente.dart';
 import 'login.dart';
 import 'home.dart';
 
@@ -43,15 +43,12 @@ class _TelaCadastroState extends State<TelaCadastro>
   bool _validarFormulario() {
     final erros = <String, String?>{};
 
-    if (_controladorNome.text.trim().isEmpty) {
-      erros['nome'] = 'Informe seu nome completo';
+    if (_controladorNome.text.trim().length < 5) {
+      erros['nome'] = 'Mínimo 5 caracteres';
     }
     if (!RegExp(r'^[\w.-]+@[\w-]+\.\w+$')
         .hasMatch(_controladorEmail.text.trim())) {
       erros['email'] = 'Email inválido';
-    }
-    if (BancoDados.emailJaCadastrado(_controladorEmail.text.trim())) {
-      erros['email'] = 'Este email já está cadastrado';
     }
     if (_controladorSenha.text.length < 6) {
       erros['senha'] = 'Mínimo 6 caracteres';
@@ -68,36 +65,48 @@ class _TelaCadastroState extends State<TelaCadastro>
     if (!_validarFormulario()) return;
 
     setState(() => _carregando = true);
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (!mounted) return;
-    setState(() => _carregando = false);
-
-    //aq salva o novo usuario na lista
-    BancoDados.cadastrarUsuario(
-      _controladorNome.text.trim(),
-      _controladorEmail.text.trim(),
-      _controladorSenha.text,
-    );
 
     final nomeCompleto = _controladorNome.text.trim();
-    final partes       = nomeCompleto.split(' ');
-    final iniciais     = partes.length >= 2
-        ? '${partes.first[0]}${partes.last[0]}'.toUpperCase()
-        : nomeCompleto.substring(0, 2).toUpperCase();
+    final email        = _controladorEmail.text.trim();
+    final senha        = _controladorSenha.text;
 
-    final usuarioLogado = Usuario(
-      nome:     nomeCompleto,
-      email:    _controladorEmail.text.trim(),
-      iniciais: iniciais,
-      nivel:    1,
-      xpAtual:  0,
-      xpMaximo: 2000,
-    );
+    try {
+      // Passo 1: cadastra o usuário na API.
+      await ApiCliente.post('/usuarios/cadastro.php', corpo: {
+        'username': nomeCompleto,
+        'email': email,
+        'senha': senha,
+      });
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => TelaHome(usuario: usuarioLogado)),
-    );
+      // Passo 2: o cadastro não cria sessão sozinho — loga em seguida com as
+      // mesmas credenciais pra já entrar direto no app, como antes.
+      final resp = await ApiCliente.post('/usuarios/login.php', corpo: {
+        'email': email,
+        'senha': senha,
+      });
+
+      final u = resp['usuario'] as Map<String, dynamic>;
+      final usuarioLogado = Usuario(
+        id: u['id'] as int?,
+        nome: (u['username'] as String?) ?? nomeCompleto,
+        email: email,
+        iniciais: Usuario.iniciaisDe((u['username'] as String?) ?? nomeCompleto),
+      );
+
+      if (!mounted) return;
+      setState(() => _carregando = false);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => TelaHome(usuario: usuarioLogado)),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _carregando = false;
+        _erros = e.erros ?? {'email': e.mensagem};
+      });
+    }
   }
 
   @override

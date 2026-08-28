@@ -10,9 +10,11 @@ class AlimentoEstoque {
   final String nome;
   final double quantidade;
   final String unidade;
-  final String validade;
-  final String status;
-  final bool entrarNaIA; // aparece nas sugestões da IA?
+  final String validade; // formato ISO (yyyy-MM-dd), como vem da API
+  final double? quantidadeMinima; // null = sem mínimo configurado
+  final int diasValidade;
+  final String status; // 'Urgente' | 'Atenção' | 'OK' (derivado de classe_validade)
+  final String textoValidade; // ex: "Vence em 3 dia(s)" / "Vencido há 2 dia(s)"
 
   const AlimentoEstoque({
     required this.id,
@@ -20,9 +22,39 @@ class AlimentoEstoque {
     required this.quantidade,
     required this.unidade,
     required this.validade,
+    this.quantidadeMinima,
+    this.diasValidade = 0,
     required this.status,
-    this.entrarNaIA = true,
+    this.textoValidade = '',
   });
+
+  //monta um AlimentoEstoque a partir do JSON de estoque/listar_alimentos.php
+  factory AlimentoEstoque.fromJson(Map<String, dynamic> json) {
+    return AlimentoEstoque(
+      id: '${json['id']}',
+      nome: json['nome'] as String,
+      quantidade: (json['quantidade'] as num).toDouble(),
+      unidade: json['unidade'] as String,
+      validade: json['validade'] as String,
+      quantidadeMinima: json['quantidade_minima'] != null
+          ? (json['quantidade_minima'] as num).toDouble()
+          : null,
+      diasValidade: (json['dias_validade'] as num?)?.toInt() ?? 0,
+      status: _statusDeClasse(json['classe_validade'] as String?),
+      textoValidade: (json['texto_validade'] as String?) ?? '',
+    );
+  }
+
+  static String _statusDeClasse(String? classe) {
+    switch (classe) {
+      case 'danger':
+        return 'Urgente';
+      case 'warning':
+        return 'Atenção';
+      default:
+        return 'OK';
+    }
+  }
 
   //aqui defininfo a cor correspondente ao status
   Color get corStatus {
@@ -39,6 +71,13 @@ class AlimentoEstoque {
         ? quantidade.toInt().toString()
         : quantidade.toString();
     return '$v $unidade';
+  }
+
+  //converte a validade ISO (yyyy-MM-dd) pra dd/mm/yyyy, usado ao editar
+  String get validadeFormatadaBr {
+    final partes = validade.split('-');
+    if (partes.length != 3) return validade;
+    return '${partes[2]}/${partes[1]}/${partes[0]}';
   }
 
   //escolhe um icone com base em palavras-chave no nome do alimento
