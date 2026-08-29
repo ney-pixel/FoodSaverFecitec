@@ -4,7 +4,7 @@
 
 $host   = "143.106.241.4";
 $usuario = "cl204211";
-$senha   = "cl#08112008";
+$senha   = "";
 $banco   = "cl204211";
 
 try {
