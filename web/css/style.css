@@ -58,6 +58,51 @@ body.fade-out{
     color: white;
 }
 
+.navLinks{
+    display: flex;
+    align-items: center;
+    gap: 30px;
+
+    margin-right: 34px;
+}
+
+.navLinks a{
+    color: #CFCFCF;
+
+    text-decoration: none;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    position: relative;
+
+    transition: color 0.25s;
+}
+
+.navLinks a::after{
+    content: "";
+
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+
+    width: 0%;
+    height: 2px;
+
+    background: #16DB65;
+    border-radius: 99px;
+
+    transition: width 0.25s;
+}
+
+.navLinks a:hover{
+    color: white;
+}
+
+.navLinks a:hover::after{
+    width: 100%;
+}
+
 .navBtns{
     display: flex;
     gap: 15px;
@@ -140,8 +185,9 @@ body.fade-out{
 
     border-radius: 50%;
 
-    top: -120px;
-    right: -120px;
+    top: -140px;
+    left: 50%;
+    transform: translateX(-50%);
 
     z-index: 0;
 }
@@ -153,22 +199,26 @@ body.fade-out{
 
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
 
-     gap: 150px;
-
- 
+    position: relative;
+    z-index: 1;
 }
 
 /* TEXTO */
 
 .heroText{
-    max-width: 620px;
+    max-width: 780px;
 
     display: flex;
     flex-direction: column;
+    align-items: center;
 
     gap: 22px;
+
+    text-align: center;
+
+    margin: 0 auto;
 }
 
 .miniText{
@@ -212,6 +262,8 @@ body.fade-out{
 .heroButtons{
     display: flex;
 
+    justify-content: center;
+
     gap: 15px;
 
     margin-top: 10px;
@@ -227,6 +279,85 @@ body.fade-out{
     transition: 0.3s;
 
     font-weight: 600;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.greenBtn i{
+    transition: transform 0.3s;
+}
+
+.greenBtn:hover i{
+    transform: translateX(4px);
+}
+
+/* SELO DE CONFIANÇA */
+
+.heroTrust{
+    display: flex;
+
+    justify-content: center;
+
+    gap: 24px;
+
+    flex-wrap: wrap;
+}
+
+.heroTrust span{
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    color: #8D98A3;
+
+    font-size: 13px;
+}
+
+.heroTrust i{
+    color: #16DB65;
+
+    font-size: 14px;
+}
+
+/* SETA DE ROLAGEM */
+
+.scrollCue{
+    position: absolute;
+
+    bottom: 28px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    color: rgba(255,255,255,0.35);
+
+    font-size: 20px;
+
+    text-decoration: none;
+
+    z-index: 1;
+
+    animation: bounceCue 2s ease-in-out infinite;
+
+    transition: color 0.3s;
+}
+
+.scrollCue:hover{
+    color: #16DB65;
+}
+
+@keyframes bounceCue{
+
+    0%, 100%{
+        transform: translate(-50%, 0);
+    }
+
+    50%{
+        transform: translate(-50%, 8px);
+    }
+
 }
 
 .greenBtn{
@@ -249,95 +380,12 @@ body.fade-out{
     transform: translateY(-4px);
 }
 
-/* IMAGEM */
-
-.heroImage{
-    flex: 1;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    position: relative;
-}
-
-/* GLOW ATRÁS DA IMAGEM */
-
-.heroImage::before{
-    content: "";
-
-    position: absolute;
-
-    width: 420px;
-    height: 420px;
-
-    background: rgba(22,219,101,0.18);
-
-    filter: blur(80px);
-
-    border-radius: 50%;
-
-    z-index: -1;
-}
-
-/* IMG */
-
-.heroImage img{
-    width: 100%;
-    max-width: 560px;
-
-    height: auto;
-
-    object-fit: contain;
-
-    animation: floatHero 5s ease-in-out infinite;
-
-    filter:
-    drop-shadow(0 25px 40px rgba(0,0,0,0.55));
-}
-
-/* ANIMAÇÃO */
-
-@keyframes floatHero{
-
-    0%{
-        transform: translateY(0px);
-    }
-
-    50%{
-        transform: translateY(-14px);
-    }
-
-    100%{
-        transform: translateY(0px);
-    }
-
-}
-
 /* RESPONSIVO */
 
 @media(max-width: 1100px){
 
-    .heroContainer{
-        flex-direction: column;
-
-        text-align: center;
-    }
-
-    .heroText{
-        align-items: center;
-    }
-
-    .heroButtons{
-        justify-content: center;
-    }
-
     .heroText h1{
         font-size: 64px;
-    }
-
-    .heroImage img{
-        max-width: 430px;
     }
 
 }
@@ -366,10 +414,8 @@ body.fade-out{
         width: 100%;
 
         text-align: center;
-    }
 
-    .heroImage img{
-        max-width: 320px;
+        justify-content: center;
     }
 
 }
@@ -551,6 +597,38 @@ body.fade-out{
 
 .cards .cardFood:hover::after{
     width: 75%;
+}
+
+/* ÍCONE DO CARD */
+
+.iconBadge{
+    width: 56px;
+    height: 56px;
+
+    border-radius: 16px;
+
+    background: rgba(22,219,101,0.12);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #16DB65;
+
+    font-size: 24px;
+
+    margin-bottom: 10px;
+
+    position: relative;
+    z-index: 1;
+
+    transition: 0.4s;
+}
+
+.cards .cardFood:hover .iconBadge,
+.sobreGrid .sobreCard:hover .iconBadge{
+    background: rgba(22,219,101,0.22);
+    transform: scale(1.08);
 }
 
 /* MINI */
@@ -829,11 +907,13 @@ body.fade-out{
 
     padding: 80px;
 
+    min-height: 520px;
+
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
 
-    gap: 70px;
+    text-align: center;
 
     border: 1px solid rgba(255,255,255,0.05);
 
@@ -876,82 +956,49 @@ body.fade-out{
     0 0 30px rgba(22,219,101,0.06);
 }
 
-/* REVERSE */
-
-.reverseBox{
-    flex-direction: row-reverse;
-}
-
-/* IMAGEM */
-
-.featureImage1{
-    flex: 1;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 500px;
-    height: 500px;
-    position: relative;
-}
-
-
-.featureImage{
-    flex: 1;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    position: relative;
-}
-
-/* GLOW DA IMG */
-
-.featureGlow{
-    position: absolute;
-
-    width: 320px;
-    height: 320px;
-
-    background: rgba(22,219,101,0.16);
-
-    filter: blur(80px);
-
-    border-radius: 50%;
-
-    z-index: 0;
-}
-
-/* IMG */
-
-.featureImage img{
-    width: 100%;
-    max-width: 430px;
-
-    position: relative;
-    z-index: 2;
-
-    animation: floatFeature 5s ease-in-out infinite;
-
-    filter:
-    drop-shadow(0 25px 40px rgba(0,0,0,0.45));
-}
-
 /* TEXTO */
 
 .featureContent{
-    flex: 1;
-
-    max-width: 580px;
+    max-width: 640px;
 
     display: flex;
     flex-direction: column;
+    align-items: center;
 
     gap: 18px;
 
+    margin: 0 auto;
+
     position: relative;
     z-index: 2;
+}
+
+/* ÍCONE GRANDE (no lugar da imagem) */
+
+.featureIconBig{
+    width: 84px;
+    height: 84px;
+
+    border-radius: 22px;
+
+    background: rgba(22,219,101,0.12);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #16DB65;
+
+    font-size: 34px;
+
+    margin-bottom: 4px;
+
+    transition: 0.4s;
+}
+
+.featureBox:hover .featureIconBig{
+    background: rgba(22,219,101,0.2);
+    transform: scale(1.06);
 }
 
 /* MINI */
@@ -994,35 +1041,53 @@ body.fade-out{
 
 .featureBenefits{
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
 
-    gap: 14px;
+    gap: 12px;
 
     margin-top: 10px;
 }
 
-/* ITEM */
+/* ITEM (pílula) */
 
 .benefitItem{
     display: flex;
     align-items: center;
 
-    gap: 14px;
+    gap: 10px;
 
     color: white;
 
-    font-size: 16px;
+    font-size: 14.5px;
+    font-weight: 500;
+
+    background: rgba(255,255,255,0.04);
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    border-radius: 99px;
+
+    padding: 8px 20px 8px 8px;
+
+    transition: 0.3s;
+}
+
+.benefitItem:hover{
+    border-color: rgba(22,219,101,0.3);
+    background: rgba(22,219,101,0.08);
 }
 
 /* ÍCONE */
 
 .benefitItem i{
-    width: 42px;
-    height: 42px;
+    width: 32px;
+    height: 32px;
 
-    border-radius: 14px;
+    border-radius: 10px;
 
-    background: rgba(22,219,101,0.12);
+    background: rgba(22,219,101,0.14);
 
     display: flex;
     align-items: center;
@@ -1030,45 +1095,14 @@ body.fade-out{
 
     color: #16DB65;
 
-    font-size: 18px;
-}
+    font-size: 15px;
 
-/* FLOAT */
-
-@keyframes floatFeature{
-
-    0%{
-        transform: translateY(0px);
-    }
-
-    50%{
-        transform: translateY(-12px);
-    }
-
-    100%{
-        transform: translateY(0px);
-    }
-
+    flex-shrink: 0;
 }
 
 /* RESPONSIVO */
 
 @media(max-width: 1100px){
-
-    .featureBox,
-    .reverseBox{
-        flex-direction: column;
-
-        text-align: center;
-    }
-
-    .featureContent{
-        align-items: center;
-    }
-
-    .featureBenefits{
-        align-items: center;
-    }
 
     .featureContent h2{
         font-size: 46px;
@@ -1084,6 +1118,8 @@ body.fade-out{
 
     .featureBox{
         padding: 50px 30px;
+
+        min-height: 0;
     }
 
     .featureContent h2{
@@ -1092,10 +1128,6 @@ body.fade-out{
 
     .featureContent p{
         font-size: 17px;
-    }
-
-    .featureImage img{
-        max-width: 300px;
     }
 
 }
@@ -1599,6 +1631,14 @@ body.fade-out{
         padding: 0 20px;
     }
 
+    .navLinks{
+        flex-direction: column;
+
+        gap: 14px;
+
+        margin: 10px 0;
+    }
+
     .navBtns{
         flex-direction: column;
 
@@ -1610,9 +1650,6 @@ body.fade-out{
         text-align: center;
     }
 
-    .heroContainer,
-    .featureBox,
-    .reverseBox,
     .criadoresCard{
         flex-direction: column;
 
@@ -1621,16 +1658,6 @@ body.fade-out{
 
     .heroText h1{
         font-size: 52px;
-    }
-
-    .heroButtons{
-        justify-content: center;
-    }
-
-    .heroImage img,
-    .featureImage img{
-        width: 100%;
-        max-width: 350px;
     }
 
     .sobreGrid,

@@ -102,3 +102,18 @@ function exigirMetodo(array $metodos): void
         responder(false, 'Método HTTP não permitido.', [], 405);
     }
 }
+
+/**
+ * Converte um valor numérico digitado pelo usuário para float, aceitando
+ * tanto ponto quanto vírgula como separador decimal (ex.: "2,5" ou "2.5").
+ * Sem isso, (float) trunca "2,5" em 2.0 silenciosamente. Retorna null se
+ * o valor estiver vazio ou não for um número válido.
+ */
+function normalizarDecimal($valor): ?float
+{
+    $valor = str_replace(',', '.', trim((string) $valor));
+    if ($valor === '' || !is_numeric($valor)) {
+        return null;
+    }
+    return (float) $valor;
+}

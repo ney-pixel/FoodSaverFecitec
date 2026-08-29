@@ -7,8 +7,8 @@ require_once __DIR__ . '/../helpers.php';
 exigirMetodo(['POST']);
 
 $dados = corpoRequisicao();
-$email = trim($dados['email'] ?? '');
-$senha = trim($dados['senha'] ?? '');
+$email = strtolower(trim($dados['email'] ?? ''));
+$senha = (string) ($dados['senha'] ?? ''); // senha não é "trimada": espaços podem ser intencionais
 
 $erros = [];
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {

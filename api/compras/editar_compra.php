@@ -41,14 +41,19 @@ if ($metodo === 'PATCH') {
 }
 
 if ($metodo === 'POST' || $metodo === 'PUT') {
-    $dados        = corpoRequisicao();
-    $id           = (int) ($dados['id'] ?? 0);
-    $nomeAlimento = trim($dados['nome_alimento'] ?? '');
-    $quantidade   = trim((string) ($dados['quantidade'] ?? ''));
-    $unidade      = trim($dados['unidade'] ?? $dados['unidade_medida'] ?? 'kg');
+    $dados         = corpoRequisicao();
+    $id            = (int) ($dados['id'] ?? 0);
+    $nomeAlimento  = trim($dados['nome_alimento'] ?? '');
+    $quantidadeStr = trim((string) ($dados['quantidade'] ?? ''));
+    $unidade       = trim($dados['unidade'] ?? $dados['unidade_medida'] ?? 'kg');
 
-    if (!$id || !$nomeAlimento || !$quantidade) {
+    if (!$id || !$nomeAlimento || !$quantidadeStr) {
         responder(false, 'Preencha nome e quantidade.', [], 422);
+    }
+
+    $quantidade = normalizarDecimal($quantidadeStr);
+    if ($quantidade === null || $quantidade <= 0) {
+        responder(false, 'Informe uma quantidade válida.', [], 422);
     }
 
     $stmt = $pdo->prepare(

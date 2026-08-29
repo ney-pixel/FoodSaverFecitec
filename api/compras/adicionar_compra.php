@@ -6,13 +6,18 @@ require_once __DIR__ . '/../helpers.php';
 exigirMetodo(['POST']);
 $uid = exigirLogin();
 
-$dados        = corpoRequisicao();
-$nomeAlimento = trim($dados['nome_alimento'] ?? '');
-$quantidade   = trim((string) ($dados['quantidade'] ?? ''));
-$unidade      = trim($dados['unidade'] ?? $dados['unidade_medida'] ?? 'kg');
+$dados         = corpoRequisicao();
+$nomeAlimento  = trim($dados['nome_alimento'] ?? '');
+$quantidadeStr = trim((string) ($dados['quantidade'] ?? ''));
+$unidade       = trim($dados['unidade'] ?? $dados['unidade_medida'] ?? 'kg');
 
-if (!$nomeAlimento || !$quantidade) {
+if (!$nomeAlimento || !$quantidadeStr) {
     responder(false, 'Preencha nome e quantidade.', [], 422);
+}
+
+$quantidade = normalizarDecimal($quantidadeStr);
+if ($quantidade === null || $quantidade <= 0) {
+    responder(false, 'Informe uma quantidade válida.', [], 422);
 }
 
 $stmt = $pdo->prepare(

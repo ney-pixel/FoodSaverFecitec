@@ -68,11 +68,6 @@
           <div class="nav-indicator"></div>
         </a>
       </nav>
-      <div class="sidebar-xp">
-        <div class="xp-header"><span>XP</span><span class="xp-count" id="xpCount">0 / 2.000</span></div>
-        <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
-        <div class="xp-label" id="xpLabel">Próximo nível: 2</div>
-      </div>
     </div>
   </aside>
 
@@ -114,40 +109,95 @@
       <div class="modal-overlay hidden" id="modalInv">
         <div class="modal-box">
           <div class="modal-head">
-            <h3 id="modalInvTitulo">Adicionar Alimento</h3>
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-box-seam-fill"></i></div>
+              <h3 id="modalInvTitulo">Adicionar Alimento</h3>
+            </div>
             <button type="button" class="modal-close" onclick="fecharModalInv()"><i class="bi bi-x-lg"></i></button>
           </div>
           <form id="formInv">
             <input type="hidden" id="invId" value="0">
             <div class="modal-body">
               <div class="form-group">
-                <label>Nome do alimento</label>
+                <label><i class="bi bi-tag"></i> Nome do alimento</label>
                 <input type="text" id="invNome" placeholder="Ex: Cenoura" required>
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label>Quantidade</label>
+                  <label><i class="bi bi-123"></i> Quantidade</label>
                   <input type="text" id="invQuantidade" placeholder="Ex: 2" required>
                 </div>
                 <div class="form-group">
-                  <label>Unidade</label>
+                  <label><i class="bi bi-rulers"></i> Unidade</label>
                   <select id="invUnidade">
                     <option>kg</option><option>g</option><option>L</option><option>und</option>
                   </select>
                 </div>
               </div>
               <div class="form-group">
-                <label>Data de validade</label>
+                <label><i class="bi bi-calendar-event"></i> Data de validade</label>
                 <input type="date" id="invValidade" required>
               </div>
               <div class="form-group">
-                <label>Quantidade mínima (opcional)</label>
-                <input type="text" id="invQtdMinima" placeholder="Gera item automático na lista de compras quando o estoque cair abaixo desse valor">
+                <label><i class="bi bi-bell"></i> Quantidade mínima <span class="opcional-tag">opcional</span></label>
+                <input type="text" id="invQtdMinima" placeholder="Ex: 1">
+                <p class="campo-hint">Avisamos você na lista de compras assim que o estoque cair abaixo desse valor.</p>
               </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-ghost" onclick="fecharModalInv()">Cancelar</button>
-              <button type="submit" class="btn-primary" id="invSubmitBtn">Adicionar</button>
+              <button type="submit" class="btn-primary" id="invSubmitBtn"><i class="bi bi-check2"></i> Adicionar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODAL: REGISTRAR CONSUMO / DESCARTE -->
+      <div class="modal-overlay hidden" id="modalMov">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-arrow-down-circle-fill"></i></div>
+              <h3>Registrar uso do alimento</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="fecharModalMov()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <form id="formMov">
+            <input type="hidden" id="movAlimentoId" value="0">
+            <input type="hidden" id="movTipo" value="consumo">
+            <div class="modal-body">
+              <p class="campo-hint" style="margin:0">
+                <i class="bi bi-box-seam"></i> <strong id="movNomeAlimento">—</strong>
+                · disponível: <span id="movDisponivel">0</span>
+              </p>
+              <div class="form-group">
+                <label><i class="bi bi-arrow-left-right"></i> O que aconteceu com o alimento?</label>
+                <div class="mov-tipo-toggle">
+                  <button type="button" class="mov-tipo-btn active" data-tipo="consumo" onclick="selecionarTipoMov('consumo')">
+                    <i class="bi bi-egg-fried"></i> Consumido
+                  </button>
+                  <button type="button" class="mov-tipo-btn" data-tipo="desperdicio" onclick="selecionarTipoMov('desperdicio')">
+                    <i class="bi bi-trash3"></i> Descartado
+                  </button>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label><i class="bi bi-123"></i> Quantidade</label>
+                  <input type="text" id="movQuantidade" placeholder="Ex: 1" required>
+                </div>
+                <div class="form-group">
+                  <label><i class="bi bi-rulers"></i> Unidade</label>
+                  <select id="movUnidade">
+                    <option>kg</option><option>g</option><option>L</option><option>und</option>
+                  </select>
+                </div>
+              </div>
+              <p class="campo-hint" style="margin:0">Kg e g são convertidos automaticamente para a unidade do estoque; para L e und, escolha a mesma unidade do alimento.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-ghost" onclick="fecharModalMov()">Cancelar</button>
+              <button type="submit" class="btn-primary" id="movSubmitBtn"><i class="bi bi-check2"></i> Registrar</button>
             </div>
           </form>
         </div>
@@ -178,42 +228,62 @@
 
       <!-- TAB: MINHAS RECEITAS -->
       <div id="tabReceitasSalvas">
+        <div class="receitas-filtros" id="receitasFiltros">
+          <button type="button" class="rfilter-btn active" data-filtro="todas" onclick="filtrarReceitas('todas')">
+            Todas
+          </button>
+          <button type="button" class="rfilter-btn" data-filtro="favoritas" onclick="filtrarReceitas('favoritas')">
+            <i class="bi bi-star-fill"></i> Favoritas
+          </button>
+        </div>
         <div id="recEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
           <i class="bi bi-journal-richtext" style="font-size:40px;color:var(--text-dim)"></i>
           <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Nenhuma receita salva ainda.<br>Crie sua primeira receita com os ingredientes do inventário!</p>
           <button class="btn-primary" style="margin-top:20px" onclick="mudarTabReceita('criar')"><i class="bi bi-plus-lg"></i> Criar Receita</button>
+        </div>
+        <div id="recEmptyFav" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
+          <i class="bi bi-star" style="font-size:40px;color:var(--text-dim)"></i>
+          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Você ainda não favoritou nenhuma receita.<br>Toque na estrela de uma receita para guardá-la aqui.</p>
         </div>
         <div class="receitas-grid" id="receitasGrid"></div>
       </div>
 
       <!-- TAB: NOVA RECEITA -->
       <div id="tabReceitaCriar" class="hidden">
-        <div class="glass-card">
-          <div class="card-head"><h3><i class="bi bi-plus-circle-fill"></i> Nova Receita</h3></div>
-          <form id="formReceita" style="margin-top:16px">
+        <div class="glass-card receita-form-card">
+          <div class="card-head">
+            <h3><i class="bi bi-plus-circle-fill"></i> Nova Receita</h3>
+          </div>
+          <p class="receita-form-intro">Monte uma receita a partir do que você já tem em casa — escolha os itens do seu inventário e ajude a evitar desperdício. 🌱</p>
+          <form id="formReceita">
             <div class="receita-form-grid">
               <div class="form-group full">
-                <label>Título da receita *</label>
-                <input type="text" id="recTitulo" placeholder="Ex: Sopa de Cenoura" required>
+                <label><i class="bi bi-journal-text"></i> Título da receita *</label>
+                <input type="text" id="recTitulo" placeholder="Ex: Sopa de Cenoura com Gengibre" required maxlength="150">
               </div>
               <div class="form-group full">
-                <label>Descrição</label>
-                <input type="text" id="recDescricao" placeholder="Ex: sopa cremosa, vegetariana...">
-              </div>
-              <div class="form-group full">
-                <label>Modo de preparo *</label>
-                <textarea id="recModoPreparo" class="obs-textarea" placeholder="Descreva o passo a passo do preparo..." style="min-height:120px" required></textarea>
+                <label><i class="bi bi-chat-left-text"></i> Descrição <span class="opcional-tag">opcional</span></label>
+                <input type="text" id="recDescricao" placeholder="Ex: sopa cremosa, vegetariana, pronta em 20 minutos...">
               </div>
               <div class="form-group">
-                <label>Porções</label>
+                <label><i class="bi bi-people"></i> Porções</label>
                 <input type="number" id="recPorcoes" value="2" min="1" max="20">
               </div>
+              <div class="form-group full">
+                <label><i class="bi bi-list-ol"></i> Modo de preparo *</label>
+                <p class="campo-hint">Escreva o passo a passo, um por linha — fica mais fácil de seguir na cozinha.</p>
+                <textarea id="recModoPreparo" class="preparo-textarea" placeholder="1. Descasque e corte a cenoura em cubos&#10;2. Refogue com alho e cebola até dourar&#10;3. Adicione água e cozinhe por 15 minutos&#10;4. Bata no liquidificador e tempere a gosto" required></textarea>
+              </div>
               <div class="form-group full" id="recIngWrap">
-                <label>Ingredientes do inventário</label>
+                <label>
+                  <i class="bi bi-basket"></i> Ingredientes do inventário *
+                  <span class="ing-counter" id="recIngCounter">0 selecionados</span>
+                </label>
+                <p class="campo-hint">Selecione um ou mais alimentos do seu estoque para compor a receita.</p>
                 <div class="ing-checkboxes" id="recIngCheckboxes"></div>
               </div>
             </div>
-            <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end">
+            <div class="receita-form-actions">
               <button type="button" class="btn-ghost" onclick="mudarTabReceita('salvas')">Cancelar</button>
               <button type="submit" class="btn-primary"><i class="bi bi-bookmark-plus-fill"></i> Salvar Receita</button>
             </div>
@@ -250,22 +320,25 @@
       <div class="modal-overlay hidden" id="modalCompra">
         <div class="modal-box">
           <div class="modal-head">
-            <h3>Adicionar à Lista</h3>
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-cart-fill"></i></div>
+              <h3>Adicionar à Lista</h3>
+            </div>
             <button type="button" class="modal-close" onclick="fecharModalCompra()"><i class="bi bi-x-lg"></i></button>
           </div>
           <form id="formCompra">
             <div class="modal-body">
               <div class="form-group">
-                <label>Nome do alimento</label>
+                <label><i class="bi bi-tag"></i> Nome do alimento</label>
                 <input type="text" id="compraNome" placeholder="Ex: Arroz" required>
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label>Quantidade</label>
+                  <label><i class="bi bi-123"></i> Quantidade</label>
                   <input type="text" id="compraQuantidade" placeholder="Ex: 1" required>
                 </div>
                 <div class="form-group">
-                  <label>Unidade</label>
+                  <label><i class="bi bi-rulers"></i> Unidade</label>
                   <select id="compraUnidade">
                     <option>kg</option><option>g</option><option>L</option><option>und</option>
                   </select>
@@ -274,7 +347,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-ghost" onclick="fecharModalCompra()">Cancelar</button>
-              <button type="submit" class="btn-primary">Adicionar</button>
+              <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Adicionar</button>
             </div>
           </form>
         </div>
@@ -305,19 +378,30 @@
 
       <!-- GRUPOS DE ALIMENTOS -->
       <div id="tabGrupoAlimentos">
-        <div class="glass-card" style="margin-bottom:20px">
+        <div class="glass-card grupo-form-card">
           <div class="card-head"><h3><i class="bi bi-plus-circle-fill"></i> Novo grupo de alimentos</h3></div>
-          <form id="formGrupoAlimento" style="margin-top:14px;display:flex;gap:10px">
-            <input type="text" id="nomeGrupoAlimento" placeholder="Ex: Frutas" required style="flex:1">
-            <button type="submit" class="btn-primary">Criar</button>
+          <p class="receita-form-intro">Crie categorias para organizar seu inventário, como "Frutas" ou "Laticínios".</p>
+          <form id="formGrupoAlimento" class="grupo-form-inline">
+            <div class="form-group full">
+              <label><i class="bi bi-tag"></i> Nome do grupo</label>
+              <input type="text" id="nomeGrupoAlimento" placeholder="Ex: Frutas" required>
+            </div>
+            <button type="submit" class="btn-primary"><i class="bi bi-plus-lg"></i> Criar Grupo</button>
           </form>
         </div>
-        <div class="glass-card" style="margin-bottom:20px" id="addAlimentoGrupoWrap">
+        <div class="glass-card grupo-form-card" id="addAlimentoGrupoWrap">
           <div class="card-head"><h3><i class="bi bi-box-arrow-in-down"></i> Adicionar alimento a um grupo</h3></div>
-          <form id="formAddAlimentoGrupo" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-            <select id="selGrupoAlimento" required style="flex:1;min-width:160px"></select>
-            <select id="selAlimentoParaGrupo" required style="flex:1;min-width:160px"></select>
-            <button type="submit" class="btn-primary">Adicionar</button>
+          <p class="receita-form-intro">Escolha um grupo já criado e um item do seu inventário para vinculá-los.</p>
+          <form id="formAddAlimentoGrupo" class="grupo-form-inline grupo-form-inline-2">
+            <div class="form-group">
+              <label><i class="bi bi-collection"></i> Grupo</label>
+              <select id="selGrupoAlimento" required></select>
+            </div>
+            <div class="form-group">
+              <label><i class="bi bi-box-seam"></i> Alimento</label>
+              <select id="selAlimentoParaGrupo" required></select>
+            </div>
+            <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Adicionar</button>
           </form>
         </div>
         <div class="grupos-grid" id="gruposAlimentosGrid"></div>
@@ -325,19 +409,30 @@
 
       <!-- GRUPOS DE RECEITAS -->
       <div id="tabGrupoReceitas" class="hidden">
-        <div class="glass-card" style="margin-bottom:20px">
+        <div class="glass-card grupo-form-card">
           <div class="card-head"><h3><i class="bi bi-plus-circle-fill"></i> Novo grupo de receitas</h3></div>
-          <form id="formGrupoReceita" style="margin-top:14px;display:flex;gap:10px">
-            <input type="text" id="nomeGrupoReceita" placeholder="Ex: Rápidas" required style="flex:1">
-            <button type="submit" class="btn-primary">Criar</button>
+          <p class="receita-form-intro">Agrupe receitas parecidas, como "Rápidas" ou "Sem carne".</p>
+          <form id="formGrupoReceita" class="grupo-form-inline">
+            <div class="form-group full">
+              <label><i class="bi bi-tag"></i> Nome do grupo</label>
+              <input type="text" id="nomeGrupoReceita" placeholder="Ex: Rápidas" required>
+            </div>
+            <button type="submit" class="btn-primary"><i class="bi bi-plus-lg"></i> Criar Grupo</button>
           </form>
         </div>
-        <div class="glass-card" style="margin-bottom:20px">
+        <div class="glass-card grupo-form-card">
           <div class="card-head"><h3><i class="bi bi-box-arrow-in-down"></i> Adicionar receita a um grupo</h3></div>
-          <form id="formAddReceitaGrupo" style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-            <select id="selGrupoReceita" required style="flex:1;min-width:160px"></select>
-            <select id="selReceitaParaGrupo" required style="flex:1;min-width:160px"></select>
-            <button type="submit" class="btn-primary">Adicionar</button>
+          <p class="receita-form-intro">Escolha um grupo já criado e uma receita salva para vinculá-los.</p>
+          <form id="formAddReceitaGrupo" class="grupo-form-inline grupo-form-inline-2">
+            <div class="form-group">
+              <label><i class="bi bi-collection"></i> Grupo</label>
+              <select id="selGrupoReceita" required></select>
+            </div>
+            <div class="form-group">
+              <label><i class="bi bi-journal-richtext"></i> Receita</label>
+              <select id="selReceitaParaGrupo" required></select>
+            </div>
+            <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Adicionar</button>
           </form>
         </div>
         <div class="grupos-grid" id="gruposReceitasGrid"></div>
@@ -396,15 +491,32 @@
       <div class="page-header">
         <div><h1 class="page-title">Relatórios</h1><p class="page-sub">Seu impacto</p></div>
       </div>
-      <div class="relatorio-mini-stats">
-        <div class="rmini-card"><span class="rmini-icon">🥬</span><div><span class="rmini-val" id="relAlimentos">0</span><span class="rmini-label">No Estoque</span></div></div>
-        <div class="rmini-card"><span class="rmini-icon">🍽️</span><div><span class="rmini-val" id="relReceitas">0</span><span class="rmini-label">Receitas</span></div></div>
-        <div class="rmini-card"><span class="rmini-icon">⭐</span><div><span class="rmini-val" id="relNivel">1</span><span class="rmini-label">Nível</span></div></div>
-        <div class="rmini-card"><span class="rmini-icon">💰</span><div><span class="rmini-val" id="relEconomia">R$0</span><span class="rmini-label">Economizados (est.)</span></div></div>
-      </div>
-      <div class="glass-card mt-20">
-        <div class="card-head"><h3><i class="bi bi-bar-chart-line-fill"></i> Métricas de Impacto</h3></div>
-        <div class="metrics-list" id="metricsList"></div>
+      <!-- CARDS DE DESTAQUE -->
+      <div class="rel-stats-grid" id="relStatsGrid"></div>
+
+      <!-- PAINEL PRINCIPAL: validade à esquerda, gráficos empilhados à direita -->
+      <div class="rel-grid-principal">
+        <div class="glass-card rel-panel" id="relValidadeCard">
+          <div class="card-head"><h3><i class="bi bi-calendar-heart-fill"></i> Situação de Validade</h3></div>
+          <div class="rel-validade-resumo" id="relValidadeResumo"></div>
+          <div class="rel-validade-lista" id="relAlertaLista"></div>
+        </div>
+
+        <div class="rel-coluna-direita">
+          <div class="glass-card rel-panel">
+            <div class="card-head">
+              <h3><i class="bi bi-graph-up"></i> Consumo x Desperdício</h3>
+              <span class="rel-chart-sub">Últimos 30 dias</span>
+            </div>
+            <div class="rel-legend" id="relLinhaLegenda"></div>
+            <div class="rel-chart-wrap" id="relGraficoLinha"></div>
+          </div>
+
+          <div class="glass-card rel-panel rel-gauge-card">
+            <div class="card-head"><h3><i class="bi bi-speedometer2"></i> Taxa de Aproveitamento</h3></div>
+            <div class="rel-gauge-wrap" id="relGauge"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -462,18 +574,18 @@
               <div class="avatar config-ava" id="editAvatar">--</div>
               <p class="config-hint">Suas iniciais são geradas automaticamente</p>
             </div>
-            <form id="formPerfil" style="margin-top:14px">
-              <div class="form-group" style="margin-bottom:12px">
-                <label>Nome de usuário</label>
-                <input type="text" id="perfilUsername" required>
+            <form id="formPerfil" class="config-form">
+              <div class="form-group">
+                <label><i class="bi bi-person"></i> Nome de usuário</label>
+                <input type="text" id="perfilUsername" placeholder="Como devemos te chamar?" required>
               </div>
-              <div class="form-group" style="margin-bottom:16px">
-                <label>E-mail</label>
-                <input type="email" id="perfilEmail" required>
+              <div class="form-group">
+                <label><i class="bi bi-envelope"></i> E-mail</label>
+                <input type="email" id="perfilEmail" placeholder="voce@exemplo.com" required>
               </div>
-              <div style="display:flex;gap:10px">
+              <div class="config-form-actions">
                 <button type="button" class="btn-ghost" onclick="toggleEditPerfil(false)">Cancelar</button>
-                <button type="submit" class="btn-primary" style="flex:1">Salvar Alterações</button>
+                <button type="submit" class="btn-primary" style="flex:1"><i class="bi bi-check2"></i> Salvar Alterações</button>
               </div>
             </form>
           </div>
@@ -490,22 +602,23 @@
 
           <!-- SENHA: MODO EDIÇÃO -->
           <div id="editSenha" class="config-edit-form">
-            <form id="formSenha">
-              <div class="form-group" style="margin-bottom:12px">
-                <label>Senha atual</label>
+            <form id="formSenha" class="config-form">
+              <div class="form-group">
+                <label><i class="bi bi-shield-lock"></i> Senha atual</label>
                 <input type="password" id="senhaAtual" placeholder="••••••••" required>
               </div>
-              <div class="form-group" style="margin-bottom:12px">
-                <label>Nova senha</label>
+              <div class="form-group">
+                <label><i class="bi bi-key"></i> Nova senha</label>
                 <input type="password" id="senhaNova" placeholder="Mín. 6 caracteres" required>
+                <p class="campo-hint">Use letras, números e um símbolo para ficar mais segura.</p>
               </div>
-              <div class="form-group" style="margin-bottom:16px">
-                <label>Confirmar nova senha</label>
+              <div class="form-group">
+                <label><i class="bi bi-key-fill"></i> Confirmar nova senha</label>
                 <input type="password" id="senhaConf" placeholder="Repita a nova senha" required>
               </div>
-              <div style="display:flex;gap:10px">
+              <div class="config-form-actions">
                 <button type="button" class="btn-ghost" onclick="toggleEditSenha(false)">Cancelar</button>
-                <button type="submit" class="btn-primary" style="flex:1">Alterar Senha</button>
+                <button type="submit" class="btn-primary" style="flex:1"><i class="bi bi-check2"></i> Alterar Senha</button>
               </div>
             </form>
           </div>
@@ -547,6 +660,19 @@
     </section>
 
   </main>
+</div>
+
+<!-- MODAL: CONFIRMAÇÃO DE EXCLUSÃO (reutilizado em todas as telas) -->
+<div class="modal-overlay hidden" id="modalConfirm">
+  <div class="modal-box confirm-box">
+    <div class="confirm-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+    <h3 id="confirmTitulo">Tem certeza?</h3>
+    <p id="confirmTexto">Esta ação não pode ser desfeita.</p>
+    <div class="confirm-actions">
+      <button type="button" class="btn-ghost" onclick="fecharConfirm(false)">Cancelar</button>
+      <button type="button" class="btn-danger" id="confirmBtnOk" onclick="fecharConfirm(true)"><i class="bi bi-trash3-fill"></i> Excluir</button>
+    </div>
+  </div>
 </div>
 
 <div class="sidebar-overlay hidden" id="sidebarOverlay" onclick="toggleSidebar()"></div>

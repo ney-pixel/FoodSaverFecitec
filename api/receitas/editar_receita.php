@@ -15,8 +15,14 @@ $modoPreparo    = trim($dados['modo_preparo'] ?? '');
 $porcoes        = (int) ($dados['porcoes'] ?? 2);
 $ingredientesId = $dados['ingredientes_sel'] ?? null;
 
-if (!$id || !$titulo || !$modoPreparo) {
-    responder(false, 'Preencha o título e o modo de preparo.', [], 422);
+if (!$id || !$titulo) {
+    responder(false, 'Informe o título da receita.', [], 422);
+}
+if (!$modoPreparo) {
+    responder(false, 'Descreva o modo de preparo da receita.', [], 422);
+}
+if ($porcoes < 1) {
+    $porcoes = 1;
 }
 
 $chk = $pdo->prepare("SELECT id FROM FS_receitas WHERE id = ? AND usuario_id = ?");

@@ -5,14 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - FoodSaver</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:wght@300;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:wght@300;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="../css/cadastro.css">
+  <link rel="icon" type="image/png" href="../imagens/logo.png">
 </head>
 
 <body>
 
 <!-- VOLTAR -->
-<a href="index.html" class="authBack">&larr; Voltar para o início</a>
+<a href="index.html" class="authBack"><i class="bi bi-arrow-left"></i> Voltar para o início</a>
 
 <div class="authWrapper">
 
@@ -32,15 +34,28 @@
     <form class="authForm" id="formLogin" novalidate>
 
       <!-- Alerta verde (cadastro ok / conta reativada) -->
-      <div id="msgSucesso" style="display:none; color: #16DB65; font-size: 13px; text-align: center; margin-bottom: 15px;"></div>
+      <div class="msgSucesso" id="msgSucesso" style="display:none"></div>
 
-      <input type="email" name="email" id="email" placeholder="Email" required>
-      <div class="erro" id="erroEmail"></div>
+      <div class="erroGeral" id="erroGeral"></div>
 
-      <input type="password" name="senha" id="senha" placeholder="Senha" required>
-      <div class="erro" id="erroSenha"></div>
+      <div class="campo">
+        <div class="inputIcon">
+          <i class="bi bi-envelope"></i>
+          <input type="email" name="email" id="email" placeholder="Email" autocomplete="email" maxlength="150" required>
+        </div>
+        <div class="erro" id="erroEmail"></div>
+      </div>
 
-      <button type="submit">Entrar</button>
+      <div class="campo">
+        <div class="inputIcon">
+          <i class="bi bi-lock"></i>
+          <input type="password" name="senha" id="senha" placeholder="Senha" autocomplete="current-password" maxlength="72" required>
+          <button type="button" class="toggleSenha" data-alvo="senha" tabindex="-1" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button>
+        </div>
+        <div class="erro" id="erroSenha"></div>
+      </div>
+
+      <button type="submit" id="btnEntrar"><span class="btnTexto">Entrar</span></button>
 
     </form>
 

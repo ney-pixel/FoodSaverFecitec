@@ -8,10 +8,25 @@ require_once __DIR__ . '/../helpers.php';
 exigirMetodo(['POST']);
 $uid = exigirLogin();
 
+// Converte uma quantidade entre unidades compatíveis (só massa, por ora).
+// Unidades iguais sempre "convertem" 1:1. Retorna null se não for possível.
+function converterQuantidade(float $qtd, string $de, string $para): ?float
+{
+    if ($de === $para) {
+        return $qtd;
+    }
+    $fatoresParaGramas = ['kg' => 1000, 'g' => 1];
+    if (isset($fatoresParaGramas[$de]) && isset($fatoresParaGramas[$para])) {
+        return $qtd * $fatoresParaGramas[$de] / $fatoresParaGramas[$para];
+    }
+    return null;
+}
+
 $dados      = corpoRequisicao();
 $alimentoId = (int) ($dados['alimento_id'] ?? 0);
 $tipo       = trim($dados['tipo'] ?? '');
-$quantidade = (float) ($dados['quantidade'] ?? 0);
+$quantidade = normalizarDecimal($dados['quantidade'] ?? '') ?? 0.0;
+$unidade    = trim($dados['unidade_medida'] ?? '');
 
 $tiposValidos = ['entrada', 'consumo', 'desperdicio'];
 if (!$alimentoId || !in_array($tipo, $tiposValidos, true) || $quantidade <= 0) {
@@ -26,10 +41,19 @@ if (!$alimento) {
     responder(false, 'Alimento não encontrado.', [], 404);
 }
 
-$unidade = $dados['unidade_medida'] ?? $alimento['unidade_medida'];
+if ($unidade === '') {
+    $unidade = $alimento['unidade_medida'];
+}
+
+// A movimentação é registrada na unidade escolhida pelo usuário, mas o
+// estoque em FS_alimentos sempre fica na unidade original do alimento.
+$quantidadeEstoque = converterQuantidade($quantidade, $unidade, $alimento['unidade_medida']);
+if ($quantidadeEstoque === null) {
+    responder(false, "Não é possível converter de \"{$unidade}\" para \"{$alimento['unidade_medida']}\".", [], 422);
+}
 
 if ($tipo === 'consumo' || $tipo === 'desperdicio') {
-    if ($quantidade > (float) $alimento['quantidade']) {
+    if ($quantidadeEstoque > (float) $alimento['quantidade']) {
         responder(false, 'Quantidade informada é maior que o estoque disponível.', [], 422);
     }
 }
@@ -46,7 +70,7 @@ try {
     } else {
         $stmtUpd = $pdo->prepare("UPDATE FS_alimentos SET quantidade = quantidade - ? WHERE id = ?");
     }
-    $stmtUpd->execute([$quantidade, $alimentoId]);
+    $stmtUpd->execute([$quantidadeEstoque, $alimentoId]);
 
     $pdo->commit();
 } catch (PDOException $e) {

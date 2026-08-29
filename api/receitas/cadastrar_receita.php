@@ -19,7 +19,13 @@ if (!$titulo) {
     responder(false, 'Informe o título da receita.', [], 422);
 }
 if (!$modoPreparo) {
-    responder(false, 'Descreva o modo de preparo.', [], 422);
+    responder(false, 'Descreva o modo de preparo da receita.', [], 422);
+}
+if ($porcoes < 1) {
+    $porcoes = 1;
+}
+if (empty($ingredientesId) || !is_array($ingredientesId)) {
+    responder(false, 'Selecione pelo menos um ingrediente do inventário.', [], 422);
 }
 
 $pdo->beginTransaction();
@@ -30,14 +36,20 @@ try {
     $stmt->execute([$uid, $titulo, $descricao, $porcoes, $modoPreparo]);
     $novaReceitaId = (int) $pdo->lastInsertId();
 
-    if (!empty($ingredientesId) && is_array($ingredientesId)) {
-        $stmtIng = $pdo->prepare(
-            "INSERT INTO FS_receita_alimentos (receita_id, alimento_id, quantidade, unidade_medida)
-             SELECT ?, id, 1, unidade_medida FROM FS_alimentos WHERE id = ? AND usuario_id = ?"
-        );
-        foreach ($ingredientesId as $alimentoId) {
-            $stmtIng->execute([$novaReceitaId, (int) $alimentoId, $uid]);
-        }
+    $stmtIng = $pdo->prepare(
+        "INSERT INTO FS_receita_alimentos (receita_id, alimento_id, quantidade, unidade_medida)
+         SELECT ?, id, 1, unidade_medida FROM FS_alimentos WHERE id = ? AND usuario_id = ?"
+    );
+    $vinculados = 0;
+    foreach ($ingredientesId as $alimentoId) {
+        $stmtIng->execute([$novaReceitaId, (int) $alimentoId, $uid]);
+        $vinculados += $stmtIng->rowCount();
+    }
+
+    if ($vinculados === 0) {
+        // Nenhum dos ingredientes enviados pertence ao usuário/inventário atual.
+        $pdo->rollBack();
+        responder(false, 'Os ingredientes selecionados não foram encontrados no seu inventário.', [], 422);
     }
 
     $pdo->commit();
