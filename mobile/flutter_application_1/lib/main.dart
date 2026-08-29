@@ -19,8 +19,32 @@ class AplicativoFoodSaver extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'FoodSaver',
       theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: fundoEscuro,
         textTheme:
             ThemeData.dark().textTheme.apply(fontFamily: 'DMSans'),
+        colorScheme: ThemeData.dark().colorScheme.copyWith(
+              primary: verdePrimario,
+              secondary: verdePrimario,
+              surface: cartaoEscuro,
+            ),
+        // Ripple/realce sutis na cor da marca — dá feedback tátil
+        // consistente em toda ação (botões, abas, itens de lista) sem
+        // precisar mexer em cada tela.
+        splashColor: verdePrimario.withOpacity(0.08),
+        highlightColor: verdePrimario.withOpacity(0.04),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(color: verdePrimario),
+        checkboxTheme: CheckboxThemeData(
+          fillColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected) ? verdePrimario : Colors.transparent),
+          checkColor: const WidgetStatePropertyAll(Colors.black),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: cartaoEscuro,
+          contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          insetPadding: const EdgeInsets.all(16),
+        ),
       ),
 
       home: const TelaInicial(),

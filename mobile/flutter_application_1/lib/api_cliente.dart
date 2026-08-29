@@ -94,6 +94,7 @@ class ApiCliente {
     String caminho, {
     Map<String, dynamic>? corpo,
     Map<String, String>? query,
+    Duration timeout = const Duration(seconds: 15),
   }) async {
     await _carregarCookie();
 
@@ -117,27 +118,27 @@ class ApiCliente {
         case 'GET':
           resposta = await _cliente
               .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         case 'POST':
           resposta = await _cliente
               .post(uri, headers: headers, body: corpoJson)
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         case 'PUT':
           resposta = await _cliente
               .put(uri, headers: headers, body: corpoJson)
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         case 'PATCH':
           resposta = await _cliente
               .patch(uri, headers: headers, body: corpoJson)
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         case 'DELETE':
           resposta = await _cliente
               .delete(uri, headers: headers, body: corpoJson)
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout);
           break;
         default:
           throw ApiException('Método HTTP não suportado: $metodo');
@@ -192,8 +193,9 @@ class ApiCliente {
       _requisitar('GET', caminho, query: query);
 
   static Future<Map<String, dynamic>> post(String caminho,
-          {Map<String, dynamic>? corpo}) =>
-      _requisitar('POST', caminho, corpo: corpo);
+          {Map<String, dynamic>? corpo, Duration? timeout}) =>
+      _requisitar('POST', caminho,
+          corpo: corpo, timeout: timeout ?? const Duration(seconds: 15));
 
   static Future<Map<String, dynamic>> put(String caminho,
           {Map<String, dynamic>? corpo}) =>

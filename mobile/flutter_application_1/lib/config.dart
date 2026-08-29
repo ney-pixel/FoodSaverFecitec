@@ -16,18 +16,12 @@ class TelaConfig extends StatefulWidget {
 }
 
 class _TelaConfigState extends State<TelaConfig> {
-  // "Novas receitas IA" e "XP e conquistas" não têm coluna correspondente
-  // na API ainda — ficam só como preferência local nesta sessão.
-  bool _notifReceitas = false;
-  bool _notifXP       = true;
-
   bool _carregando = true;
   String? _erro;
   String _username = '';
   String _email = '';
   String _plano = 'gratis';
   bool _alertasValidade = true;
-  bool _modoEscuro = true;
 
   @override
   void initState() {
@@ -47,7 +41,6 @@ class _TelaConfigState extends State<TelaConfig> {
         _email = (cfg['email'] as String?) ?? _email;
         _plano = (cfg['plano'] as String?) ?? 'gratis';
         _alertasValidade = cfg['alertas_validade'] == true;
-        _modoEscuro = (cfg['modo_tela'] as String?) == 'escuro';
         _carregando = false;
       });
     } on ApiException catch (e) {
@@ -292,35 +285,6 @@ class _TelaConfigState extends State<TelaConfig> {
                 () {
                   setState(() => _alertasValidade = !_alertasValidade);
                   _salvarPreferencia({'alertas_validade': _alertasValidade});
-                },
-              ),
-              const SizedBox(height: 8),
-              _itemToggle(
-                "Novas receitas",
-                "Sugestões diárias personalizadas (em breve)",
-                _notifReceitas,
-                () => setState(() => _notifReceitas = !_notifReceitas),
-              ),
-              const SizedBox(height: 8),
-              _itemToggle(
-                "XP e conquistas",
-                "Ao subir de nível ou ganhar conquista (em breve)",
-                _notifXP,
-                () => setState(() => _notifXP = !_notifXP),
-              ),
-
-              const SizedBox(height: 20),
-
-              //aparencia
-              rotuloSecao("Aparência"),
-              const SizedBox(height: 10),
-              _itemToggle(
-                "Modo escuro",
-                "Interface com fundo escuro",
-                _modoEscuro,
-                () {
-                  setState(() => _modoEscuro = !_modoEscuro);
-                  _salvarPreferencia({'modo_tela': _modoEscuro ? 'escuro' : 'claro'});
                 },
               ),
 

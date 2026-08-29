@@ -76,6 +76,9 @@ class _TelaHomeState extends State<TelaHome>
         decoration: const BoxDecoration(
           color: Color(0xFF0D0D0D),
           border: Border(top: BorderSide(color: bordaCartao, width: 0.5)),
+          boxShadow: [
+            BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, -6)),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -83,28 +86,34 @@ class _TelaHomeState extends State<TelaHome>
             final indice = entrada.key;
             final (iconeAtivo, iconeInativo, rotulo) = entrada.value;
             final sel = _abaAtual == indice;
-            return GestureDetector(
-              onTap: () => _trocarAba(indice),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: sel ? verdePrimario.withOpacity(0.1) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(sel ? iconeAtivo : iconeInativo,
-                        color: sel ? verdePrimario : Colors.white30, size: 20),
-                    const SizedBox(height: 2),
-                    Text(rotulo,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: sel ? verdePrimario : Colors.white30,
-                        )),
-                  ],
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _trocarAba(indice),
+                borderRadius: BorderRadius.circular(10),
+                splashColor: verdePrimario.withOpacity(0.12),
+                highlightColor: verdePrimario.withOpacity(0.06),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: sel ? verdePrimario.withOpacity(0.1) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(sel ? iconeAtivo : iconeInativo,
+                          color: sel ? verdePrimario : Colors.white30, size: 20),
+                      const SizedBox(height: 2),
+                      Text(rotulo,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: sel ? verdePrimario : Colors.white30,
+                          )),
+                    ],
+                  ),
                 ),
               ),
             );

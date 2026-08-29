@@ -11,7 +11,10 @@ const roxoIAClaro    = Color(0xFF9B59B6);
 //neutros / fundo
 const fundoEscuro    = Color(0xFF0A0A0A);
 const cartaoEscuro   = Color(0xFF141414);
-const bordaCartao    = Color(0xFF1F1F1F);
+// Borda quase invisível (branco a ~6%) em vez de cinza chapado — mesma
+// ideia do site (--border: rgba(255,255,255,.05)): os cards parecem
+// "flutuar" em vez de terem uma caixa desenhada em volta.
+const bordaCartao    = Color(0x0FFFFFFF);
 
 //gradiente de marca, usado em destaques (logo, botões hero, etc)
 const gradienteMarca = LinearGradient(
@@ -19,6 +22,15 @@ const gradienteMarca = LinearGradient(
   end: Alignment.bottomRight,
   colors: [verdePrimario, verdeEscuro],
 );
+
+// Sombras suaves — dão profundidade sem "gritar". Usadas nos componentes
+// compartilhados abaixo (logo, botão principal, cabeçalho, cards).
+const sombraCartao = [
+  BoxShadow(color: Color(0x33000000), blurRadius: 18, offset: Offset(0, 8)),
+];
+const brilhoPrimario = [
+  BoxShadow(color: Color(0x4016DB65), blurRadius: 24, offset: Offset(0, 10)),
+];
 
 //logo
 class LogoFoodSaver extends StatelessWidget {
@@ -32,8 +44,15 @@ class LogoFoodSaver extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            color: verdePrimario.withOpacity(0.05),
             border: Border.all(
-                color: verdePrimario.withOpacity(0.4), width: 1),
+                color: verdePrimario.withOpacity(0.35), width: 1),
+            boxShadow: [
+              BoxShadow(
+                  color: verdePrimario.withOpacity(0.22),
+                  blurRadius: 36,
+                  spreadRadius: 2),
+            ],
           ),
           child: ClipOval(
             child: Image.asset(
@@ -154,12 +173,17 @@ class BotaoPrincipal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
       height: 54,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: (carregando || aoClicar == null) ? null : brilhoPrimario,
+      ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: verdePrimario,
+          disabledBackgroundColor: verdePrimario.withOpacity(0.5),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -287,17 +311,17 @@ mixin AnimacaoEntradaMixin<T extends StatefulWidget>
 
 //healho default
 Widget cabecalhoPagina(String titulo, {Widget? acaoTopo}) => Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: const BoxDecoration(
           border:
               Border(bottom: BorderSide(color: bordaCartao, width: 0.5))),
       child: Row(children: [
         Text(titulo,
             style: const TextStyle(
-                fontSize: 20,
+                fontSize: 21,
                 fontWeight: FontWeight.w800,
                 color: Colors.white,
-                letterSpacing: -0.5)),
+                letterSpacing: -0.6)),
         const Spacer(),
         if (acaoTopo != null) acaoTopo,
       ]));
@@ -316,5 +340,6 @@ Widget cartao({required Widget filho, Color? corBorda}) => Container(
     decoration: BoxDecoration(
         color: cartaoEscuro,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: corBorda ?? bordaCartao)),
+        border: Border.all(color: corBorda ?? bordaCartao),
+        boxShadow: sombraCartao),
     child: filho);

@@ -9,16 +9,18 @@ const ESTADO = {
   usuario: null,
   alimentos: [],
   biblioteca: [],
+  receitasIA: [],
   compras: [],
   gruposAlimentos: [],
   config: null,
   movimentacoes: null,
 };
 
-// Receitas favoritadas (tanto as vindas da IA quanto as da biblioteca — hoje
-// só existe a biblioteca, mas o campo já modela os dois casos futuros).
+// Receitas favoritadas: as da biblioteca (catálogo fixo, favorito é uma
+// coluna na própria receita) e as geradas por IA que o usuário salvou
+// (só existem no banco a partir do momento que são favoritadas).
 function receitasFavoritas() {
-  return ESTADO.biblioteca.filter((r) => r.favorito);
+  return [...ESTADO.biblioteca.filter((r) => r.favorito), ...ESTADO.receitasIA];
 }
 
 // ── HELPERS DE DOMÍNIO (equivalentes às funções PHP originais) ──
@@ -62,9 +64,10 @@ function limparMsg(containerId) {
 
 // ── CARREGAMENTO DE DADOS ────────────────────────────────────
 async function carregarTudo() {
-  const [alimentosResp, bibliotecaResp, comprasResp, configResp, gAlResp, movResp] = await Promise.all([
+  const [alimentosResp, bibliotecaResp, receitasIAResp, comprasResp, configResp, gAlResp, movResp] = await Promise.all([
     apiFetch('/estoque/listar_alimentos.php'),
     apiFetch('/biblioteca/listar_biblioteca.php'),
+    apiFetch('/ia/listar_receitas_ia.php'),
     apiFetch('/compras/listar_compras.php'),
     apiFetch('/configuracoes/listar_configuracoes.php'),
     apiFetch('/grupos/gerenciar_grupo_alimentos.php'),
@@ -72,6 +75,7 @@ async function carregarTudo() {
   ]);
   ESTADO.alimentos = alimentosResp.alimentos || [];
   ESTADO.biblioteca = bibliotecaResp.receitas || [];
+  ESTADO.receitasIA = receitasIAResp.receitas || [];
   ESTADO.compras = comprasResp.lista_compras || [];
   ESTADO.config = configResp.configuracoes || null;
   ESTADO.gruposAlimentos = gAlResp.grupos || [];
@@ -327,7 +331,8 @@ function renderReceitas() {
   renderBiblioteca();
 }
 
-// ── SUBABA: CRIAR (hoje busca na biblioteca; no futuro, geração por IA) ──
+// ── SUBABA: CRIAR (geração por IA a partir do estoque) ──
+const NOMES_FOME = ['Leve', 'Médio', 'Muita fome'];
 const criarReceitaState = { ingredientes: [], porcoes: 2, fome: 0 };
 let _sugestoesCriarAtual = [];
 
@@ -437,52 +442,81 @@ function selecionarFomeCriar(indice) {
   document.querySelectorAll('#criarFomeToggle .fome-btn').forEach((b) => b.classList.toggle('active', Number(b.dataset.fome) === indice));
 }
 
-// Mesmo critério do app mobile (receitas.dart): acha na biblioteca a
-// primeira receita cujos ingredientes necessários estejam todos cobertos
-// pelos selecionados (nome bate por substring, nos dois sentidos).
-function buscarReceitaPorIngredientes(nomesSelecionados) {
-  const selLower = nomesSelecionados.map((n) => n.toLowerCase());
-  return ESTADO.biblioteca.find((r) =>
-    (r.ingredientes_necessarios || []).every((necessario) => {
-      const nLower = necessario.toLowerCase();
-      return selLower.some((sel) => sel.includes(nLower) || nLower.includes(sel));
-    })
-  );
-}
-
-function gerarReceita() {
+// Chama a IA (Gemini, via api/ia/gerar_receita.php) com os ingredientes
+// selecionados do estoque, porções, nível de fome e observações — mesmo
+// endpoint usado pelo app mobile (lib/receitas.dart).
+async function gerarReceita() {
   if (criarReceitaState.ingredientes.length === 0) return;
-  const encontrada = buscarReceitaPorIngredientes(criarReceitaState.ingredientes);
-  if (!encontrada) {
-    msgFeedback('recMsg', 'erro', 'Nenhuma receita encontrada. Tente selecionar mais ingredientes ou uma combinação diferente.');
+
+  const btn = document.getElementById('btnGerarReceita');
+  const textoOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Gerando receita...';
+  limparMsg('recMsg');
+
+  const resp = await apiFetch('/ia/gerar_receita.php', {
+    method: 'POST',
+    body: {
+      ingredientes: criarReceitaState.ingredientes,
+      porcoes: criarReceitaState.porcoes,
+      nivel_fome: NOMES_FOME[criarReceitaState.fome],
+      observacoes: (document.getElementById('criarObservacoes')?.value || '').trim(),
+    },
+  });
+
+  btn.disabled = criarReceitaState.ingredientes.length === 0;
+  btn.innerHTML = textoOriginal;
+
+  if (!resp.sucesso) {
+    msgFeedback('recMsg', 'erro', resp.mensagem || 'Não foi possível gerar a receita agora. Tente novamente.');
     return;
   }
-  limparMsg('recMsg');
-  abrirModalReceita(encontrada.id);
+
+  exibirReceitaNoModal(resp.receita);
 }
 
 // ── SUBABA: FAVORITAS ────────────────────────────────────────────
+// Usa índice (não id) nos onclick porque biblioteca e receitas de IA têm
+// contadores de id independentes — o mesmo id pode existir nas duas.
+let _favoritasAtuais = [];
+
 function renderFavoritas() {
   const favoritas = receitasFavoritas();
+  _favoritasAtuais = favoritas;
   document.getElementById('favEmpty').style.display = favoritas.length === 0 ? '' : 'none';
-  document.getElementById('favoritasGrid').innerHTML = favoritas.map((r) => `
+  document.getElementById('favoritasGrid').innerHTML = favoritas.map((r, i) => `
     <div class="receita-card-saved is-fav">
       <div class="rc-head">
         <div>
-          <div class="rc-titulo">${esc(r.titulo)}</div>
+          <div class="rc-titulo">${esc(r.titulo)} ${r.gerada_por_ia ? '<span class="rtag ia-tag" style="margin-left:6px"><i class="bi bi-stars"></i> IA</span>' : ''}</div>
           <div class="rc-meta" style="margin-top:6px">
             <span class="rc-tag"><i class="bi bi-timer"></i> ${r.tempo_preparo} min</span>
             <span class="rc-tag"><i class="bi bi-people-fill"></i> ${r.porcoes} ${r.porcoes === 1 ? 'porção' : 'porções'}</span>
           </div>
         </div>
-        <button type="button" class="rc-fav active" title="Remover dos favoritos" onclick="favoritarReceita(${r.id})">
+        <button type="button" class="rc-fav active" title="Remover dos favoritos" onclick="desfavoritarFavoritaPorIndice(${i})">
           <i class="bi bi-star-fill"></i>
         </button>
       </div>
       ${r.ingredientes_necessarios?.length ? `<div class="rc-ings">${r.ingredientes_necessarios.map((i) => `<span class="rc-ing"><i class="bi bi-check2"></i> ${esc(i)}</span>`).join('')}</div>` : ''}
-      <button type="button" class="btn-ghost" style="width:100%;justify-content:center" onclick="abrirModalReceita(${r.id})"><i class="bi bi-eye"></i> Ver receita</button>
+      <button type="button" class="btn-ghost" style="width:100%;justify-content:center" onclick="verFavoritaPorIndice(${i})"><i class="bi bi-eye"></i> Ver receita</button>
     </div>
   `).join('');
+}
+
+function verFavoritaPorIndice(i) {
+  const r = _favoritasAtuais[i];
+  if (r) exibirReceitaNoModal(r);
+}
+
+async function desfavoritarFavoritaPorIndice(i) {
+  const r = _favoritasAtuais[i];
+  if (!r) return;
+  if (r.gerada_por_ia) {
+    await favoritarReceitaIA(r);
+  } else {
+    await favoritarReceita(r.id);
+  }
 }
 
 // ── SUBABA: BIBLIOTECA ───────────────────────────────────────────
@@ -520,16 +554,27 @@ function renderBiblioteca() {
 }
 
 // ── MODAL DE DETALHE (compartilhado entre as 3 subabas) ─────────
+// _receitaModalId: id na biblioteca (quando a receita mostrada é de lá).
+// _receitaModalIA: o objeto inteiro (quando a receita mostrada veio da IA
+// — antes de favoritada ela não tem id nenhuma tabela, então guardamos o
+// objeto todo pra poder favoritar depois).
 let _receitaModalId = null;
+let _receitaModalIA = null;
 
 function abrirModalReceita(id) {
   const r = ESTADO.biblioteca.find((x) => x.id === id);
   if (!r) return;
-  _receitaModalId = id;
+  exibirReceitaNoModal(r);
+}
+
+function exibirReceitaNoModal(r) {
+  _receitaModalId = r.gerada_por_ia ? null : r.id;
+  _receitaModalIA = r.gerada_por_ia ? r : null;
 
   document.getElementById('mrTitulo').textContent = r.titulo;
   document.getElementById('mrDescricao').textContent = r.descricao || '';
   document.getElementById('mrTags').innerHTML = `
+    ${r.gerada_por_ia ? '<span class="rtag ia-tag"><i class="bi bi-stars"></i> Gerada por IA</span>' : ''}
     <span class="rtag green-tag">${esc(r.categoria)}</span>
     <span class="expiry-pill ${dificuldadeClasse(r.dificuldade)}">${esc(r.dificuldade)}</span>
     <span class="rc-tag"><i class="bi bi-timer"></i> ${r.tempo_preparo} min</span>
@@ -562,9 +607,15 @@ function fecharModalReceita() {
   document.getElementById('modalReceita').classList.add('hidden');
   document.body.style.overflow = '';
   _receitaModalId = null;
+  _receitaModalIA = null;
 }
 
 async function alternarFavoritoModal() {
+  if (_receitaModalIA) {
+    await favoritarReceitaIA(_receitaModalIA);
+    atualizarBotaoFavoritoModal(_receitaModalIA.favorito);
+    return;
+  }
   if (_receitaModalId === null) return;
   await favoritarReceita(_receitaModalId);
   const r = ESTADO.biblioteca.find((x) => x.id === _receitaModalId);
@@ -581,6 +632,45 @@ async function favoritarReceita(id) {
     renderConfig();
     renderRelatorios();
   }
+}
+
+// Favorita/desfavorita uma receita gerada por IA (api/ia/favoritar_receita_ia.php):
+//   - ainda sem id (nunca favoritada) -> manda a receita inteira, o servidor insere e devolve o id.
+//   - já com id (estava favoritada)   -> manda só o id, o servidor apaga (desfavoritar).
+async function favoritarReceitaIA(receita) {
+  const corpo = receita.id > 0
+    ? { id: receita.id }
+    : {
+        titulo: receita.titulo,
+        descricao: receita.descricao,
+        categoria: receita.categoria,
+        dificuldade: receita.dificuldade,
+        tempo_preparo: receita.tempo_preparo,
+        porcoes: receita.porcoes,
+        calorias: receita.calorias,
+        ingredientes: receita.ingredientes,
+        ingredientes_necessarios: receita.ingredientes_necessarios,
+        modo_preparo: receita.modo_preparo,
+        dicas: receita.dicas,
+      };
+
+  const resp = await apiFetch('/ia/favoritar_receita_ia.php', { method: 'POST', body: corpo });
+  if (!resp.sucesso) return;
+
+  receita.id = resp.id;
+  receita.favorito = resp.favorito;
+  receita.gerada_por_ia = true;
+
+  if (resp.favorito) {
+    if (!ESTADO.receitasIA.some((r) => r.id === receita.id)) {
+      ESTADO.receitasIA = [{ ...receita }, ...ESTADO.receitasIA];
+    }
+  } else {
+    ESTADO.receitasIA = ESTADO.receitasIA.filter((r) => r.id !== receita.id);
+  }
+
+  renderReceitas();
+  renderSidebar();
 }
 
 // ══════════════════════════════════════════════════════════════

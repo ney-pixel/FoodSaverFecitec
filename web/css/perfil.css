@@ -1301,6 +1301,11 @@ input, select, textarea { font-family: inherit; outline: none; }
   color: var(--green);
 }
 
+.ia-tag {
+  background: linear-gradient(135deg, #6C63FF, #9B59B6);
+  color: #fff;
+}
+
 .receita-body h3 {
   font-size: 17px;
   font-weight: 800;

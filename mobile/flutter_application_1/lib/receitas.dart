@@ -19,10 +19,14 @@ class _TelaReceitasState extends State<TelaReceitas>
   bool _carregando = true;
   String? _erro;
   List<Receita> _biblioteca = [];
+  List<Receita> _favoritasIA = [];
   List<GrupoReceitas> _grupos = [];
   List<AlimentoEstoque> _estoque = [];
 
-  List<Receita> get _favoritas => _biblioteca.where((r) => r.favorita).toList();
+  List<Receita> get _favoritas => [
+        ..._biblioteca.where((r) => r.favorita),
+        ..._favoritasIA,
+      ];
 
   @override
   void initState() {
@@ -40,7 +44,7 @@ class _TelaReceitasState extends State<TelaReceitas>
   Future<void> _carregarTudo() async {
     setState(() { _carregando = true; _erro = null; });
     try {
-      await Future.wait([_carregarBiblioteca(), _carregarGrupos(), _carregarEstoque()]);
+      await Future.wait([_carregarBiblioteca(), _carregarGrupos(), _carregarEstoque(), _carregarFavoritasIA()]);
       setState(() => _carregando = false);
     } on ApiException catch (e) {
       setState(() { _carregando = false; _erro = e.mensagem; });
@@ -88,6 +92,14 @@ class _TelaReceitasState extends State<TelaReceitas>
     if (mounted) setState(() => _estoque = lista);
   }
 
+  Future<void> _carregarFavoritasIA() async {
+    final resp = await ApiCliente.get('/ia/listar_receitas_ia.php');
+    final lista = (resp['receitas'] as List)
+        .map((j) => Receita.fromJson(j as Map<String, dynamic>))
+        .toList();
+    if (mounted) setState(() => _favoritasIA = lista);
+  }
+
   void _mostrarErro(String mensagem) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -95,10 +107,43 @@ class _TelaReceitasState extends State<TelaReceitas>
     );
   }
 
+  // Favoritar/desfavoritar funciona diferente dependendo de onde a receita
+  // veio: biblioteca (catálogo fixo, favorito por linha em FS_biblioteca_favoritos)
+  // ou gerada por IA (só existe no banco — FS_receitas_ia — quando favoritada).
   Future<void> _alternarFavorito(Receita receita) async {
+    if (receita.geradaPorIA) {
+      await _alternarFavoritoIA(receita);
+    } else {
+      try {
+        await ApiCliente.post('/biblioteca/favoritar_biblioteca.php', corpo: {'id': receita.id});
+        await _carregarBiblioteca();
+      } on ApiException catch (e) {
+        _mostrarErro(e.mensagem);
+      }
+    }
+  }
+
+  Future<void> _alternarFavoritoIA(Receita receita) async {
     try {
-      await ApiCliente.post('/biblioteca/favoritar_biblioteca.php', corpo: {'id': receita.id});
-      await _carregarBiblioteca();
+      final corpo = receita.id > 0
+          ? {'id': receita.id}
+          : {
+              'titulo': receita.nome,
+              'descricao': receita.descricao,
+              'categoria': receita.categoria,
+              'dificuldade': receita.dificuldade,
+              'tempo_preparo': receita.tempoPreparo,
+              'porcoes': receita.porcoes,
+              'calorias': receita.calorias,
+              'ingredientes': receita.ingredientes,
+              'ingredientes_necessarios': receita.ingredientesNecessarios,
+              'modo_preparo': receita.preparo,
+              'dicas': receita.dicas,
+            };
+      final resp = await ApiCliente.post('/ia/favoritar_receita_ia.php', corpo: corpo);
+      receita.id = resp['id'] as int;
+      receita.favorita = resp['favorito'] == true;
+      await _carregarFavoritasIA();
     } on ApiException catch (e) {
       _mostrarErro(e.mensagem);
     }
@@ -146,11 +191,7 @@ class _TelaReceitasState extends State<TelaReceitas>
                   : TabBarView(
                       controller: _controladorSubabas,
                       children: [
-                        _SubabaCriar(
-                          estoque: _estoque,
-                          biblioteca: _biblioteca,
-                          aoFavoritar: _alternarFavorito,
-                        ),
+                        _SubabaCriar(estoque: _estoque, aoFavoritar: _alternarFavorito),
                         _SubabaFavoritas(favoritas: _favoritas, aoDesfavoritar: _alternarFavorito),
                         _SubabaGruposReceitas(
                           grupos: _grupos,
@@ -212,20 +253,21 @@ class _TelaReceitasState extends State<TelaReceitas>
 //subaba criar receitas
 class _SubabaCriar extends StatefulWidget {
   final List<AlimentoEstoque> estoque;
-  final List<Receita> biblioteca;
   final Future<void> Function(Receita) aoFavoritar;
-  const _SubabaCriar({required this.estoque, required this.biblioteca, required this.aoFavoritar});
+  const _SubabaCriar({required this.estoque, required this.aoFavoritar});
   @override
   State<_SubabaCriar> createState() => _SubabaCriarState();
 }
 
 class _SubabaCriarState extends State<_SubabaCriar> {
   final _controladorBuscaIngrediente = TextEditingController();
+  final _controladorObservacoes = TextEditingController();
   final _focoBuscaIngrediente = FocusNode();
   final List<String> _ingredientesSelecionados = [];
   int _numeroPessoas = 2;
   int _indiceFome    = 1;
   final _nivelFome   = ['Leve', 'Médio', 'Muita fome'];
+  bool _gerando      = false;
 
   int get _totalSelecionados => _ingredientesSelecionados.length;
   List<String> get _nomesSelecionados => _ingredientesSelecionados;
@@ -268,48 +310,40 @@ class _SubabaCriarState extends State<_SubabaCriar> {
   @override
   void dispose() {
     _controladorBuscaIngrediente.dispose();
+    _controladorObservacoes.dispose();
     _focoBuscaIngrediente.dispose();
     super.dispose();
   }
 
-  //busca na biblioteca a primeira receita cujos ingredientes necessarios
-  //estejam todos cobertos pelos ingredientes selecionados
-  List<Receita> _buscarPorIngredientes(List<String> nomesSelecionados) {
-    final selecionadosLower = nomesSelecionados.map((n) => n.toLowerCase()).toList();
-    return widget.biblioteca.where((r) {
-      return r.ingredientesNecessarios.every(
-        (necessario) => selecionadosLower.any((sel) =>
-            sel.contains(necessario.toLowerCase()) ||
-            necessario.toLowerCase().contains(sel)),
-      );
-    }).toList();
-  }
-
-  void _gerarReceita() {
-    final receitasEncontradas = _buscarPorIngredientes(_nomesSelecionados);
-    if (receitasEncontradas.isEmpty) {
-      _mostrarSemResultado();
-    } else {
-      _mostrarReceita(receitasEncontradas.first);
-    }
-  }
-
-  void _mostrarSemResultado() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: cartaoEscuro,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 56, height: 56, decoration: BoxDecoration(color: Colors.white10, shape: BoxShape.circle), child: const Icon(Icons.restaurant_outlined, color: Colors.white38, size: 28)),
-          const SizedBox(height: 16),
-          const Text('Nenhuma receita encontrada', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          const Text('Tente selecionar mais ingredientes ou uma combinação diferente.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 13)),
-        ]),
-      ),
+  void _mostrarErro(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: const Color(0xFFFF4444)),
     );
+  }
+
+  //chama a IA (Gemini, via api/ia/gerar_receita.php) com os ingredientes
+  //selecionados do estoque, porções, nível de fome e observações
+  Future<void> _gerarReceita() async {
+    setState(() => _gerando = true);
+    try {
+      final resp = await ApiCliente.post('/ia/gerar_receita.php',
+          corpo: {
+            'ingredientes': _nomesSelecionados,
+            'porcoes': _numeroPessoas,
+            'nivel_fome': _nivelFome[_indiceFome],
+            'observacoes': _controladorObservacoes.text.trim(),
+          },
+          timeout: const Duration(seconds: 45));
+      if (!mounted) return;
+      setState(() => _gerando = false);
+      final receita = Receita.fromJson(resp['receita'] as Map<String, dynamic>);
+      _mostrarReceita(receita);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _gerando = false);
+      _mostrarErro(e.mensagem);
+    }
   }
 
   void _mostrarReceita(Receita receita) {
@@ -322,10 +356,10 @@ class _SubabaCriarState extends State<_SubabaCriar> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setB) => DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.88,
-          maxChildSize: 0.95,
-          builder: (_, ctrl) => Column(
+        expand: false,
+        initialChildSize: 0.88,
+        maxChildSize: 0.95,
+        builder: (_, ctrl) => Column(
             children: [
               // Handle
               Container(margin: const EdgeInsets.only(top: 12, bottom: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
@@ -335,7 +369,22 @@ class _SubabaCriarState extends State<_SubabaCriar> {
                 child: Row(children: [
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _badgeCategoria(receita.categoria),
+                      Row(children: [
+                        _badgeCategoria(receita.categoria),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9B59B6)]),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 9),
+                            SizedBox(width: 3),
+                            Text('Gerada por IA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ]),
+                        ),
+                      ]),
                       const SizedBox(height: 6),
                       Text(receita.nome, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
                       const SizedBox(height: 4),
@@ -347,6 +396,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
                     onTap: () async {
                       setB(() => favoritado = !favoritado);
                       await widget.aoFavoritar(receita);
+                      setB(() => favoritado = receita.favorita);
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -428,7 +478,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
             ],
           ),
         ),
-      ),
+        ),
     );
   }
 
@@ -596,11 +646,16 @@ class _SubabaCriarState extends State<_SubabaCriar> {
         Container(
           height: 76,
           decoration: BoxDecoration(color: cartaoEscuro, borderRadius: BorderRadius.circular(14), border: Border.all(color: bordaCartao)),
-          child: const TextField(maxLines: null, expands: true, style: TextStyle(color: Colors.white, fontSize: 13), decoration: InputDecoration(hintText: 'Ex: sem glúten, rápido de fazer...', hintStyle: TextStyle(color: Colors.white30, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.all(14))),
+          child: TextField(
+            controller: _controladorObservacoes,
+            maxLines: null, expands: true,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: const InputDecoration(hintText: 'Ex: sem glúten, rápido de fazer...', hintStyle: TextStyle(color: Colors.white30, fontSize: 12), border: InputBorder.none, contentPadding: EdgeInsets.all(14)),
+          ),
         ),
         const SizedBox(height: 20),
         GestureDetector(
-          onTap: _totalSelecionados > 0 ? _gerarReceita : null,
+          onTap: (_totalSelecionados > 0 && !_gerando) ? _gerarReceita : null,
           child: Container(
             height: 50,
             decoration: BoxDecoration(
@@ -608,14 +663,20 @@ class _SubabaCriarState extends State<_SubabaCriar> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: _totalSelecionados > 0 ? [BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 5))] : [],
             ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 17),
-              const SizedBox(width: 8),
-              Text(
-                _totalSelecionados == 0 ? 'Selecione ingredientes acima' : 'Gerar receita com $_totalSelecionados ingrediente${_totalSelecionados > 1 ? 's' : ''}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
-              ),
-            ]),
+            child: _gerando
+                ? const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                    SizedBox(width: 10),
+                    Text('Gerando receita...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                  ])
+                : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 17),
+                    const SizedBox(width: 8),
+                    Text(
+                      _totalSelecionados == 0 ? 'Selecione ingredientes acima' : 'Gerar receita com $_totalSelecionados ingrediente${_totalSelecionados > 1 ? 's' : ''}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                  ]),
           ),
         ),
       ],
