@@ -961,7 +961,8 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
       final b = _textoBusca.toLowerCase();
       lista = lista.where((r) =>
           r.nome.toLowerCase().contains(b) ||
-          r.categoria.toLowerCase().contains(b)).toList();
+          r.categoria.toLowerCase().contains(b) ||
+          r.ingredientesNecessarios.any((ing) => ing.toLowerCase().contains(b))).toList();
     }
     return lista;
   }
