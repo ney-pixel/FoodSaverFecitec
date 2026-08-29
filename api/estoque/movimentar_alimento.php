@@ -8,19 +8,7 @@ require_once __DIR__ . '/../helpers.php';
 exigirMetodo(['POST']);
 $uid = exigirLogin();
 
-// Converte uma quantidade entre unidades compatíveis (só massa, por ora).
-// Unidades iguais sempre "convertem" 1:1. Retorna null se não for possível.
-function converterQuantidade(float $qtd, string $de, string $para): ?float
-{
-    if ($de === $para) {
-        return $qtd;
-    }
-    $fatoresParaGramas = ['kg' => 1000, 'g' => 1];
-    if (isset($fatoresParaGramas[$de]) && isset($fatoresParaGramas[$para])) {
-        return $qtd * $fatoresParaGramas[$de] / $fatoresParaGramas[$para];
-    }
-    return null;
-}
+// converterQuantidade() mora em helpers.php (compartilhada com editar_compra.php).
 
 $dados      = corpoRequisicao();
 $alimentoId = (int) ($dados['alimento_id'] ?? 0);
@@ -67,10 +55,33 @@ try {
 
     if ($tipo === 'entrada') {
         $stmtUpd = $pdo->prepare("UPDATE FS_alimentos SET quantidade = quantidade + ? WHERE id = ?");
+        $stmtUpd->execute([$quantidadeEstoque, $alimentoId]);
+        $removido = false;
     } else {
         $stmtUpd = $pdo->prepare("UPDATE FS_alimentos SET quantidade = quantidade - ? WHERE id = ?");
+        $stmtUpd->execute([$quantidadeEstoque, $alimentoId]);
+
+        // Se o consumo/desperdício zerou o estoque do alimento, ele não faz
+        // mais sentido no inventário: removemos a linha de FS_alimentos.
+        // A movimentação que acabamos de gravar continua existindo (guarda o
+        // nome em descricao_alimento e alimento_id vira NULL via ON DELETE
+        // SET NULL), então o histórico/relatórios não são afetados.
+        $stmtCheck = $pdo->prepare("SELECT quantidade FROM FS_alimentos WHERE id = ?");
+        $stmtCheck->execute([$alimentoId]);
+        $quantidadeRestante = (float) $stmtCheck->fetchColumn();
+
+        $removido = false;
+        if ($quantidadeRestante <= 0.0001) {
+            try {
+                $stmtDel = $pdo->prepare("DELETE FROM FS_alimentos WHERE id = ?");
+                $stmtDel->execute([$alimentoId]);
+                $removido = true;
+            } catch (PDOException $e) {
+                // FK RESTRICT: alimento vinculado a uma receita. Mantemos o
+                // registro (com quantidade zerada) em vez de falhar a movimentação.
+            }
+        }
     }
-    $stmtUpd->execute([$quantidadeEstoque, $alimentoId]);
 
     $pdo->commit();
 } catch (PDOException $e) {
@@ -78,4 +89,4 @@ try {
     responder(false, 'Erro ao registrar movimentação.', [], 500);
 }
 
-responder(true, 'Movimentação registrada com sucesso.');
+responder(true, 'Movimentação registrada com sucesso.', ['alimento_removido' => $removido]);

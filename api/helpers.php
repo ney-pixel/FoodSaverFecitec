@@ -117,3 +117,21 @@ function normalizarDecimal($valor): ?float
     }
     return (float) $valor;
 }
+
+/**
+ * Converte uma quantidade entre unidades compatíveis (só massa, por ora).
+ * Unidades iguais sempre "convertem" 1:1. Retorna null se não for possível
+ * (unidades incompatíveis, ex.: "kg" para "un").
+ * Compartilhada entre movimentar_alimento.php e editar_compra.php.
+ */
+function converterQuantidade(float $qtd, string $de, string $para): ?float
+{
+    if ($de === $para) {
+        return $qtd;
+    }
+    $fatoresParaGramas = ['kg' => 1000, 'g' => 1];
+    if (isset($fatoresParaGramas[$de]) && isset($fatoresParaGramas[$para])) {
+        return $qtd * $fatoresParaGramas[$de] / $fatoresParaGramas[$para];
+    }
+    return null;
+}

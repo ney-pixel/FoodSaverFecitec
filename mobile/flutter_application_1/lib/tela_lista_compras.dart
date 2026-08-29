@@ -224,9 +224,13 @@ class _TelaListaComprasState extends State<TelaListaCompras>
   }
 
   Future<void> _alternarComprado(ItemListaCompras item) async {
+    final ficouComprado = !item.comprado;
     setState(() => item.comprado = !item.comprado); // otimista
     try {
       await ApiCliente.patch('/compras/editar_compra.php', corpo: {'id': int.parse(item.id)});
+      // Marcar como comprado soma a quantidade no estoque (ou cria o item lá);
+      // recarrega o estoque para essa tela já refletir isso.
+      if (ficouComprado) await _carregarEstoque();
     } on ApiException catch (e) {
       setState(() => item.comprado = !item.comprado); // desfaz
       _mostrarErro(e.mensagem);

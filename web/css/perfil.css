@@ -2239,6 +2239,287 @@ input, select, textarea { font-family: inherit; outline: none; }
   white-space: pre-line;
 }
 
+.btn-primary:disabled {
+  background: var(--surface3);
+  color: var(--text-dim);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── RECEITAS: badge "IA Ativa" no cabeçalho ── */
+.ia-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 99px;
+  background: linear-gradient(135deg, #6C63FF, #9B59B6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+/* ── RECEITAS: subaba Criar (busca de ingredientes) ── */
+.ing-suggestions {
+  margin-top: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.ing-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.ing-suggestion-item:last-child { border-bottom: none; }
+.ing-suggestion-item:hover { background: var(--surface2); }
+.ing-suggestion-item i { color: var(--green); font-size: 13px; }
+.ing-suggestion-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+
+.ing-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-top: 6px;
+  padding: 2px;
+}
+.ing-mini-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 10px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  font-family: inherit;
+}
+.ing-mini-card:hover {
+  border-color: rgba(22,219,101,.4);
+  background: var(--surface3);
+  transform: translateY(-2px);
+}
+.ing-mini-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--green-dim);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+.ing-mini-card-nome {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.ing-mini-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  padding: 20px;
+}
+
+.ing-selecionados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 24px;
+  margin-top: 6px;
+}
+.ing-chip-sel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px 7px 14px;
+  border-radius: 99px;
+  background: var(--green);
+  color: #0B0F14;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.ing-chip-sel button {
+  background: rgba(0,0,0,0.12);
+  border: none;
+  color: #0B0F14;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.qtd-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.qtd-stepper button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(22,219,101,0.3);
+  background: var(--green-dim);
+  color: var(--green);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.qtd-stepper button:hover { transform: scale(1.06); }
+.qtd-stepper span { font-size: 18px; font-weight: 800; color: var(--text); min-width: 20px; text-align: center; }
+
+.fome-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+}
+.fome-btn {
+  flex: 1;
+  padding: 8px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.fome-btn:hover { color: var(--text); }
+.fome-btn.active { background: var(--green); color: #0B0F14; }
+
+/* ── RECEITAS: cartão da biblioteca (grid) ── */
+.receita-card { cursor: pointer; }
+.receita-banner { position: relative; }
+.receita-banner i:first-child { font-size: 32px; color: var(--green); }
+.receita-banner-fav { position: absolute; top: 12px; right: 14px; color: #fbbf24 !important; font-size: 15px !important; }
+.receita-footer-item { font-size: 11px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+.receita-footer-cal { color: #FFA726; }
+.receita-footer { gap: 12px; flex-wrap: wrap; }
+
+/* ── RECEITAS: modal de detalhe ── */
+.modal-box-lg { max-width: 640px; }
+#mrFavBtn { margin-right: auto; }
+.modal-body-scroll { max-height: 60vh; overflow-y: auto; }
+.mr-descricao { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.mr-subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.mr-subtitulo i { color: var(--green); }
+.mr-lista-ingredientes { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.mr-lista-ingredientes li {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-left: 16px;
+  position: relative;
+}
+.mr-lista-ingredientes li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.mr-lista-preparo { list-style: none; counter-reset: passo; display: flex; flex-direction: column; gap: 12px; }
+.mr-lista-preparo li {
+  counter-increment: passo;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding-left: 34px;
+  position: relative;
+  min-height: 24px;
+}
+.mr-lista-preparo li::before {
+  content: counter(passo);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--green-dim);
+  border: 1px solid rgba(22,219,101,0.3);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mr-dicas {
+  padding: 14px;
+  background: rgba(245,158,11,.07);
+  border: 1px solid rgba(245,158,11,.2);
+  border-radius: var(--radius-sm);
+}
+.mr-dicas p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.mr-dicas p + p { margin-top: 8px; }
+.mr-dicas p i { color: #fbbf24; margin-top: 1px; }
+
 /* ── INVENTÁRIO ── */
 .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 18px; }
 .inv-card {

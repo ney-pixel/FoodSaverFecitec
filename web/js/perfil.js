@@ -8,13 +8,18 @@
 const ESTADO = {
   usuario: null,
   alimentos: [],
-  receitas: [],
+  biblioteca: [],
   compras: [],
   gruposAlimentos: [],
-  gruposReceitas: [],
   config: null,
   movimentacoes: null,
 };
+
+// Receitas favoritadas (tanto as vindas da IA quanto as da biblioteca — hoje
+// só existe a biblioteca, mas o campo já modela os dois casos futuros).
+function receitasFavoritas() {
+  return ESTADO.biblioteca.filter((r) => r.favorito);
+}
 
 // ── HELPERS DE DOMÍNIO (equivalentes às funções PHP originais) ──
 function diasValidade(validade) {
@@ -57,21 +62,19 @@ function limparMsg(containerId) {
 
 // ── CARREGAMENTO DE DADOS ────────────────────────────────────
 async function carregarTudo() {
-  const [alimentosResp, receitasResp, comprasResp, configResp, gAlResp, gReResp, movResp] = await Promise.all([
+  const [alimentosResp, bibliotecaResp, comprasResp, configResp, gAlResp, movResp] = await Promise.all([
     apiFetch('/estoque/listar_alimentos.php'),
-    apiFetch('/receitas/listar_receitas.php'),
+    apiFetch('/biblioteca/listar_biblioteca.php'),
     apiFetch('/compras/listar_compras.php'),
     apiFetch('/configuracoes/listar_configuracoes.php'),
     apiFetch('/grupos/gerenciar_grupo_alimentos.php'),
-    apiFetch('/grupos/gerenciar_grupo_receitas.php'),
     apiFetch('/estoque/listar_movimentacoes.php'),
   ]);
   ESTADO.alimentos = alimentosResp.alimentos || [];
-  ESTADO.receitas = receitasResp.receitas || [];
+  ESTADO.biblioteca = bibliotecaResp.receitas || [];
   ESTADO.compras = comprasResp.lista_compras || [];
   ESTADO.config = configResp.configuracoes || null;
   ESTADO.gruposAlimentos = gAlResp.grupos || [];
-  ESTADO.gruposReceitas = gReResp.grupos || [];
   ESTADO.movimentacoes = movResp.sucesso ? movResp : null;
 }
 
@@ -79,17 +82,17 @@ function renderTudo() {
   renderSidebar();
   renderInventario();
   renderReceitas();
+  renderIngredientesSelecionadosCriar();
   renderCompras();
   renderGruposAlimentos();
-  renderGruposReceitas();
   renderRelatorios();
   renderConfig();
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────
 function renderSidebar() {
-  const qtdReceitas = ESTADO.receitas.length;
-  const nivel = Math.floor(qtdReceitas / 2) + 1;
+  const qtdFavoritas = receitasFavoritas().length;
+  const nivel = Math.floor(qtdFavoritas / 2) + 1;
   const plano = (ESTADO.config?.plano || 'gratuito') === 'premium' ? 'Premium' : 'Free';
   const nome = ESTADO.usuario?.username || '';
 
@@ -302,134 +305,281 @@ async function submitFormMov(e) {
 
 // ══════════════════════════════════════════════════════════════
 // RECEITAS
+// Três subabas, iguais ao app mobile (menos "Grupos", que não existe
+// no web): Criar, Favoritas e Biblioteca. Não é mais o usuário que
+// cadastra receita — a biblioteca é um catálogo fixo, mantido por nós.
 // ══════════════════════════════════════════════════════════════
-let filtroReceitas = 'todas';
-
-function mudarTabReceita(tab) {
-  document.querySelectorAll('.rtab-btn[data-tab]').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('tabReceitasSalvas').classList.toggle('hidden', tab !== 'salvas');
-  document.getElementById('tabReceitaCriar').classList.toggle('hidden', tab !== 'criar');
-  if (tab === 'criar') renderIngredientesCheckboxes();
+function dificuldadeClasse(d) {
+  if (d === 'Fácil') return 'good';
+  if (d === 'Médio') return 'warning';
+  return 'danger';
 }
 
-function filtrarReceitas(tipo) {
-  filtroReceitas = tipo;
-  document.querySelectorAll('.rfilter-btn[data-filtro]').forEach((b) => b.classList.toggle('active', b.dataset.filtro === tipo));
-  renderReceitas();
+function mudarTabReceita(tab) {
+  document.querySelectorAll('.rtab-btn[data-rtab]').forEach((b) => b.classList.toggle('active', b.dataset.rtab === tab));
+  document.getElementById('tabReceitaCriar').classList.toggle('hidden', tab !== 'criar');
+  document.getElementById('tabReceitaFavoritas').classList.toggle('hidden', tab !== 'favoritas');
+  document.getElementById('tabReceitaBiblioteca').classList.toggle('hidden', tab !== 'biblioteca');
 }
 
 function renderReceitas() {
-  const lista = filtroReceitas === 'favoritas' ? ESTADO.receitas.filter((r) => r.favorito) : ESTADO.receitas;
+  renderFavoritas();
+  renderBiblioteca();
+}
 
-  document.getElementById('receitasFiltros').style.display = ESTADO.receitas.length === 0 ? 'none' : '';
-  document.getElementById('recEmpty').style.display = ESTADO.receitas.length === 0 ? '' : 'none';
-  document.getElementById('recEmptyFav').style.display = (ESTADO.receitas.length > 0 && filtroReceitas === 'favoritas' && lista.length === 0) ? '' : 'none';
+// ── SUBABA: CRIAR (hoje busca na biblioteca; no futuro, geração por IA) ──
+const criarReceitaState = { ingredientes: [], porcoes: 2, fome: 0 };
+let _sugestoesCriarAtual = [];
 
-  document.getElementById('receitasGrid').innerHTML = lista.map((rec) => `
-    <div class="receita-card-saved ${rec.favorito ? 'is-fav' : ''}">
+function renderSugestoesCriar() {
+  const busca = document.getElementById('criarBuscaIngrediente').value.trim().toLowerCase();
+  const wrap = document.getElementById('criarSugestoes');
+  if (!busca) {
+    wrap.classList.add('hidden');
+    wrap.innerHTML = '';
+    _sugestoesCriarAtual = [];
+    return;
+  }
+  _sugestoesCriarAtual = ESTADO.alimentos
+    .map((a) => a.nome)
+    .filter((nome) => nome.toLowerCase().includes(busca) && !criarReceitaState.ingredientes.includes(nome));
+
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = _sugestoesCriarAtual.length === 0
+    ? `<div class="ing-suggestion-empty"><i class="bi bi-info-circle"></i> Nenhum alimento com esse nome no seu estoque.</div>`
+    : _sugestoesCriarAtual.map((nome, i) => `
+        <button type="button" class="ing-suggestion-item" onclick="selecionarIngredienteCriarPorIndice(${i})">
+          <i class="bi bi-plus-circle"></i> ${esc(nome)}
+        </button>`).join('');
+}
+
+function fecharSugestoesCriarSeFora(e) {
+  const wrap = document.getElementById('criarSugestoes');
+  const input = document.getElementById('criarBuscaIngrediente');
+  if (!wrap || !input || wrap.classList.contains('hidden')) return;
+  if (e.target === input || wrap.contains(e.target)) return;
+  wrap.classList.add('hidden');
+}
+
+function selecionarIngredienteCriarPorIndice(i) {
+  const nome = _sugestoesCriarAtual[i];
+  if (!nome) return;
+  if (!criarReceitaState.ingredientes.includes(nome)) criarReceitaState.ingredientes.push(nome);
+  document.getElementById('criarBuscaIngrediente').value = '';
+  document.getElementById('criarSugestoes').classList.add('hidden');
+  document.getElementById('criarSugestoes').innerHTML = '';
+  renderIngredientesSelecionadosCriar();
+}
+
+function removerIngredienteCriarPorIndice(i) {
+  criarReceitaState.ingredientes.splice(i, 1);
+  renderIngredientesSelecionadosCriar();
+}
+
+// Mini cards com todo o estoque, pra selecionar sem precisar digitar nada.
+function selecionarIngredienteCriarPorAlimentoId(id) {
+  const alimento = ESTADO.alimentos.find((a) => a.id === id);
+  if (!alimento) return;
+  if (!criarReceitaState.ingredientes.includes(alimento.nome)) criarReceitaState.ingredientes.push(alimento.nome);
+  renderIngredientesSelecionadosCriar();
+}
+
+function renderIngredientesDisponiveisCriar() {
+  const wrap = document.getElementById('criarIngredientesDisponiveis');
+  const disponiveis = ESTADO.alimentos.filter((a) => !criarReceitaState.ingredientes.includes(a.nome));
+
+  if (disponiveis.length === 0) {
+    wrap.innerHTML = `<p class="ing-mini-empty"><i class="bi bi-info-circle"></i> ${
+      ESTADO.alimentos.length === 0
+        ? 'Adicione itens ao inventário para vê-los aqui.'
+        : 'Todos os itens do estoque já foram selecionados.'
+    }</p>`;
+    return;
+  }
+
+  wrap.innerHTML = disponiveis.map((a) => {
+    const dias = diasValidade(a.validade);
+    const classe = classeValidade(dias);
+    return `
+      <button type="button" class="ing-mini-card" onclick="selecionarIngredienteCriarPorAlimentoId(${a.id})">
+        <span class="ing-mini-card-icon"><i class="bi bi-egg-fried"></i></span>
+        <span class="ing-mini-card-nome">${esc(a.nome)}</span>
+        <span class="expiry-pill ${classe}">${Math.abs(dias)}d</span>
+      </button>`;
+  }).join('');
+}
+
+function renderIngredientesSelecionadosCriar() {
+  const total = criarReceitaState.ingredientes.length;
+  document.getElementById('criarIngCounter').textContent = `${total} selecionado${total === 1 ? '' : 's'}`;
+  document.getElementById('criarIngSelecionados').innerHTML = total === 0
+    ? '<p class="campo-hint" style="margin:0">Nenhum ingrediente selecionado ainda.</p>'
+    : criarReceitaState.ingredientes.map((nome, i) => `
+        <span class="ing-chip-sel">${esc(nome)} <button type="button" onclick="removerIngredienteCriarPorIndice(${i})" title="Remover"><i class="bi bi-x-lg"></i></button></span>
+      `).join('');
+
+  const btn = document.getElementById('btnGerarReceita');
+  btn.disabled = total === 0;
+  btn.innerHTML = total === 0
+    ? 'Selecione ingredientes acima'
+    : `<i class="bi bi-stars"></i> Gerar receita com ${total} ingrediente${total === 1 ? '' : 's'}`;
+
+  renderIngredientesDisponiveisCriar();
+}
+
+function alterarPorcoesCriar(delta) {
+  criarReceitaState.porcoes = Math.max(1, criarReceitaState.porcoes + delta);
+  document.getElementById('criarPorcoesVal').textContent = criarReceitaState.porcoes;
+}
+
+function selecionarFomeCriar(indice) {
+  criarReceitaState.fome = indice;
+  document.querySelectorAll('#criarFomeToggle .fome-btn').forEach((b) => b.classList.toggle('active', Number(b.dataset.fome) === indice));
+}
+
+// Mesmo critério do app mobile (receitas.dart): acha na biblioteca a
+// primeira receita cujos ingredientes necessários estejam todos cobertos
+// pelos selecionados (nome bate por substring, nos dois sentidos).
+function buscarReceitaPorIngredientes(nomesSelecionados) {
+  const selLower = nomesSelecionados.map((n) => n.toLowerCase());
+  return ESTADO.biblioteca.find((r) =>
+    (r.ingredientes_necessarios || []).every((necessario) => {
+      const nLower = necessario.toLowerCase();
+      return selLower.some((sel) => sel.includes(nLower) || nLower.includes(sel));
+    })
+  );
+}
+
+function gerarReceita() {
+  if (criarReceitaState.ingredientes.length === 0) return;
+  const encontrada = buscarReceitaPorIngredientes(criarReceitaState.ingredientes);
+  if (!encontrada) {
+    msgFeedback('recMsg', 'erro', 'Nenhuma receita encontrada. Tente selecionar mais ingredientes ou uma combinação diferente.');
+    return;
+  }
+  limparMsg('recMsg');
+  abrirModalReceita(encontrada.id);
+}
+
+// ── SUBABA: FAVORITAS ────────────────────────────────────────────
+function renderFavoritas() {
+  const favoritas = receitasFavoritas();
+  document.getElementById('favEmpty').style.display = favoritas.length === 0 ? '' : 'none';
+  document.getElementById('favoritasGrid').innerHTML = favoritas.map((r) => `
+    <div class="receita-card-saved is-fav">
       <div class="rc-head">
         <div>
-          <div class="rc-titulo">${esc(rec.titulo)}</div>
-          ${rec.porcoes ? `<div class="rc-meta" style="margin-top:6px">
-            <span class="rc-tag"><i class="bi bi-people-fill"></i> ${rec.porcoes} ${rec.porcoes === 1 ? 'porção' : 'porções'}</span>
-          </div>` : ''}
+          <div class="rc-titulo">${esc(r.titulo)}</div>
+          <div class="rc-meta" style="margin-top:6px">
+            <span class="rc-tag"><i class="bi bi-timer"></i> ${r.tempo_preparo} min</span>
+            <span class="rc-tag"><i class="bi bi-people-fill"></i> ${r.porcoes} ${r.porcoes === 1 ? 'porção' : 'porções'}</span>
+          </div>
         </div>
-        <div style="display:flex;gap:6px">
-          <button type="button" class="rc-fav ${rec.favorito ? 'active' : ''}" title="${rec.favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" onclick="favoritarReceita(${rec.id})">
-            <i class="bi ${rec.favorito ? 'bi-star-fill' : 'bi-star'}"></i>
-          </button>
-          <button type="button" class="rc-delete" title="Excluir receita" onclick="excluirReceita(${rec.id})"><i class="bi bi-trash3-fill"></i></button>
-        </div>
+        <button type="button" class="rc-fav active" title="Remover dos favoritos" onclick="favoritarReceita(${r.id})">
+          <i class="bi bi-star-fill"></i>
+        </button>
       </div>
-      ${rec.descricao ? `<div class="rc-desc">${esc(rec.descricao).replace(/\n/g, '<br>')}</div>` : ''}
-      ${rec.ingredientes?.length ? `<div class="rc-ings">${rec.ingredientes.map((i) => `<span class="rc-ing"><i class="bi bi-check2"></i> ${esc(i)}</span>`).join('')}</div>` : ''}
-      ${rec.modo_preparo ? `<details class="rc-preparo">
-        <summary><i class="bi bi-list-ol"></i> Modo de preparo <i class="bi bi-chevron-down rc-chevron"></i></summary>
-        <div class="rc-preparo-texto">${esc(rec.modo_preparo).replace(/\n/g, '<br>')}</div>
-      </details>` : ''}
+      ${r.ingredientes_necessarios?.length ? `<div class="rc-ings">${r.ingredientes_necessarios.map((i) => `<span class="rc-ing"><i class="bi bi-check2"></i> ${esc(i)}</span>`).join('')}</div>` : ''}
+      <button type="button" class="btn-ghost" style="width:100%;justify-content:center" onclick="abrirModalReceita(${r.id})"><i class="bi bi-eye"></i> Ver receita</button>
     </div>
   `).join('');
 }
 
-function atualizarContadorIngredientes() {
-  const marcados = document.querySelectorAll('#recIngCheckboxes input:checked').length;
-  const el = document.getElementById('recIngCounter');
-  if (el) el.textContent = marcados === 0 ? 'nenhum selecionado' : `${marcados} selecionado${marcados > 1 ? 's' : ''}`;
+// ── SUBABA: BIBLIOTECA ───────────────────────────────────────────
+function renderBiblioteca() {
+  const busca = (document.getElementById('bibBusca')?.value || '').trim().toLowerCase();
+  const filtradas = busca
+    ? ESTADO.biblioteca.filter((r) => r.titulo.toLowerCase().includes(busca) || r.categoria.toLowerCase().includes(busca))
+    : ESTADO.biblioteca;
+
+  document.getElementById('bibEmpty').style.display = filtradas.length === 0 ? '' : 'none';
+  document.getElementById('bibliotecaGrid').innerHTML = filtradas.map((r) => `
+    <div class="receita-card" onclick="abrirModalReceita(${r.id})">
+      <div class="receita-banner">
+        <i class="bi bi-journal-richtext"></i>
+        ${r.favorito ? '<i class="bi bi-star-fill receita-banner-fav"></i>' : ''}
+      </div>
+      <div class="receita-body">
+        <div class="receita-tags">
+          <span class="rtag green-tag">${esc(r.categoria)}</span>
+          <span class="expiry-pill ${dificuldadeClasse(r.dificuldade)}">${esc(r.dificuldade)}</span>
+        </div>
+        <h3>${esc(r.titulo)}</h3>
+        <p>${esc(r.descricao || '')}</p>
+        <div class="receita-ingredients">
+          ${(r.ingredientes_necessarios || []).slice(0, 4).map((i) => `<span>${esc(i)}</span>`).join('')}
+        </div>
+        <div class="receita-footer">
+          <span class="receita-footer-item"><i class="bi bi-timer"></i> ${r.tempo_preparo} min</span>
+          <span class="receita-footer-item"><i class="bi bi-people"></i> ${r.porcoes}x</span>
+          <span class="receita-footer-item receita-footer-cal"><i class="bi bi-fire"></i> ${r.calorias} kcal</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
 
-function renderIngredientesCheckboxes() {
-  const wrap = document.getElementById('recIngCheckboxes');
-  if (ESTADO.alimentos.length === 0) {
-    document.getElementById('recIngWrap').innerHTML =
-      '<p style="color:var(--text-muted);font-size:13px"><i class="bi bi-info-circle"></i> Adicione itens ao inventário para selecioná-los aqui.</p>';
-    return;
-  }
-  wrap.innerHTML = ESTADO.alimentos.map((it) => {
-    const dias = diasValidade(it.validade);
-    const classe = classeValidade(dias);
-    return `<label class="ing-chk-label">
-      <input type="checkbox" value="${it.id}" onchange="atualizarContadorIngredientes()">
-      ${esc(it.nome)}
-      <span class="expiry-pill ${classe}">${Math.abs(dias)}d</span>
-    </label>`;
-  }).join('');
-  atualizarContadorIngredientes();
-}
+// ── MODAL DE DETALHE (compartilhado entre as 3 subabas) ─────────
+let _receitaModalId = null;
 
-async function submitFormReceita(e) {
-  e.preventDefault();
-  const modoPreparo = document.getElementById('recModoPreparo').value.trim();
-  if (!modoPreparo) {
-    msgFeedback('recMsg', 'erro', 'Descreva o modo de preparo da receita.');
-    return;
-  }
-  const ingredientesSel = Array.from(document.querySelectorAll('#recIngCheckboxes input:checked')).map((el) => parseInt(el.value, 10));
-  if (ingredientesSel.length === 0) {
-    msgFeedback('recMsg', 'erro', 'Selecione pelo menos um ingrediente do inventário.');
-    return;
-  }
-  const payload = {
-    titulo: document.getElementById('recTitulo').value.trim(),
-    descricao: document.getElementById('recDescricao').value.trim(),
-    modo_preparo: modoPreparo,
-    porcoes: parseInt(document.getElementById('recPorcoes').value, 10) || 2,
-    ingredientes_sel: ingredientesSel,
-  };
-  const resp = await apiFetch('/receitas/cadastrar_receita.php', { method: 'POST', body: payload });
-  if (resp.sucesso) {
-    document.getElementById('formReceita').reset();
-    await carregarTudo();
-    renderReceitas();
-    renderRelatorios();
-    renderConfig();
-    renderGruposReceitas();
-    mudarTabReceita('salvas');
-    msgFeedback('recMsg', 'ok', resp.mensagem);
+function abrirModalReceita(id) {
+  const r = ESTADO.biblioteca.find((x) => x.id === id);
+  if (!r) return;
+  _receitaModalId = id;
+
+  document.getElementById('mrTitulo').textContent = r.titulo;
+  document.getElementById('mrDescricao').textContent = r.descricao || '';
+  document.getElementById('mrTags').innerHTML = `
+    <span class="rtag green-tag">${esc(r.categoria)}</span>
+    <span class="expiry-pill ${dificuldadeClasse(r.dificuldade)}">${esc(r.dificuldade)}</span>
+    <span class="rc-tag"><i class="bi bi-timer"></i> ${r.tempo_preparo} min</span>
+    <span class="rc-tag"><i class="bi bi-people-fill"></i> ${r.porcoes} porções</span>
+    <span class="rc-tag"><i class="bi bi-fire"></i> ${r.calorias} kcal</span>
+  `;
+  document.getElementById('mrIngredientes').innerHTML = (r.ingredientes || []).map((i) => `<li>${esc(i)}</li>`).join('');
+  document.getElementById('mrPreparo').innerHTML = (r.modo_preparo || []).map((p) => `<li>${esc(p)}</li>`).join('');
+
+  const dicasWrap = document.getElementById('mrDicasWrap');
+  if (r.dicas?.length) {
+    dicasWrap.classList.remove('hidden');
+    document.getElementById('mrDicas').innerHTML = r.dicas.map((d) => `<p><i class="bi bi-lightbulb-fill"></i> ${esc(d)}</p>`).join('');
   } else {
-    msgFeedback('recMsg', 'erro', resp.mensagem || 'Erro ao salvar receita.');
+    dicasWrap.classList.add('hidden');
   }
+
+  atualizarBotaoFavoritoModal(r.favorito);
+  document.getElementById('modalReceita').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
-async function excluirReceita(id) {
-  if (!(await abrirConfirm('Essa receita será apagada permanentemente.', { titulo: 'Excluir receita' }))) return;
-  const resp = await apiFetch('/receitas/excluir_receita.php', { method: 'DELETE', body: { id } });
-  if (resp.sucesso) {
-    await carregarTudo();
-    renderReceitas();
-    renderRelatorios();
-    renderConfig();
-    renderGruposReceitas();
-  } else {
-    msgFeedback('recMsg', 'erro', resp.mensagem || 'Erro ao excluir receita.');
-  }
+function atualizarBotaoFavoritoModal(favorito) {
+  const btn = document.getElementById('mrFavBtn');
+  btn.classList.toggle('active', favorito);
+  btn.innerHTML = favorito ? '<i class="bi bi-star-fill"></i> Favoritada' : '<i class="bi bi-star"></i> Favoritar';
+}
+
+function fecharModalReceita() {
+  document.getElementById('modalReceita').classList.add('hidden');
+  document.body.style.overflow = '';
+  _receitaModalId = null;
+}
+
+async function alternarFavoritoModal() {
+  if (_receitaModalId === null) return;
+  await favoritarReceita(_receitaModalId);
+  const r = ESTADO.biblioteca.find((x) => x.id === _receitaModalId);
+  if (r) atualizarBotaoFavoritoModal(r.favorito);
 }
 
 async function favoritarReceita(id) {
-  const resp = await apiFetch('/receitas/favoritar_receita.php', { method: 'POST', body: { id } });
+  const resp = await apiFetch('/biblioteca/favoritar_biblioteca.php', { method: 'POST', body: { id } });
   if (resp.sucesso) {
-    const rec = ESTADO.receitas.find((r) => r.id === id);
+    const rec = ESTADO.biblioteca.find((r) => r.id === id);
     if (rec) rec.favorito = resp.favorito;
     renderReceitas();
+    renderSidebar();
+    renderConfig();
+    renderRelatorios();
   }
 }
 
@@ -486,8 +636,17 @@ async function toggleCompra(id) {
   const resp = await apiFetch('/compras/editar_compra.php', { method: 'PATCH', body: { id } });
   if (resp.sucesso) {
     const item = ESTADO.compras.find((c) => c.id === id);
+    const ficouComprado = item && !item.comprado;
     if (item) item.comprado = !item.comprado;
     renderCompras();
+    // Marcar como comprado soma a quantidade no estoque (ou cria o item lá);
+    // recarrega o inventário para refletir isso na tela.
+    if (ficouComprado) {
+      const alimentosResp = await apiFetch('/estoque/listar_alimentos.php');
+      ESTADO.alimentos = alimentosResp.alimentos || [];
+      renderInventario();
+      renderRelatorios();
+    }
   }
 }
 
@@ -501,14 +660,9 @@ async function removerCompra(id) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// GRUPOS
+// GRUPOS (só de alimentos — grupos de receitas saiu junto com a
+// antiga feature "Minhas Receitas", substituída pela Biblioteca)
 // ══════════════════════════════════════════════════════════════
-function mudarTabGrupo(tab) {
-  document.querySelectorAll('.rtab-btn[data-gtab]').forEach((b) => b.classList.toggle('active', b.dataset.gtab === tab));
-  document.getElementById('tabGrupoAlimentos').classList.toggle('hidden', tab !== 'alimentos');
-  document.getElementById('tabGrupoReceitas').classList.toggle('hidden', tab !== 'receitas');
-}
-
 function renderGruposAlimentos() {
   const selGrupo = document.getElementById('selGrupoAlimento');
   const selAlimento = document.getElementById('selAlimentoParaGrupo');
@@ -523,22 +677,6 @@ function renderGruposAlimentos() {
       </div>
     </div>
   `).join('') || '<p style="color:var(--text-muted);font-size:13px">Nenhum grupo de alimentos criado ainda.</p>';
-}
-
-function renderGruposReceitas() {
-  const selGrupo = document.getElementById('selGrupoReceita');
-  const selReceita = document.getElementById('selReceitaParaGrupo');
-  selGrupo.innerHTML = ESTADO.gruposReceitas.map((g) => `<option value="${g.id}">${esc(g.nome)}</option>`).join('') || '<option disabled selected>Crie um grupo primeiro</option>';
-  selReceita.innerHTML = ESTADO.receitas.map((r) => `<option value="${r.id}">${esc(r.titulo)}</option>`).join('') || '<option disabled selected>Nenhuma receita cadastrada</option>';
-
-  document.getElementById('gruposReceitasGrid').innerHTML = ESTADO.gruposReceitas.map((g) => `
-    <div class="grupo-card">
-      <div class="grupo-nome"><i class="bi bi-collection-fill"></i> ${esc(g.nome)}</div>
-      <div class="grupo-itens">
-        ${g.receitas.map((r) => `<span class="grupo-item-tag">${esc(r.titulo)} <button type="button" onclick="removerReceitaDeGrupo(${g.id},${r.id})" title="Remover do grupo"><i class="bi bi-x-lg"></i></button></span>`).join('') || '<span style="color:var(--text-dim);font-size:12px">Nenhuma receita neste grupo</span>'}
-      </div>
-    </div>
-  `).join('') || '<p style="color:var(--text-muted);font-size:13px">Nenhum grupo de receitas criado ainda.</p>';
 }
 
 async function submitFormGrupoAlimento(e) {
@@ -578,49 +716,12 @@ async function removerAlimentoDeGrupo(grupo_id, alimento_id) {
   }
 }
 
-async function submitFormGrupoReceita(e) {
-  e.preventDefault();
-  const nome = document.getElementById('nomeGrupoReceita').value.trim();
-  const resp = await apiFetch('/grupos/criar_grupo_receitas.php', { method: 'POST', body: { nome } });
-  if (resp.sucesso) {
-    document.getElementById('formGrupoReceita').reset();
-    const r = await apiFetch('/grupos/gerenciar_grupo_receitas.php');
-    ESTADO.gruposReceitas = r.grupos || [];
-    renderGruposReceitas();
-    msgFeedback('grupoMsg', 'ok', resp.mensagem);
-  } else {
-    msgFeedback('grupoMsg', 'erro', resp.mensagem);
-  }
-}
-async function submitFormAddReceitaGrupo(e) {
-  e.preventDefault();
-  const grupo_id = parseInt(document.getElementById('selGrupoReceita').value, 10);
-  const receita_id = parseInt(document.getElementById('selReceitaParaGrupo').value, 10);
-  const resp = await apiFetch('/grupos/gerenciar_grupo_receitas.php', { method: 'POST', body: { grupo_id, receita_id } });
-  if (resp.sucesso) {
-    const r = await apiFetch('/grupos/gerenciar_grupo_receitas.php');
-    ESTADO.gruposReceitas = r.grupos || [];
-    renderGruposReceitas();
-    msgFeedback('grupoMsg', 'ok', resp.mensagem);
-  } else {
-    msgFeedback('grupoMsg', 'erro', resp.mensagem);
-  }
-}
-async function removerReceitaDeGrupo(grupo_id, receita_id) {
-  const resp = await apiFetch('/grupos/gerenciar_grupo_receitas.php', { method: 'DELETE', body: { grupo_id, receita_id } });
-  if (resp.sucesso) {
-    const r = await apiFetch('/grupos/gerenciar_grupo_receitas.php');
-    ESTADO.gruposReceitas = r.grupos || [];
-    renderGruposReceitas();
-  }
-}
-
 // ══════════════════════════════════════════════════════════════
 // RELATÓRIOS
 // ══════════════════════════════════════════════════════════════
 function renderRelatorios() {
   const qtdAlimentos = ESTADO.alimentos.length;
-  const qtdReceitas = ESTADO.receitas.length;
+  const qtdReceitas = receitasFavoritas().length;
 
   renderStatsCards(qtdAlimentos, qtdReceitas, ESTADO.movimentacoes);
   renderValidadeEstoque();
@@ -635,7 +736,7 @@ function renderStatsCards(qtdAlimentos, qtdReceitas, mov) {
 
   const cards = [
     { icone: 'bi-box-seam-fill', cor: 'good', valor: qtdAlimentos, label: 'No Estoque' },
-    { icone: 'bi-journal-richtext', cor: 'good', valor: qtdReceitas, label: 'Receitas Criadas' },
+    { icone: 'bi-journal-richtext', cor: 'good', valor: qtdReceitas, label: 'Receitas Favoritas' },
     { icone: 'bi-trash3-fill', cor: 'bad', valor: totalDesperdicio, label: 'Desperdício (30 dias)' },
   ];
 
@@ -846,7 +947,7 @@ function renderConfig() {
   document.getElementById('cfgEmailResumo').textContent = cfg.email;
   document.getElementById('cfgPlanoResumo').textContent = plano;
   document.getElementById('cfgQtdAlimentos').textContent = ESTADO.alimentos.length;
-  document.getElementById('cfgQtdReceitas').textContent = ESTADO.receitas.length;
+  document.getElementById('cfgQtdReceitas').textContent = receitasFavoritas().length;
 
   document.getElementById('viewUsername').textContent = cfg.username;
   document.getElementById('viewEmail').textContent = cfg.email;
@@ -966,14 +1067,14 @@ async function main() {
   bindNav();
   document.getElementById('formInv').addEventListener('submit', submitFormInv);
   document.getElementById('formMov').addEventListener('submit', submitFormMov);
-  document.getElementById('formReceita').addEventListener('submit', submitFormReceita);
   document.getElementById('formCompra').addEventListener('submit', submitFormCompra);
   document.getElementById('formGrupoAlimento').addEventListener('submit', submitFormGrupoAlimento);
   document.getElementById('formAddAlimentoGrupo').addEventListener('submit', submitFormAddAlimentoGrupo);
-  document.getElementById('formGrupoReceita').addEventListener('submit', submitFormGrupoReceita);
-  document.getElementById('formAddReceitaGrupo').addEventListener('submit', submitFormAddReceitaGrupo);
   document.getElementById('formPerfil').addEventListener('submit', submitFormPerfil);
   document.getElementById('formSenha').addEventListener('submit', submitFormSenha);
+
+  // Fecha o dropdown de sugestões de ingrediente (aba Criar) ao clicar fora
+  document.addEventListener('click', fecharSugestoesCriarSeFora);
 
   // Fecha modais clicando fora ou com ESC (igual ao comportamento original)
   document.getElementById('modalInv').addEventListener('click', (e) => {
@@ -985,6 +1086,9 @@ async function main() {
   document.getElementById('modalCompra').addEventListener('click', (e) => {
     if (e.target.id === 'modalCompra') fecharModalCompra();
   });
+  document.getElementById('modalReceita').addEventListener('click', (e) => {
+    if (e.target.id === 'modalReceita') fecharModalReceita();
+  });
   document.getElementById('modalConfirm').addEventListener('click', (e) => {
     if (e.target.id === 'modalConfirm') fecharConfirm(false);
   });
@@ -993,6 +1097,7 @@ async function main() {
       fecharModalInv();
       fecharModalMov();
       fecharModalCompra();
+      fecharModalReceita();
       fecharConfirm(false);
     }
   });

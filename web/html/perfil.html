@@ -211,83 +211,133 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Receitas</h1>
-          <p class="page-sub">Criadas com seus ingredientes</p>
+          <p class="page-sub">Descubra receitas com o que você tem em casa</p>
         </div>
+        <div class="ia-badge"><i class="bi bi-stars"></i> IA Ativa</div>
       </div>
 
       <div id="recMsg"></div>
 
       <div class="receitas-tabs">
-        <button type="button" class="rtab-btn active" data-tab="salvas" onclick="mudarTabReceita('salvas')">
-          <i class="bi bi-bookmark-fill"></i> Minhas Receitas
+        <button type="button" class="rtab-btn active" data-rtab="criar" onclick="mudarTabReceita('criar')">
+          <i class="bi bi-stars"></i> Criar
         </button>
-        <button type="button" class="rtab-btn" data-tab="criar" onclick="mudarTabReceita('criar')">
-          <i class="bi bi-plus-circle-fill"></i> Nova Receita
+        <button type="button" class="rtab-btn" data-rtab="favoritas" onclick="mudarTabReceita('favoritas')">
+          <i class="bi bi-star-fill"></i> Favoritas
+        </button>
+        <button type="button" class="rtab-btn" data-rtab="biblioteca" onclick="mudarTabReceita('biblioteca')">
+          <i class="bi bi-journal-richtext"></i> Biblioteca
         </button>
       </div>
 
-      <!-- TAB: MINHAS RECEITAS -->
-      <div id="tabReceitasSalvas">
-        <div class="receitas-filtros" id="receitasFiltros">
-          <button type="button" class="rfilter-btn active" data-filtro="todas" onclick="filtrarReceitas('todas')">
-            Todas
-          </button>
-          <button type="button" class="rfilter-btn" data-filtro="favoritas" onclick="filtrarReceitas('favoritas')">
-            <i class="bi bi-star-fill"></i> Favoritas
-          </button>
-        </div>
-        <div id="recEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
-          <i class="bi bi-journal-richtext" style="font-size:40px;color:var(--text-dim)"></i>
-          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Nenhuma receita salva ainda.<br>Crie sua primeira receita com os ingredientes do inventário!</p>
-          <button class="btn-primary" style="margin-top:20px" onclick="mudarTabReceita('criar')"><i class="bi bi-plus-lg"></i> Criar Receita</button>
-        </div>
-        <div id="recEmptyFav" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
-          <i class="bi bi-star" style="font-size:40px;color:var(--text-dim)"></i>
-          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Você ainda não favoritou nenhuma receita.<br>Toque na estrela de uma receita para guardá-la aqui.</p>
-        </div>
-        <div class="receitas-grid" id="receitasGrid"></div>
-      </div>
-
-      <!-- TAB: NOVA RECEITA -->
-      <div id="tabReceitaCriar" class="hidden">
+      <!-- TAB: CRIAR (hoje monta com a biblioteca; no futuro, geração por IA) -->
+      <div id="tabReceitaCriar">
         <div class="glass-card receita-form-card">
-          <div class="card-head">
-            <h3><i class="bi bi-plus-circle-fill"></i> Nova Receita</h3>
+          <div class="card-head"><h3><i class="bi bi-stars"></i> Monte sua receita</h3></div>
+          <p class="receita-form-intro">Selecione o que você tem disponível. Por enquanto buscamos a melhor combinação na nossa biblioteca — em breve, uma IA vai gerar a receita pra você. 🌱</p>
+
+          <div class="receita-form-grid">
+            <div class="form-group full">
+              <label><i class="bi bi-search"></i> 1. Busque os ingredientes</label>
+              <p class="campo-hint">Digite o nome do alimento — buscamos no seu estoque.</p>
+              <div class="search-bar" style="margin-bottom:0">
+                <i class="bi bi-search"></i>
+                <input type="text" id="criarBuscaIngrediente" placeholder="Ex: frango, cenoura, arroz..." autocomplete="off" oninput="renderSugestoesCriar()" onfocus="renderSugestoesCriar()">
+              </div>
+              <div class="ing-suggestions hidden" id="criarSugestoes"></div>
+            </div>
+
+            <div class="form-group full">
+              <label><i class="bi bi-box-seam"></i> Alimentos disponíveis no seu estoque</label>
+              <p class="campo-hint">Toque em um alimento para adicioná-lo à receita.</p>
+              <div class="ing-mini-grid" id="criarIngredientesDisponiveis"></div>
+            </div>
+
+            <div class="form-group full">
+              <label>Ingredientes selecionados <span class="ing-counter" id="criarIngCounter">0 selecionados</span></label>
+              <div class="ing-selecionados" id="criarIngSelecionados">
+                <p class="campo-hint" style="margin:0">Nenhum ingrediente selecionado ainda.</p>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label><i class="bi bi-people"></i> 2. Porções</label>
+              <div class="qtd-stepper">
+                <button type="button" onclick="alterarPorcoesCriar(-1)"><i class="bi bi-dash-lg"></i></button>
+                <span id="criarPorcoesVal">2</span>
+                <button type="button" onclick="alterarPorcoesCriar(1)"><i class="bi bi-plus-lg"></i></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label><i class="bi bi-egg-fried"></i> 3. Nível de fome</label>
+              <div class="fome-toggle" id="criarFomeToggle">
+                <button type="button" class="fome-btn active" data-fome="0" onclick="selecionarFomeCriar(0)">Leve</button>
+                <button type="button" class="fome-btn" data-fome="1" onclick="selecionarFomeCriar(1)">Médio</button>
+                <button type="button" class="fome-btn" data-fome="2" onclick="selecionarFomeCriar(2)">Muita fome</button>
+              </div>
+            </div>
           </div>
-          <p class="receita-form-intro">Monte uma receita a partir do que você já tem em casa — escolha os itens do seu inventário e ajude a evitar desperdício. 🌱</p>
-          <form id="formReceita">
-            <div class="receita-form-grid">
-              <div class="form-group full">
-                <label><i class="bi bi-journal-text"></i> Título da receita *</label>
-                <input type="text" id="recTitulo" placeholder="Ex: Sopa de Cenoura com Gengibre" required maxlength="150">
-              </div>
-              <div class="form-group full">
-                <label><i class="bi bi-chat-left-text"></i> Descrição <span class="opcional-tag">opcional</span></label>
-                <input type="text" id="recDescricao" placeholder="Ex: sopa cremosa, vegetariana, pronta em 20 minutos...">
-              </div>
-              <div class="form-group">
-                <label><i class="bi bi-people"></i> Porções</label>
-                <input type="number" id="recPorcoes" value="2" min="1" max="20">
-              </div>
-              <div class="form-group full">
-                <label><i class="bi bi-list-ol"></i> Modo de preparo *</label>
-                <p class="campo-hint">Escreva o passo a passo, um por linha — fica mais fácil de seguir na cozinha.</p>
-                <textarea id="recModoPreparo" class="preparo-textarea" placeholder="1. Descasque e corte a cenoura em cubos&#10;2. Refogue com alho e cebola até dourar&#10;3. Adicione água e cozinhe por 15 minutos&#10;4. Bata no liquidificador e tempere a gosto" required></textarea>
-              </div>
-              <div class="form-group full" id="recIngWrap">
-                <label>
-                  <i class="bi bi-basket"></i> Ingredientes do inventário *
-                  <span class="ing-counter" id="recIngCounter">0 selecionados</span>
-                </label>
-                <p class="campo-hint">Selecione um ou mais alimentos do seu estoque para compor a receita.</p>
-                <div class="ing-checkboxes" id="recIngCheckboxes"></div>
-              </div>
+
+          <div class="receita-form-actions" style="justify-content:flex-start">
+            <button type="button" class="btn-primary" id="btnGerarReceita" onclick="gerarReceita()" disabled>
+              <i class="bi bi-stars"></i> Selecione ingredientes acima
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: FAVORITAS -->
+      <div id="tabReceitaFavoritas" class="hidden">
+        <div id="favEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
+          <i class="bi bi-star" style="font-size:40px;color:var(--text-dim)"></i>
+          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Nenhuma receita favoritada ainda.<br>Favorite uma receita na Biblioteca para ela aparecer aqui.</p>
+        </div>
+        <div class="receitas-grid" id="favoritasGrid"></div>
+      </div>
+
+      <!-- TAB: BIBLIOTECA -->
+      <div id="tabReceitaBiblioteca" class="hidden">
+        <div class="search-bar" id="bibSearchBar">
+          <i class="bi bi-search"></i>
+          <input type="text" id="bibBusca" placeholder="Buscar receita por nome ou categoria..." oninput="renderBiblioteca()">
+        </div>
+        <div id="bibEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
+          <i class="bi bi-journal-richtext" style="font-size:40px;color:var(--text-dim)"></i>
+          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Nenhuma receita encontrada.</p>
+        </div>
+        <div class="receitas-grid" id="bibliotecaGrid"></div>
+      </div>
+
+      <!-- MODAL: DETALHE DA RECEITA (compartilhado entre Criar / Favoritas / Biblioteca) -->
+      <div class="modal-overlay hidden" id="modalReceita">
+        <div class="modal-box modal-box-lg">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-journal-richtext"></i></div>
+              <h3 id="mrTitulo">Receita</h3>
             </div>
-            <div class="receita-form-actions">
-              <button type="button" class="btn-ghost" onclick="mudarTabReceita('salvas')">Cancelar</button>
-              <button type="submit" class="btn-primary"><i class="bi bi-bookmark-plus-fill"></i> Salvar Receita</button>
+            <button type="button" class="modal-close" onclick="fecharModalReceita()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="modal-body modal-body-scroll">
+            <div class="receita-tags" id="mrTags"></div>
+            <p id="mrDescricao" class="mr-descricao"></p>
+            <div>
+              <h4 class="mr-subtitulo"><i class="bi bi-basket"></i> Ingredientes</h4>
+              <ul class="mr-lista-ingredientes" id="mrIngredientes"></ul>
             </div>
-          </form>
+            <div>
+              <h4 class="mr-subtitulo"><i class="bi bi-list-ol"></i> Modo de preparo</h4>
+              <ol class="mr-lista-preparo" id="mrPreparo"></ol>
+            </div>
+            <div id="mrDicasWrap" class="hidden">
+              <h4 class="mr-subtitulo"><i class="bi bi-lightbulb"></i> Dicas</h4>
+              <div class="mr-dicas" id="mrDicas"></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="rc-fav" id="mrFavBtn" onclick="alternarFavoritoModal()"><i class="bi bi-star"></i> Favoritar</button>
+            <button type="button" class="btn-primary" onclick="fecharModalReceita()">Fechar</button>
+          </div>
         </div>
       </div>
     </section>
@@ -361,20 +411,11 @@
       <div class="page-header">
         <div>
           <h1 class="page-title">Grupos</h1>
-          <p class="page-sub">Organize alimentos e receitas em grupos</p>
+          <p class="page-sub">Organize seu inventário em grupos</p>
         </div>
       </div>
 
       <div id="grupoMsg"></div>
-
-      <div class="receitas-tabs">
-        <button type="button" class="rtab-btn active" data-gtab="alimentos" onclick="mudarTabGrupo('alimentos')">
-          <i class="bi bi-box-seam-fill"></i> Grupos de Alimentos
-        </button>
-        <button type="button" class="rtab-btn" data-gtab="receitas" onclick="mudarTabGrupo('receitas')">
-          <i class="bi bi-journal-richtext"></i> Grupos de Receitas
-        </button>
-      </div>
 
       <!-- GRUPOS DE ALIMENTOS -->
       <div id="tabGrupoAlimentos">
@@ -405,37 +446,6 @@
           </form>
         </div>
         <div class="grupos-grid" id="gruposAlimentosGrid"></div>
-      </div>
-
-      <!-- GRUPOS DE RECEITAS -->
-      <div id="tabGrupoReceitas" class="hidden">
-        <div class="glass-card grupo-form-card">
-          <div class="card-head"><h3><i class="bi bi-plus-circle-fill"></i> Novo grupo de receitas</h3></div>
-          <p class="receita-form-intro">Agrupe receitas parecidas, como "Rápidas" ou "Sem carne".</p>
-          <form id="formGrupoReceita" class="grupo-form-inline">
-            <div class="form-group full">
-              <label><i class="bi bi-tag"></i> Nome do grupo</label>
-              <input type="text" id="nomeGrupoReceita" placeholder="Ex: Rápidas" required>
-            </div>
-            <button type="submit" class="btn-primary"><i class="bi bi-plus-lg"></i> Criar Grupo</button>
-          </form>
-        </div>
-        <div class="glass-card grupo-form-card">
-          <div class="card-head"><h3><i class="bi bi-box-arrow-in-down"></i> Adicionar receita a um grupo</h3></div>
-          <p class="receita-form-intro">Escolha um grupo já criado e uma receita salva para vinculá-los.</p>
-          <form id="formAddReceitaGrupo" class="grupo-form-inline grupo-form-inline-2">
-            <div class="form-group">
-              <label><i class="bi bi-collection"></i> Grupo</label>
-              <select id="selGrupoReceita" required></select>
-            </div>
-            <div class="form-group">
-              <label><i class="bi bi-journal-richtext"></i> Receita</label>
-              <select id="selReceitaParaGrupo" required></select>
-            </div>
-            <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Adicionar</button>
-          </form>
-        </div>
-        <div class="grupos-grid" id="gruposReceitasGrid"></div>
       </div>
     </section>
 
@@ -542,7 +552,7 @@
               <div class="profile-stats-row">
                 <div class="pstat"><span class="pstat-val" id="cfgQtdAlimentos">0</span><span class="pstat-key">Alimentos no Estoque</span></div>
                 <div class="pstat-divider"></div>
-                <div class="pstat"><span class="pstat-val" id="cfgQtdReceitas">0</span><span class="pstat-key">Receitas Criadas</span></div>
+                <div class="pstat"><span class="pstat-val" id="cfgQtdReceitas">0</span><span class="pstat-key">Receitas Favoritas</span></div>
               </div>
             </div>
           </div>

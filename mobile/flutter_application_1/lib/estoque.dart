@@ -234,15 +234,18 @@ class _TelaEstoqueState extends State<TelaEstoque>
 
                 setD(() => salvando = true);
                 try {
+                  String mensagem;
                   if (edicao == null) {
-                    await ApiCliente.post('/estoque/cadastrar_alimento.php', corpo: corpo);
+                    final resp = await ApiCliente.post('/estoque/cadastrar_alimento.php', corpo: corpo);
+                    mensagem = (resp['mensagem'] as String?) ?? 'Item adicionado!';
                   } else {
                     corpo['id'] = int.parse(edicao.id);
                     await ApiCliente.post('/estoque/editar_alimento.php', corpo: corpo);
+                    mensagem = 'Item atualizado!';
                   }
                   if (ctx.mounted) Navigator.pop(ctx);
                   await _carregarEstoque();
-                  _mostrarSucesso(edicao == null ? 'Item adicionado!' : 'Item atualizado!');
+                  _mostrarSucesso(mensagem);
                 } on ApiException catch (e) {
                   setD(() { salvando = false; erroVal = e.mensagem; });
                 }
