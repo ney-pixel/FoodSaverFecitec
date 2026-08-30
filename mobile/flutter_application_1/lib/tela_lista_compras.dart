@@ -75,6 +75,16 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
+  void _mostrarSucesso(String mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem), backgroundColor: verdeEscuro),
+    );
+  }
+
+  String _formatarIso(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
   // ── Diálogos: item da lista ─────────────────────
 
   void _abrirDialogoAdicionarItem() {
@@ -223,18 +233,139 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
+  // Só alterna a marcação de comprado — não mexe no estoque ainda. O
+  // alimento só entra de fato no inventário quando o usuário confirma em
+  // "Concluir" (ver _abrirDialogoConcluir), informando a validade.
   Future<void> _alternarComprado(ItemListaCompras item) async {
-    final ficouComprado = !item.comprado;
     setState(() => item.comprado = !item.comprado); // otimista
     try {
       await ApiCliente.patch('/compras/editar_compra.php', corpo: {'id': int.parse(item.id)});
-      // Marcar como comprado soma a quantidade no estoque (ou cria o item lá);
-      // recarrega o estoque para essa tela já refletir isso.
-      if (ficouComprado) await _carregarEstoque();
     } on ApiException catch (e) {
       setState(() => item.comprado = !item.comprado); // desfaz
       _mostrarErro(e.mensagem);
     }
+  }
+
+  // ── Diálogo: concluir compras marcadas ────────────
+
+  void _abrirDialogoConcluir() {
+    final pendentes = _listaCompras.where((i) => i.comprado).toList();
+    if (pendentes.isEmpty) {
+      _mostrarErro('Marque ao menos um item como comprado para concluir.');
+      return;
+    }
+
+    final validades = <String, DateTime?>{for (final i in pendentes) i.id: null};
+    bool enviando = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) {
+          final faltam = validades.values.where((v) => v == null).length;
+          return AlertDialog(
+            backgroundColor: cartaoEscuro,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            title: const Text('Concluir compras', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Informe a validade de cada item para adicioná-los ao seu estoque.',
+                    style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const SizedBox(height: 14),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 320),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: pendentes.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final item = pendentes[i];
+                      final data = validades[item.id];
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: const Color(0xFF1C1C1C), borderRadius: BorderRadius.circular(10)),
+                        child: Row(children: [
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(item.nome, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                              Text(item.quantidadeFormatada, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                            ]),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () async {
+                              final agora = DateTime.now();
+                              final escolhida = await showDatePicker(
+                                context: ctx,
+                                initialDate: data ?? agora,
+                                firstDate: DateTime(agora.year - 1),
+                                lastDate: DateTime(agora.year + 5),
+                              );
+                              if (escolhida != null) setD(() => validades[item.id] = escolhida);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: data != null ? verdePrimario.withOpacity(0.12) : Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: data != null ? verdePrimario.withOpacity(0.4) : Colors.white12),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.calendar_today_rounded, size: 13, color: data != null ? verdePrimario : Colors.white38),
+                                const SizedBox(width: 6),
+                                Text(
+                                  data == null
+                                      ? 'Validade'
+                                      : '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: data != null ? verdePrimario : Colors.white38),
+                                ),
+                              ]),
+                            ),
+                          ),
+                        ]),
+                      );
+                    },
+                  ),
+                ),
+              ]),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: verdePrimario,
+                  disabledBackgroundColor: verdePrimario.withOpacity(0.35),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: (enviando || faltam > 0) ? null : () async {
+                  setD(() => enviando = true);
+                  try {
+                    await ApiCliente.post('/compras/concluir_compras.php', corpo: {
+                      'itens': pendentes.map((item) => {
+                            'id': int.parse(item.id),
+                            'validade': _formatarIso(validades[item.id]!),
+                          }).toList(),
+                    });
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    await _carregarTudo();
+                    _mostrarSucesso(pendentes.length == 1
+                        ? 'Item adicionado ao estoque!'
+                        : '${pendentes.length} itens adicionados ao estoque!');
+                  } on ApiException catch (e) {
+                    setD(() => enviando = false);
+                    _mostrarErro(e.mensagem);
+                  }
+                },
+                child: enviando
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : Text(faltam > 0 ? 'Faltam $faltam' : 'Concluir', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   // ── Diálogo: quantidade mínima de um alimento do estoque ─────────
@@ -406,6 +537,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
                             aoEditarItem:       _abrirDialogoEditarItem,
                             aoExcluirItem:      _excluirItem,
                             aoAlternarComprado: _alternarComprado,
+                            aoConcluir:         _abrirDialogoConcluir,
                           ),
                           _SubabaMinimos(
                             estoque: _estoque,
@@ -450,6 +582,7 @@ class _SubabaLista extends StatelessWidget {
   final void Function(ItemListaCompras) aoEditarItem;
   final void Function(ItemListaCompras) aoExcluirItem;
   final void Function(ItemListaCompras) aoAlternarComprado;
+  final VoidCallback aoConcluir;
 
   const _SubabaLista({
     required this.itens,
@@ -458,6 +591,7 @@ class _SubabaLista extends StatelessWidget {
     required this.aoEditarItem,
     required this.aoExcluirItem,
     required this.aoAlternarComprado,
+    required this.aoConcluir,
   });
 
   @override
@@ -561,6 +695,31 @@ class _SubabaLista extends StatelessWidget {
                   ],
                 ),
         ),
+
+        // Só aparece quando há algo marcado como comprado: é o que
+        // efetivamente joga a quantidade comprada pro estoque (pedindo a
+        // validade de cada item antes).
+        if (nComprados > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+            child: GestureDetector(
+              onTap: aoConcluir,
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: verdePrimario,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: brilhoPrimario,
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.black, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Concluir ($nComprados)',
+                      style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w800)),
+                ]),
+              ),
+            ),
+          ),
       ],
     );
   }
