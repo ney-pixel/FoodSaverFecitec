@@ -6,6 +6,7 @@ import 'api_cliente.dart';
 import 'login.dart';
 import 'sobre_foodsaver.dart';
 import 'sobre_nos.dart';
+import 'planos.dart';
 
 class TelaConfig extends StatefulWidget {
   final Usuario usuario;
@@ -271,6 +272,19 @@ class _TelaConfigState extends State<TelaConfig> {
               GestureDetector(
                 onTap: () => _editarCampoTexto(titulo: 'E-mail', valorAtual: _email, campo: 'email', tipoTeclado: TextInputType.emailAddress),
                 child: _itemNav(Icons.email_outlined, "E-mail", valor: _email),
+              ),
+
+              const SizedBox(height: 20),
+
+              //plano
+              rotuloSecao("Plano"),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(
+                        builder: (_) => TelaPlanos(planoAtual: _plano))),
+                child: _itemNav(Icons.workspace_premium_outlined,
+                    "Ver planos e benefícios", valor: _rotuloPlano),
               ),
 
               const SizedBox(height: 20),

@@ -346,167 +346,10 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     }
   }
 
-  void _mostrarReceita(Receita receita) {
-    bool favoritado = receita.favorita;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: cartaoEscuro,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setB) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.88,
-        maxChildSize: 0.95,
-        builder: (_, ctrl) => Column(
-            children: [
-              // Handle
-              Container(margin: const EdgeInsets.only(top: 12, bottom: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-              // Cabeçalho fixo
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        _badgeCategoria(receita.categoria),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF9B59B6)]),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 9),
-                            SizedBox(width: 3),
-                            Text('Gerada por IA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
-                          ]),
-                        ),
-                      ]),
-                      const SizedBox(height: 6),
-                      Text(receita.nome, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
-                      const SizedBox(height: 4),
-                      Text(receita.descricao, style: const TextStyle(fontSize: 12, color: Colors.white54)),
-                    ]),
-                  ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      setB(() => favoritado = !favoritado);
-                      await widget.aoFavoritar(receita);
-                      setB(() => favoritado = receita.favorita);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 46, height: 46,
-                      decoration: BoxDecoration(
-                        color: favoritado ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: favoritado ? Colors.amber.withOpacity(0.5) : Colors.white12),
-                      ),
-                      child: Icon(favoritado ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: favoritado ? Colors.amber : Colors.white38, size: 22),
-                    ),
-                  ),
-                ]),
-              ),
-              // Chips de info
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Row(children: [
-                  _chipInfo(Icons.timer_rounded, '${receita.tempoPreparo} min', Colors.white54),
-                  const SizedBox(width: 8),
-                  _chipInfo(Icons.bar_chart_rounded, receita.dificuldade, _corDificuldade(receita.dificuldade)),
-                  const SizedBox(width: 8),
-                  _chipInfo(Icons.people_outline_rounded, '${receita.porcoes} porções', Colors.white54),
-                  const SizedBox(width: 8),
-                  _chipInfo(Icons.local_fire_department_outlined, '${receita.calorias} kcal', const Color(0xFFFFA726)),
-                ]),
-              ),
-              const Divider(color: bordaCartao, height: 1),
-              // Conteúdo scrollável
-              Expanded(
-                child: ListView(controller: ctrl, padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), children: [
-                  // Ingredientes
-                  _tituloSecao('Ingredientes'),
-                  const SizedBox(height: 10),
-                  ...receita.ingredientes.map((ing) => Padding(
-                    padding: const EdgeInsets.only(bottom: 7),
-                    child: Row(children: [
-                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: verdePrimario, shape: BoxShape.circle)),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(ing, style: const TextStyle(fontSize: 13, color: Colors.white70))),
-                    ]),
-                  )),
-                  const SizedBox(height: 16),
-                  // Modo de preparo
-                  _tituloSecao('Modo de preparo'),
-                  const SizedBox(height: 10),
-                  ...receita.preparo.asMap().entries.map((e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Container(
-                        width: 24, height: 24, margin: const EdgeInsets.only(right: 10, top: 1),
-                        decoration: BoxDecoration(color: verdePrimario.withOpacity(0.12), borderRadius: BorderRadius.circular(7), border: Border.all(color: verdePrimario.withOpacity(0.3))),
-                        child: Center(child: Text('${e.key + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: verdePrimario))),
-                      ),
-                      Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.4))),
-                    ]),
-                  )),
-                  if (receita.dicas.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _tituloSecao('Dicas'),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: Colors.amber.withOpacity(0.07), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.withOpacity(0.2))),
-                      child: Column(
-                        children: receita.dicas.map((d) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            const Icon(Icons.lightbulb_outline_rounded, color: Colors.amber, size: 14),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(d, style: const TextStyle(fontSize: 12, color: Colors.white60))),
-                          ]),
-                        )).toList(),
-                      ),
-                    ),
-                  ],
-                ]),
-              ),
-            ],
-          ),
-        ),
-        ),
-    );
-  }
-
-  Color _corDificuldade(String d) {
-    switch (d) {
-      case 'Fácil': return verdePrimario;
-      case 'Médio': return const Color(0xFFFFA726);
-      default:      return const Color(0xFFFF4444);
-    }
-  }
-
-  Widget _badgeCategoria(String cat) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.15), borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.3))),
-        child: Text(cat, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9B8FFF))),
-      );
-
-  Widget _chipInfo(IconData icone, String rotulo, Color cor) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: cor.withOpacity(0.2))),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icone, size: 11, color: cor),
-          const SizedBox(width: 4),
-          Text(rotulo, style: TextStyle(fontSize: 10, color: cor, fontWeight: FontWeight.w600)),
-        ]),
-      );
-
-  Widget _tituloSecao(String t) => Text(t, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3));
+  // Mostra a receita recém-gerada num painel completo (mesmo modal usado
+  // pela Biblioteca e por Favoritas — ver _abrirDetalheReceita).
+  void _mostrarReceita(Receita receita) =>
+      _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
   @override
   Widget build(BuildContext context) {
@@ -694,6 +537,170 @@ class _SubabaCriarState extends State<_SubabaCriar> {
 }
 
 //subaba favoritas
+// Modal de detalhe de receita — compartilhado entre Criar (IA recém-gerada),
+// Biblioteca e Favoritas, pra abrir sempre a mesma tela completa não
+// importa de onde a receita veio.
+void _abrirDetalheReceita(BuildContext context, Receita receita, Future<void> Function(Receita) aoFavoritar) {
+  bool favoritado = receita.favorita;
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: cartaoEscuro,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (_) => StatefulBuilder(
+      builder: (ctx, setB) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        maxChildSize: 0.95,
+        builder: (_, ctrl) => Column(
+          children: [
+            Container(margin: const EdgeInsets.only(top: 12, bottom: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      _badgeCategoriaReceita(receita.categoria),
+                      if (receita.geradaPorIA) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [roxoIA, roxoIAClaro]),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 9),
+                            SizedBox(width: 3),
+                            Text('Gerada por IA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ]),
+                        ),
+                      ],
+                    ]),
+                    const SizedBox(height: 6),
+                    Text(receita.nome, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
+                    const SizedBox(height: 4),
+                    Text(receita.descricao, style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                  ]),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () async {
+                    setB(() => favoritado = !favoritado);
+                    await aoFavoritar(receita);
+                    setB(() => favoritado = receita.favorita);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 46, height: 46,
+                    decoration: BoxDecoration(
+                      color: favoritado ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: favoritado ? Colors.amber.withOpacity(0.5) : Colors.white12),
+                    ),
+                    child: Icon(favoritado ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: favoritado ? Colors.amber : Colors.white38, size: 22),
+                  ),
+                ),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  _chipInfoReceita(Icons.timer_rounded, '${receita.tempoPreparo} min', Colors.white54),
+                  const SizedBox(width: 8),
+                  _chipInfoReceita(Icons.bar_chart_rounded, receita.dificuldade, _corDificuldadeReceita(receita.dificuldade)),
+                  const SizedBox(width: 8),
+                  _chipInfoReceita(Icons.people_outline_rounded, '${receita.porcoes} porções', Colors.white54),
+                  const SizedBox(width: 8),
+                  _chipInfoReceita(Icons.local_fire_department_outlined, '${receita.calorias} kcal', const Color(0xFFFFA726)),
+                ]),
+              ),
+            ),
+            const Divider(color: bordaCartao, height: 1),
+            Expanded(
+              child: ListView(controller: ctrl, padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), children: [
+                _tituloSecaoReceita('Ingredientes'),
+                const SizedBox(height: 10),
+                ...receita.ingredientes.map((ing) => Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Row(children: [
+                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: verdePrimario, shape: BoxShape.circle)),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(ing, style: const TextStyle(fontSize: 13, color: Colors.white70))),
+                  ]),
+                )),
+                const SizedBox(height: 16),
+                _tituloSecaoReceita('Modo de preparo'),
+                const SizedBox(height: 10),
+                ...receita.preparo.asMap().entries.map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Container(
+                      width: 24, height: 24, margin: const EdgeInsets.only(right: 10, top: 1),
+                      decoration: BoxDecoration(color: verdePrimario.withOpacity(0.12), borderRadius: BorderRadius.circular(7), border: Border.all(color: verdePrimario.withOpacity(0.3))),
+                      child: Center(child: Text('${e.key + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: verdePrimario))),
+                    ),
+                    Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.4))),
+                  ]),
+                )),
+                if (receita.dicas.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _tituloSecaoReceita('Dicas'),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(color: Colors.amber.withOpacity(0.07), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.withOpacity(0.2))),
+                    child: Column(
+                      children: receita.dicas.map((d) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          const Icon(Icons.lightbulb_outline_rounded, color: Colors.amber, size: 14),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(d, style: const TextStyle(fontSize: 12, color: Colors.white60))),
+                        ]),
+                      )).toList(),
+                    ),
+                  ),
+                ],
+              ]),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Color _corDificuldadeReceita(String d) {
+  switch (d) {
+    case 'Fácil': return verdePrimario;
+    case 'Médio': return const Color(0xFFFFA726);
+    default:      return const Color(0xFFFF4444);
+  }
+}
+
+Widget _badgeCategoriaReceita(String cat) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.15), borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.3))),
+      child: Text(cat, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9B8FFF))),
+    );
+
+Widget _chipInfoReceita(IconData icone, String rotulo, Color cor) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: cor.withOpacity(0.2))),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icone, size: 11, color: cor),
+        const SizedBox(width: 4),
+        Text(rotulo, style: TextStyle(fontSize: 10, color: cor, fontWeight: FontWeight.w600)),
+      ]),
+    );
+
+Widget _tituloSecaoReceita(String t) => Text(t, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3));
+
 class _SubabaFavoritas extends StatelessWidget {
   final List<Receita> favoritas;
   final Future<void> Function(Receita) aoDesfavoritar;
@@ -718,63 +725,107 @@ class _SubabaFavoritas extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (ctx, i) {
         final r = favoritas[i];
-        return _CartaoFavorita(receita: r, aoDesfavoritar: () => aoDesfavoritar(r));
+        return _CartaoFavorita(
+          receita: r,
+          aoAbrir: () => _abrirDetalheReceita(ctx, r, aoDesfavoritar),
+          aoDesfavoritar: () => aoDesfavoritar(r),
+        );
       },
     );
   }
 }
 
+// Mesmo formato de linha da Biblioteca (_CartaoBiblioteca) — ícone, nome,
+// categoria e pílulas — pra abrir a receita completa com um toque. O
+// coração à direita continua permitindo desfavoritar direto da lista,
+// sem precisar abrir o painel.
 class _CartaoFavorita extends StatelessWidget {
   final Receita receita;
+  final VoidCallback aoAbrir;
   final VoidCallback aoDesfavoritar;
-  const _CartaoFavorita({required this.receita, required this.aoDesfavoritar});
+  const _CartaoFavorita({required this.receita, required this.aoAbrir, required this.aoDesfavoritar});
+
+  Color _corDif(String d) {
+    switch (d) {
+      case 'Fácil': return verdePrimario;
+      case 'Médio': return const Color(0xFFFFA726);
+      default:      return const Color(0xFFFF4444);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final cor = receita.dificuldade == 'Fácil' ? verdePrimario : const Color(0xFFFFA726);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: cartaoEscuro, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.amber.withOpacity(0.2))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(11), border: Border.all(color: Colors.amber.withOpacity(0.25))), child: const Icon(Icons.favorite_rounded, color: Colors.amber, size: 18)),
+    final cor = _corDif(receita.dificuldade);
+    return GestureDetector(
+      onTap: aoAbrir,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cartaoEscuro,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: bordaCartao),
+        ),
+        child: Row(children: [
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: Colors.amber.withOpacity(0.2)),
+            ),
+            child: const Icon(Icons.menu_book_rounded, color: Colors.amber, size: 22),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(receita.nome, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-            const SizedBox(height: 3),
-            Text(receita.ingredientesNecessarios.join(' · '), style: const TextStyle(fontSize: 11, color: Colors.white38), overflow: TextOverflow.ellipsis),
-          ])),
-        ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          _pildora(Icons.timer_rounded, '${receita.tempoPreparo} min', Colors.white38),
-          const SizedBox(width: 6),
-          _pildora(Icons.bar_chart_rounded, receita.dificuldade, cor),
-          const SizedBox(width: 6),
-          _pildora(Icons.people_outline_rounded, '${receita.porcoes} porções', Colors.white38),
-        ]),
-        const SizedBox(height: 12),
-        GestureDetector(
-          onTap: aoDesfavoritar,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(color: const Color(0xFFFF4444).withOpacity(0.07), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFFF4444).withOpacity(0.3))),
-            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Icon(Icons.favorite_border_rounded, color: Color(0xFFFF4444), size: 14),
-              SizedBox(width: 6),
-              Text('Desfavoritar', style: TextStyle(color: Color(0xFFFF4444), fontSize: 12, fontWeight: FontWeight.w700)),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text(receita.nome, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white))),
+                if (receita.geradaPorIA) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(gradient: const LinearGradient(colors: [roxoIA, roxoIAClaro]), borderRadius: BorderRadius.circular(5)),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.auto_awesome_rounded, size: 8, color: Colors.white),
+                      SizedBox(width: 2),
+                      Text('IA', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: Colors.white)),
+                    ]),
+                  ),
+                ],
+              ]),
+              const SizedBox(height: 3),
+              Text(
+                receita.categoria.isNotEmpty ? receita.categoria : receita.ingredientesNecessarios.join(' · '),
+                style: const TextStyle(fontSize: 11, color: Colors.white38),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              Row(children: [
+                _pildora(Icons.timer_rounded, '${receita.tempoPreparo} min', Colors.white38),
+                const SizedBox(width: 6),
+                _pildora(Icons.bar_chart_rounded, receita.dificuldade, cor),
+                const SizedBox(width: 6),
+                _pildora(Icons.local_fire_department_outlined, '${receita.calorias} kcal', const Color(0xFFFFA726)),
+              ]),
             ]),
           ),
-        ),
-      ]),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: aoDesfavoritar,
+            child: const Padding(
+              padding: EdgeInsets.all(6),
+              child: Icon(Icons.favorite_rounded, color: Colors.amber, size: 20),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 
   Widget _pildora(IconData icone, String rotulo, Color cor) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: cor.withOpacity(0.2))),
-        child: Row(children: [Icon(icone, size: 10, color: cor), const SizedBox(width: 3), Text(rotulo, style: TextStyle(fontSize: 10, color: cor))]),
+        child: Row(children: [Icon(icone, size: 9, color: cor), const SizedBox(width: 3), Text(rotulo, style: TextStyle(fontSize: 9, color: cor))]),
       );
 }
 
@@ -1040,146 +1091,9 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
     super.dispose();
   }
 
-  void _verReceita(BuildContext context, Receita receita) {
-    bool favoritado = receita.favorita;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: cartaoEscuro,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setB) => DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.88,
-          maxChildSize: 0.95,
-          builder: (_, ctrl) => Column(
-            children: [
-              Container(margin: const EdgeInsets.only(top: 12, bottom: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _badgeCategoria(receita.categoria),
-                      const SizedBox(height: 6),
-                      Text(receita.nome, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5)),
-                      const SizedBox(height: 4),
-                      Text(receita.descricao, style: const TextStyle(fontSize: 12, color: Colors.white54)),
-                    ]),
-                  ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      setB(() => favoritado = !favoritado);
-                      await widget.aoFavoritar(receita);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 46, height: 46,
-                      decoration: BoxDecoration(
-                        color: favoritado ? Colors.amber.withOpacity(0.15) : Colors.white.withOpacity(0.05),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: favoritado ? Colors.amber.withOpacity(0.5) : Colors.white12),
-                      ),
-                      child: Icon(favoritado ? Icons.favorite_rounded : Icons.favorite_border_rounded, color: favoritado ? Colors.amber : Colors.white38, size: 22),
-                    ),
-                  ),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    _chipInfo(Icons.timer_rounded, '${receita.tempoPreparo} min', Colors.white54),
-                    const SizedBox(width: 8),
-                    _chipInfo(Icons.bar_chart_rounded, receita.dificuldade, _corDificuldade(receita.dificuldade)),
-                    const SizedBox(width: 8),
-                    _chipInfo(Icons.people_outline_rounded, '${receita.porcoes} porções', Colors.white54),
-                    const SizedBox(width: 8),
-                    _chipInfo(Icons.local_fire_department_outlined, '${receita.calorias} kcal', const Color(0xFFFFA726)),
-                  ]),
-                ),
-              ),
-              const Divider(color: bordaCartao, height: 1),
-              Expanded(
-                child: ListView(controller: ctrl, padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), children: [
-                  _tituloSecao('Ingredientes'),
-                  const SizedBox(height: 10),
-                  ...receita.ingredientes.map((ing) => Padding(
-                    padding: const EdgeInsets.only(bottom: 7),
-                    child: Row(children: [
-                      Container(width: 6, height: 6, decoration: const BoxDecoration(color: verdePrimario, shape: BoxShape.circle)),
-                      const SizedBox(width: 10),
-                      Expanded(child: Text(ing, style: const TextStyle(fontSize: 13, color: Colors.white70))),
-                    ]),
-                  )),
-                  const SizedBox(height: 16),
-                  _tituloSecao('Modo de preparo'),
-                  const SizedBox(height: 10),
-                  ...receita.preparo.asMap().entries.map((e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Container(
-                        width: 24, height: 24, margin: const EdgeInsets.only(right: 10, top: 1),
-                        decoration: BoxDecoration(color: verdePrimario.withOpacity(0.12), borderRadius: BorderRadius.circular(7), border: Border.all(color: verdePrimario.withOpacity(0.3))),
-                        child: Center(child: Text('${e.key + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: verdePrimario))),
-                      ),
-                      Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.4))),
-                    ]),
-                  )),
-                  if (receita.dicas.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _tituloSecao('Dicas'),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: Colors.amber.withOpacity(0.07), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.withOpacity(0.2))),
-                      child: Column(children: receita.dicas.map((d) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Icon(Icons.lightbulb_outline_rounded, color: Colors.amber, size: 14),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(d, style: const TextStyle(fontSize: 12, color: Colors.white60))),
-                        ]),
-                      )).toList()),
-                    ),
-                  ],
-                ]),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _corDificuldade(String d) {
-    switch (d) {
-      case 'Fácil': return verdePrimario;
-      case 'Médio': return const Color(0xFFFFA726);
-      default:      return const Color(0xFFFF4444);
-    }
-  }
-
-  Widget _badgeCategoria(String cat) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: const Color(0xFF6C63FF).withOpacity(0.15), borderRadius: BorderRadius.circular(6), border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.3))),
-        child: Text(cat, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF9B8FFF))),
-      );
-
-  Widget _chipInfo(IconData icone, String rotulo, Color cor) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: cor.withOpacity(0.2))),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icone, size: 11, color: cor),
-          const SizedBox(width: 4),
-          Text(rotulo, style: TextStyle(fontSize: 10, color: cor, fontWeight: FontWeight.w600)),
-        ]),
-      );
-
-  Widget _tituloSecao(String t) => Text(t, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3));
+  // Mesmo modal completo usado em Criar e Favoritas — ver _abrirDetalheReceita.
+  void _verReceita(BuildContext context, Receita receita) =>
+      _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
   @override
   Widget build(BuildContext context) {
