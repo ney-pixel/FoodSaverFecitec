@@ -115,13 +115,6 @@ class _TelaEstoqueState extends State<TelaEstoque>
                 ? edicao.quantidade.toInt().toString()
                 : edicao.quantidade.toString())
             : '');
-    final ctrlMinimo = TextEditingController(
-        text: edicao?.quantidadeMinima != null
-            ? (edicao!.quantidadeMinima! == edicao.quantidadeMinima!.truncateToDouble()
-                ? edicao.quantidadeMinima!.toInt().toString()
-                : edicao.quantidadeMinima.toString())
-            : '');
-
     String unidadeSelecionada = edicao?.unidade ?? unidadesMedida.first;
     DateTime? dataValidade;
     if (edicao != null && edicao.validade.isNotEmpty) {
@@ -193,10 +186,6 @@ class _TelaEstoqueState extends State<TelaEstoque>
                     padding: const EdgeInsets.only(top: 4, left: 4),
                     child: Text(erroVal!, style: const TextStyle(color: Colors.redAccent, fontSize: 11)),
                   ),
-                  const SizedBox(height: 14),
-                  _rotuloDialog('Quantidade mínima (opcional)'),
-                  const SizedBox(height: 6),
-                  _campoDialog('Avisar quando estiver abaixo de...', Icons.warning_amber_rounded, ctrlMinimo, tipo: TextInputType.number),
                 ],
               ),
             ),
@@ -216,21 +205,12 @@ class _TelaEstoqueState extends State<TelaEstoque>
                   return;
                 }
 
-                final minimoTexto = ctrlMinimo.text.trim().replaceAll(',', '.');
-                final minimoValor = minimoTexto.isEmpty ? null : double.tryParse(minimoTexto);
-
                 final corpo = <String, dynamic>{
                   'nome': ctrlNome.text.trim(),
                   'quantidade': qtd,
                   'unidade': unidadeSelecionada,
                   'validade': _formatarIso(dataValidade!),
                 };
-                if (minimoTexto.isEmpty) {
-                  // Se estava com mínimo e o campo foi limpo, remove o mínimo existente.
-                  if (edicao?.quantidadeMinima != null) corpo['quantidade_minima'] = '';
-                } else {
-                  corpo['quantidade_minima'] = minimoValor;
-                }
 
                 setD(() => salvando = true);
                 try {
@@ -751,16 +731,46 @@ class _SubabaAlimentos extends StatelessWidget {
         Expanded(
           child: alimentos.isEmpty
               ? _vazio(controladorBusca.text)
-              : ListView.separated(
-                  physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  itemCount: alimentos.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => _CartaoAlimento(item: alimentos[i], aoEditar: aoEditar, aoExcluir: aoExcluir, aoMovimentar: aoMovimentar),
-                ),
+              : Builder(builder: (context) {
+                  // Agrupa por nome (ignorando maiúsculas/minúsculas) porque o
+                  // mesmo alimento pode ter vários lotes com validades
+                  // diferentes (ex.: comprou mais carne, mas venceu num dia
+                  // distinto do que já tinha) — cada lote continua sendo uma
+                  // linha própria no banco (necessário pros relatórios), só a
+                  // exibição é que agrupa.
+                  final grupos = _agruparPorNome(alimentos);
+                  return ListView.separated(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                    itemCount: grupos.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final grupo = grupos[i];
+                      return grupo.lotes.length == 1
+                          ? _CartaoAlimento(item: grupo.lotes.first, aoEditar: aoEditar, aoExcluir: aoExcluir, aoMovimentar: aoMovimentar)
+                          : _CartaoGrupoAlimento(grupo: grupo, aoEditar: aoEditar, aoExcluir: aoExcluir, aoMovimentar: aoMovimentar);
+                    },
+                  );
+                }),
         ),
       ],
     );
+  }
+
+  // Junta os lotes de mesmo nome (case-insensitive) em um só grupo, mantendo
+  // a ordem de primeira aparição na lista original.
+  List<_GrupoAlimento> _agruparPorNome(List<AlimentoEstoque> lista) {
+    final mapa = <String, _GrupoAlimento>{};
+    for (final item in lista) {
+      final chave = item.nome.trim().toLowerCase();
+      final existente = mapa[chave];
+      if (existente == null) {
+        mapa[chave] = _GrupoAlimento(nome: item.nome, lotes: [item]);
+      } else {
+        existente.lotes.add(item);
+      }
+    }
+    return mapa.values.toList();
   }
 
   Widget _vazio(String busca) => Center(
@@ -855,6 +865,171 @@ class _CartaoAlimento extends StatelessWidget {
         width: 26, height: 26,
         decoration: BoxDecoration(color: cor.withOpacity(0.08), borderRadius: BorderRadius.circular(7), border: Border.all(color: cor.withOpacity(0.2))),
         child: Icon(icone, size: 12, color: cor));
+}
+
+// Vários lotes do mesmo alimento (mesmo nome, ignorando maiúsculas/minúsculas)
+// com validades possivelmente diferentes — cada AlimentoEstoque aqui
+// continua sendo a linha própria dele no banco; isso só existe pra exibição.
+class _GrupoAlimento {
+  final String nome; // nome de exibição (do primeiro lote encontrado)
+  final List<AlimentoEstoque> lotes;
+  _GrupoAlimento({required this.nome, required this.lotes});
+
+  // pior status entre os lotes manda no destaque do card (Urgente > Atenção > OK)
+  String get status {
+    if (lotes.any((l) => l.status == 'Urgente')) return 'Urgente';
+    if (lotes.any((l) => l.status == 'Atenção')) return 'Atenção';
+    return 'OK';
+  }
+
+  Color get corStatus {
+    switch (status) {
+      case 'Urgente': return const Color(0xFFFF4444);
+      case 'Atenção': return const Color(0xFFFFA726);
+      default:        return const Color(0xFF16DB65);
+    }
+  }
+
+  // o lote que vence primeiro — é o texto de validade mostrado no resumo
+  AlimentoEstoque get loteMaisProximo =>
+      lotes.reduce((a, b) => a.diasValidade <= b.diasValidade ? a : b);
+
+  // Soma por unidade (não dá pra somar kg com unidade sem converter, então
+  // se houver mistura de unidades entre os lotes, mostra cada uma separada).
+  String get quantidadeFormatada {
+    final porUnidade = <String, double>{};
+    for (final l in lotes) {
+      porUnidade[l.unidade] = (porUnidade[l.unidade] ?? 0) + l.quantidade;
+    }
+    return porUnidade.entries.map((e) {
+      final v = e.value == e.value.truncateToDouble() ? e.value.toInt().toString() : e.value.toString();
+      return '$v ${e.key}';
+    }).join(' + ');
+  }
+
+  // lotes do mais próximo de vencer para o mais distante
+  List<AlimentoEstoque> get lotesOrdenados =>
+      [...lotes]..sort((a, b) => a.diasValidade.compareTo(b.diasValidade));
+}
+
+// Card de resumo para quando há mais de um lote do mesmo alimento — mostra o
+// total e o vencimento mais próximo; tocar abre o detalhe com cada lote.
+class _CartaoGrupoAlimento extends StatelessWidget {
+  final _GrupoAlimento grupo;
+  final void Function(AlimentoEstoque) aoEditar;
+  final void Function(AlimentoEstoque) aoExcluir;
+  final void Function(AlimentoEstoque) aoMovimentar;
+
+  const _CartaoGrupoAlimento({required this.grupo, required this.aoEditar, required this.aoExcluir, required this.aoMovimentar});
+
+  @override
+  Widget build(BuildContext context) {
+    final icone = AlimentoEstoque.iconePorNome(grupo.nome);
+    final proximo = grupo.loteMaisProximo;
+    return GestureDetector(
+      onTap: () => _abrirDetalheLotes(context),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cartaoEscuro,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: grupo.status == 'Urgente' ? const Color(0xFFFF4444).withOpacity(0.2) : bordaCartao),
+        ),
+        child: Row(children: [
+          Container(
+            width: 42, height: 42,
+            decoration: BoxDecoration(color: grupo.corStatus.withOpacity(0.08), borderRadius: BorderRadius.circular(11)),
+            child: Icon(icone, color: grupo.corStatus.withOpacity(0.7), size: 20),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text(grupo.nome, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white))),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: grupo.corStatus.withOpacity(0.12), borderRadius: BorderRadius.circular(5)),
+                  child: Text(grupo.status, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: grupo.corStatus)),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(5)),
+                  child: Text('${grupo.lotes.length} lotes', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white54)),
+                ),
+              ]),
+              const SizedBox(height: 3),
+              Text(grupo.quantidadeFormatada, style: const TextStyle(fontSize: 11, color: Colors.white38)),
+              const SizedBox(height: 4),
+              Row(children: [
+                Icon(Icons.calendar_today_rounded, size: 10, color: grupo.corStatus.withOpacity(0.7)),
+                const SizedBox(width: 3),
+                Expanded(child: Text(
+                    'Mais próximo: ${proximo.textoValidade.isNotEmpty ? proximo.textoValidade : 'vence ${proximo.validadeFormatadaBr}'}',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10, color: grupo.corStatus.withOpacity(0.85), fontWeight: FontWeight.w500))),
+              ]),
+            ]),
+          ),
+          const SizedBox(width: 6),
+          const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 20),
+        ]),
+      ),
+    );
+  }
+
+  // Lista cada lote individualmente (mesmo card de sempre, com as mesmas
+  // ações) — fecha este painel antes de abrir qualquer diálogo de
+  // editar/mover/excluir pra não ficar com dado desatualizado na tela.
+  void _abrirDetalheLotes(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: cartaoEscuro,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (ctx, ctrl) => Column(
+          children: [
+            Container(margin: const EdgeInsets.only(top: 12, bottom: 8), width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(grupo.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.4)),
+                    const SizedBox(height: 4),
+                    Text('${grupo.lotes.length} lotes · ${grupo.quantidadeFormatada} no total', style: const TextStyle(fontSize: 12, color: Colors.white54)),
+                  ]),
+                ),
+              ]),
+            ),
+            const Divider(color: bordaCartao, height: 1),
+            Expanded(
+              child: ListView.separated(
+                controller: ctrl,
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                itemCount: grupo.lotesOrdenados.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, i) {
+                  final lote = grupo.lotesOrdenados[i];
+                  return _CartaoAlimento(
+                    item: lote,
+                    aoEditar: (a) { Navigator.pop(context); aoEditar(a); },
+                    aoExcluir: (a) { Navigator.pop(context); aoExcluir(a); },
+                    aoMovimentar: (a) { Navigator.pop(context); aoMovimentar(a); },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 //subaba grupos

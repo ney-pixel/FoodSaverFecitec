@@ -1,6 +1,8 @@
 <?php
 // Exclui um alimento do estoque do usuário logado.
-// FS_alimentos_minimos e FS_grupo_alimentos caem em cascata (ON DELETE CASCADE).
+// FS_grupo_alimentos cai em cascata (ON DELETE CASCADE). A quantidade
+// mínima (FS_minimos_alimento) NÃO é afetada — ela é por nome, não por
+// lote, então continua valendo mesmo depois que este lote é excluído.
 // FS_movimentacoes NÃO bloqueia mais a exclusão: ao excluir o alimento, o
 // alimento_id das movimentações antigas vira NULL automaticamente
 // (ON DELETE SET NULL), mas o nome do alimento continua salvo em

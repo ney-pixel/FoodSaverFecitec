@@ -1,6 +1,7 @@
 <?php
 // Edita um alimento existente do usuário logado.
-// Aceita opcionalmente "quantidade_minima" (upsert em FS_alimentos_minimos).
+// A quantidade mínima não é editada aqui — vive em FS_minimos_alimento,
+// por nome, independente do estoque (ver api/estoque/definir_minimo.php).
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -13,7 +14,6 @@ $nome          = trim($dados['nome'] ?? '');
 $quantidadeStr = trim((string) ($dados['quantidade'] ?? ''));
 $unidade       = trim($dados['unidade'] ?? 'kg');
 $validade      = trim($dados['validade'] ?? '');
-$qtdMinima     = array_key_exists('quantidade_minima', $dados) ? $dados['quantidade_minima'] : false;
 
 if (!$id || !$nome || !$quantidadeStr || !$validade) {
     responder(false, 'Preencha todos os campos.', [], 422);
@@ -35,20 +35,6 @@ if ($stmt->rowCount() === 0) {
     $chk->execute([$id, $uid]);
     if (!$chk->fetch()) {
         responder(false, 'Alimento não encontrado.', [], 404);
-    }
-}
-
-// quantidade_minima: false = não enviado (não mexe); '' ou null = remover; valor = upsert
-if ($qtdMinima !== false) {
-    if ($qtdMinima === '' || $qtdMinima === null) {
-        $del = $pdo->prepare("DELETE FROM FS_alimentos_minimos WHERE alimento_id = ?");
-        $del->execute([$id]);
-    } else {
-        $up = $pdo->prepare(
-            "INSERT INTO FS_alimentos_minimos (alimento_id, quantidade_minima) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE quantidade_minima = VALUES(quantidade_minima)"
-        );
-        $up->execute([$id, (float) $qtdMinima]);
     }
 }
 

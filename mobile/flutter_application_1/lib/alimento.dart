@@ -11,7 +11,6 @@ class AlimentoEstoque {
   final double quantidade;
   final String unidade;
   final String validade; // formato ISO (yyyy-MM-dd), como vem da API
-  final double? quantidadeMinima; // null = sem mínimo configurado
   final int diasValidade;
   final String status; // 'Urgente' | 'Atenção' | 'OK' (derivado de classe_validade)
   final String textoValidade; // ex: "Vence em 3 dia(s)" / "Vencido há 2 dia(s)"
@@ -22,7 +21,6 @@ class AlimentoEstoque {
     required this.quantidade,
     required this.unidade,
     required this.validade,
-    this.quantidadeMinima,
     this.diasValidade = 0,
     required this.status,
     this.textoValidade = '',
@@ -36,9 +34,6 @@ class AlimentoEstoque {
       quantidade: (json['quantidade'] as num).toDouble(),
       unidade: json['unidade'] as String,
       validade: json['validade'] as String,
-      quantidadeMinima: json['quantidade_minima'] != null
-          ? (json['quantidade_minima'] as num).toDouble()
-          : null,
       diasValidade: (json['dias_validade'] as num?)?.toInt() ?? 0,
       status: _statusDeClasse(json['classe_validade'] as String?),
       textoValidade: (json['texto_validade'] as String?) ?? '',
@@ -103,4 +98,40 @@ class AlimentoEstoque {
     }
     return Icons.fastfood_outlined;
   }
+}
+
+// Quantidade mínima definida por NOME de alimento (não por lote/id do
+// estoque) — por isso dá pra definir um mínimo mesmo pra algo que ainda
+// não está cadastrado no estoque. Vem de api/estoque/listar_minimos.php.
+class MinimoAlimento {
+  final String id;
+  final String nome;
+  final String unidade;
+  final double quantidadeMinima;
+  final double quantidadeAtual; // soma de todos os lotes desse nome no estoque
+  final bool abaixoDoMinimo;
+
+  const MinimoAlimento({
+    required this.id,
+    required this.nome,
+    required this.unidade,
+    required this.quantidadeMinima,
+    required this.quantidadeAtual,
+    required this.abaixoDoMinimo,
+  });
+
+  factory MinimoAlimento.fromJson(Map<String, dynamic> json) {
+    return MinimoAlimento(
+      id: '${json['id']}',
+      nome: json['nome_alimento'] as String,
+      unidade: json['unidade_medida'] as String,
+      quantidadeMinima: (json['quantidade_minima'] as num).toDouble(),
+      quantidadeAtual: (json['quantidade_atual'] as num).toDouble(),
+      abaixoDoMinimo: json['abaixo_do_minimo'] == true,
+    );
+  }
+
+  String _fmt(double v) => v == v.truncateToDouble() ? v.toInt().toString() : v.toString();
+  String get minimoFormatado => '${_fmt(quantidadeMinima)} $unidade';
+  String get atualFormatado => '${_fmt(quantidadeAtual)} $unidade';
 }

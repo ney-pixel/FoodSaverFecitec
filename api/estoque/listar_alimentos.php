@@ -28,9 +28,8 @@ function textoValidade(int $dias): string
 
 $stmt = $pdo->prepare(
     "SELECT a.id, a.descricao AS nome, a.quantidade, a.unidade_medida AS unidade,
-            a.data_validade AS validade, m.quantidade_minima
+            a.data_validade AS validade
      FROM FS_alimentos a
-     LEFT JOIN FS_alimentos_minimos m ON m.alimento_id = a.id
      WHERE a.usuario_id = ?
      ORDER BY a.data_validade ASC"
 );
@@ -45,7 +44,6 @@ while ($row = $stmt->fetch()) {
         'quantidade'        => (float) $row['quantidade'],
         'unidade'           => $row['unidade'],
         'validade'          => $row['validade'],
-        'quantidade_minima' => $row['quantidade_minima'] !== null ? (float) $row['quantidade_minima'] : null,
         'dias_validade'     => $dias,
         'classe_validade'   => classeValidade($dias),
         'texto_validade'    => textoValidade($dias),

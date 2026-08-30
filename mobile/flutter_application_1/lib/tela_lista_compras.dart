@@ -7,11 +7,11 @@ import 'api_cliente.dart';
 
 // A API já sincroniza a lista de compras sozinha: toda vez que
 // listar_compras.php é chamado, ela compara a quantidade mínima de
-// cada alimento (FS_alimentos_minimos) com o estoque atual e
-// cria/remove automaticamente os itens "automáticos" da lista. Por
-// isso não existe mais uma etapa client-side separada de "itens
-// faltantes" — os itens automáticos já vêm prontos na própria lista,
-// só marcados com um selo "Automático".
+// cada alimento (FS_minimos_alimento, por nome — ver aba Mínimos) com o
+// estoque atual e cria/remove automaticamente os itens "automáticos" da
+// lista. Por isso não existe mais uma etapa client-side separada de
+// "itens faltantes" — os itens automáticos já vêm prontos na própria
+// lista, só marcados com um selo "Automático".
 class TelaListaCompras extends StatefulWidget {
   final Usuario usuario;
   const TelaListaCompras({super.key, required this.usuario});
@@ -23,29 +23,46 @@ class TelaListaCompras extends StatefulWidget {
 class _TelaListaComprasState extends State<TelaListaCompras>
     with SingleTickerProviderStateMixin {
   late TabController _controladorSubabas;
+  int _abaAnterior = 0;
 
   bool _carregando = true;
   String? _erro;
   List<ItemListaCompras> _listaCompras = [];
   List<AlimentoEstoque> _estoque = [];
+  List<MinimoAlimento> _minimos = [];
 
   @override
   void initState() {
     super.initState();
     _controladorSubabas = TabController(length: 2, vsync: this);
+    _controladorSubabas.addListener(_aoTrocarSubaba);
     _carregarTudo();
   }
 
   @override
   void dispose() {
+    _controladorSubabas.removeListener(_aoTrocarSubaba);
     _controladorSubabas.dispose();
     super.dispose();
+  }
+
+  // Toda vez que sai da aba "Mínimos" de volta pra "Lista", recarrega a
+  // lista — definir/editar um mínimo pode ter mudado (ou criado/removido)
+  // um item automático nela.
+  void _aoTrocarSubaba() {
+    final atual = _controladorSubabas.index;
+    if (atual != _abaAnterior) {
+      if (atual == 0 && _abaAnterior == 1) {
+        _carregarLista();
+      }
+      _abaAnterior = atual;
+    }
   }
 
   Future<void> _carregarTudo() async {
     setState(() { _carregando = true; _erro = null; });
     try {
-      await Future.wait([_carregarLista(), _carregarEstoque()]);
+      await Future.wait([_carregarLista(), _carregarEstoque(), _carregarMinimos()]);
       setState(() => _carregando = false);
     } on ApiException catch (e) {
       setState(() { _carregando = false; _erro = e.mensagem; });
@@ -66,6 +83,14 @@ class _TelaListaComprasState extends State<TelaListaCompras>
         .map((j) => AlimentoEstoque.fromJson(j as Map<String, dynamic>))
         .toList();
     if (mounted) setState(() => _estoque = lista);
+  }
+
+  Future<void> _carregarMinimos() async {
+    final resp = await ApiCliente.get('/estoque/listar_minimos.php');
+    final lista = (resp['minimos'] as List)
+        .map((j) => MinimoAlimento.fromJson(j as Map<String, dynamic>))
+        .toList();
+    if (mounted) setState(() => _minimos = lista);
   }
 
   void _mostrarErro(String mensagem) {
@@ -368,29 +393,33 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // ── Diálogo: quantidade mínima de um alimento do estoque ─────────
+  // ── Diálogo: quantidade mínima por alimento (por nome, não por lote —
+  // pode ser um alimento que nem está no estoque ainda) ─────────
 
-  void _abrirDialogoMinimo(AlimentoEstoque item) {
-    final ctrl = TextEditingController(
-        text: item.quantidadeMinima != null
-            ? (item.quantidadeMinima! == item.quantidadeMinima!.truncateToDouble()
-                ? item.quantidadeMinima!.toInt().toString()
-                : item.quantidadeMinima.toString())
+  void _abrirDialogoMinimo({MinimoAlimento? edicao}) {
+    final ctrlNome = TextEditingController(text: edicao?.nome ?? '');
+    final ctrlQtd = TextEditingController(
+        text: edicao != null
+            ? (edicao.quantidadeMinima == edicao.quantidadeMinima.truncateToDouble()
+                ? edicao.quantidadeMinima.toInt().toString()
+                : edicao.quantidadeMinima.toString())
             : '');
-    String? erro;
+    String unidade = edicao?.unidade ?? unidadesMedida.first;
+    String? erroNome, erroQtd;
     bool enviando = false;
 
-    Future<void> salvar(String? valorMinimo) async {
-      final corpo = <String, dynamic>{
-        'id': int.parse(item.id),
-        'nome': item.nome,
-        'quantidade': item.quantidade,
-        'unidade': item.unidade,
-        'validade': item.validade,
-        'quantidade_minima': valorMinimo,
-      };
-      await ApiCliente.post('/estoque/editar_alimento.php', corpo: corpo);
-      await _carregarEstoque();
+    // Sugestões: nomes já usados no estoque que ainda não têm mínimo —
+    // um atalho, mas o campo aceita qualquer nome digitado.
+    final vistos = <String>{};
+    final sugestoes = <AlimentoEstoque>[];
+    if (edicao == null) {
+      for (final a in _estoque) {
+        final chave = a.nome.trim().toLowerCase();
+        if (vistos.add(chave) &&
+            !_minimos.any((m) => m.nome.trim().toLowerCase() == chave)) {
+          sugestoes.add(a);
+        }
+      }
     }
 
     showDialog(
@@ -399,44 +428,86 @@ class _TelaListaComprasState extends State<TelaListaCompras>
         builder: (ctx, setD) => AlertDialog(
           backgroundColor: cartaoEscuro,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text('Mínimo — ${item.nome}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Estoque atual: ${item.quantidadeFormatada}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
-            const SizedBox(height: 12),
-            _campo('Qtd. mínima (${item.unidade})', Icons.warning_amber_rounded, ctrl, tipo: TextInputType.number, erro: erro),
-          ]),
+          title: Text(edicao == null ? 'Definir mínimo' : 'Editar mínimo',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Escolha o alimento — não precisa já estar no seu estoque.',
+                  style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 10),
+              _campo('Nome do alimento', Icons.fastfood_outlined, ctrlNome, erro: erroNome),
+              if (sugestoes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6, runSpacing: 6,
+                  children: sugestoes.take(8).map((a) => GestureDetector(
+                    onTap: () => setD(() {
+                      ctrlNome.text = a.nome;
+                      unidade = a.unidade;
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFF1C1C1C), borderRadius: BorderRadius.circular(20), border: Border.all(color: bordaCartao)),
+                      child: Text(a.nome, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                    ),
+                  )).toList(),
+                ),
+              ],
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(flex: 2, child: _campo('Qtd. mínima', Icons.numbers_rounded, ctrlQtd, tipo: TextInputType.number, erro: erroQtd)),
+                const SizedBox(width: 8),
+                Expanded(child: _dropdown(unidade, unidadesMedida, (v) => setD(() => unidade = v!))),
+              ]),
+            ]),
+          ),
           actions: [
-            if (item.quantidadeMinima != null)
+            if (edicao != null)
               TextButton(
                 onPressed: enviando ? null : () async {
                   setD(() => enviando = true);
                   try {
-                    await salvar('');
+                    await ApiCliente.delete('/estoque/definir_minimo.php', corpo: {'id': int.parse(edicao.id)});
                     if (ctx.mounted) Navigator.pop(ctx);
+                    await _carregarMinimos();
+                    await _carregarLista();
                   } on ApiException catch (e) {
-                    setD(() { enviando = false; erro = e.mensagem; });
+                    setD(() { enviando = false; erroNome = e.mensagem; });
                   }
                 },
-                child: const Text('Remover mínimo', style: TextStyle(color: Color(0xFFFF4444))),
+                child: const Text('Remover', style: TextStyle(color: Color(0xFFFF4444))),
               ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
+            TextButton(onPressed: enviando ? null : () => Navigator.pop(ctx), child: const Text('Cancelar', style: TextStyle(color: Colors.white38))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: enviando ? null : () async {
-                final valor = double.tryParse(ctrl.text.trim().replaceAll(',', '.'));
-                if (valor == null || valor <= 0) {
-                  setD(() => erro = 'Valor inválido');
+                String? en, eq;
+                if (ctrlNome.text.trim().isEmpty) en = 'Obrigatório';
+                final qtd = double.tryParse(ctrlQtd.text.replaceAll(',', '.'));
+                if (qtd == null || qtd <= 0) eq = 'Valor inválido';
+                if (en != null || eq != null) {
+                  setD(() { erroNome = en; erroQtd = eq; });
                   return;
                 }
                 setD(() => enviando = true);
                 try {
-                  await salvar(valor.toString());
+                  final corpo = <String, dynamic>{
+                    'nome': ctrlNome.text.trim(),
+                    'unidade': unidade,
+                    'quantidade_minima': qtd,
+                  };
+                  if (edicao != null) corpo['id'] = int.parse(edicao.id);
+                  await ApiCliente.post('/estoque/definir_minimo.php', corpo: corpo);
                   if (ctx.mounted) Navigator.pop(ctx);
+                  await _carregarMinimos();
+                  await _carregarLista();
                 } on ApiException catch (e) {
-                  setD(() { enviando = false; erro = e.mensagem; });
+                  setD(() { enviando = false; erroNome = e.mensagem; });
                 }
               },
-              child: const Text('Salvar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+              child: enviando
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                  : const Text('Salvar', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -540,8 +611,9 @@ class _TelaListaComprasState extends State<TelaListaCompras>
                             aoConcluir:         _abrirDialogoConcluir,
                           ),
                           _SubabaMinimos(
-                            estoque: _estoque,
-                            aoDefinirMinimo: _abrirDialogoMinimo,
+                            minimos: _minimos,
+                            aoNovoMinimo: () => _abrirDialogoMinimo(),
+                            aoEditarMinimo: (m) => _abrirDialogoMinimo(edicao: m),
                           ),
                         ],
                       ),
@@ -807,86 +879,99 @@ class _CartaoItemLista extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Subaba: Mínimos (por alimento do estoque)
+//  Subaba: Mínimos (por NOME de alimento — não precisa estar no estoque)
 // ─────────────────────────────────────────────
 class _SubabaMinimos extends StatelessWidget {
-  final List<AlimentoEstoque> estoque;
-  final void Function(AlimentoEstoque) aoDefinirMinimo;
+  final List<MinimoAlimento> minimos;
+  final VoidCallback aoNovoMinimo;
+  final void Function(MinimoAlimento) aoEditarMinimo;
 
-  const _SubabaMinimos({required this.estoque, required this.aoDefinirMinimo});
+  const _SubabaMinimos({required this.minimos, required this.aoNovoMinimo, required this.aoEditarMinimo});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: GestureDetector(
+            onTap: aoNovoMinimo,
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(color: verdePrimario, borderRadius: BorderRadius.circular(10)),
+              child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.add_rounded, color: Colors.black, size: 16),
+                SizedBox(width: 5),
+                Text('Definir mínimo', style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(10), border: Border.all(color: bordaCartao)),
             child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Icon(Icons.info_outline_rounded, color: Colors.white30, size: 14),
               SizedBox(width: 8),
-              Expanded(child: Text('Defina a quantidade mínima de cada alimento do seu estoque. Quando ficar abaixo do mínimo, ele entra automaticamente na Lista de Compras.', style: TextStyle(fontSize: 11, color: Colors.white38, height: 1.4))),
+              Expanded(child: Text('Escolha qualquer alimento, mesmo que ainda não esteja no seu estoque. Quando a quantidade ficar abaixo do mínimo, ele entra automaticamente na Lista de Compras.', style: TextStyle(fontSize: 11, color: Colors.white38, height: 1.4))),
             ]),
           ),
         ),
         Expanded(
-          child: estoque.isEmpty
+          child: minimos.isEmpty
               ? Center(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Container(width: 72, height: 72, decoration: BoxDecoration(color: verdePrimario.withOpacity(0.07), shape: BoxShape.circle), child: const Icon(Icons.tune_rounded, color: verdePrimario, size: 32)),
                     const SizedBox(height: 16),
-                    const Text('Seu estoque está vazio', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
+                    const Text('Nenhum mínimo definido ainda', style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
-                    const Text('Cadastre alimentos na aba Estoque\npara definir mínimos.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    const Text('Toque em "Definir mínimo" e escolha\num alimento — do estoque ou não.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 12)),
                   ]),
                 )
               : ListView.separated(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                  itemCount: estoque.length,
+                  itemCount: minimos.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
-                    final item = estoque[i];
-                    final temMinimo = item.quantidadeMinima != null;
-                    final faltante = temMinimo && item.quantidade < item.quantidadeMinima!;
+                    final m = minimos[i];
+                    final icone = AlimentoEstoque.iconePorNome(m.nome);
 
                     return GestureDetector(
-                      onTap: () => aoDefinirMinimo(item),
+                      onTap: () => aoEditarMinimo(m),
                       child: Container(
                         padding: const EdgeInsets.all(13),
                         decoration: BoxDecoration(
                           color: cartaoEscuro,
                           borderRadius: BorderRadius.circular(13),
                           border: Border.all(
-                              color: faltante
+                              color: m.abaixoDoMinimo
                                   ? const Color(0xFFFF4444).withOpacity(0.25)
-                                  : (temMinimo ? verdePrimario.withOpacity(0.15) : bordaCartao)),
+                                  : verdePrimario.withOpacity(0.15)),
                         ),
                         child: Row(children: [
                           Container(
                             width: 38, height: 38,
                             decoration: BoxDecoration(
-                              color: faltante ? const Color(0xFFFF4444).withOpacity(0.1) : verdePrimario.withOpacity(0.1),
+                              color: m.abaixoDoMinimo ? const Color(0xFFFF4444).withOpacity(0.1) : verdePrimario.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
-                              faltante ? Icons.warning_amber_rounded : (temMinimo ? Icons.check_circle_outline_rounded : Icons.tune_rounded),
-                              color: faltante ? const Color(0xFFFF4444) : verdePrimario,
+                              m.abaixoDoMinimo ? Icons.warning_amber_rounded : icone,
+                              color: m.abaixoDoMinimo ? const Color(0xFFFF4444) : verdePrimario,
                               size: 18,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(item.nome, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                            Text(m.nome, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
                             const SizedBox(height: 2),
-                            Text(
-                              temMinimo ? 'Mínimo: ${item.quantidadeMinima} ${item.unidade}' : 'Sem mínimo definido',
-                              style: const TextStyle(fontSize: 11, color: Colors.white54),
-                            ),
+                            Text('Mínimo: ${m.minimoFormatado}', style: const TextStyle(fontSize: 11, color: Colors.white54)),
                             const SizedBox(height: 1),
-                            Text('Estoque atual: ${item.quantidadeFormatada}', style: TextStyle(fontSize: 10, color: faltante ? const Color(0xFFFF4444) : Colors.white38)),
+                            Text('Estoque atual: ${m.atualFormatado}',
+                                style: TextStyle(fontSize: 10, color: m.abaixoDoMinimo ? const Color(0xFFFF4444) : Colors.white38)),
                           ])),
                           const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 18),
                         ]),

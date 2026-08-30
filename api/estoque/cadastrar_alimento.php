@@ -1,7 +1,8 @@
 <?php
 // Cadastra um novo alimento no estoque do usuário logado.
-// Aceita opcionalmente "quantidade_minima" para alimentar a lista de
-// compras automática (FS_alimentos_minimos), usada por listar_compras.php.
+// A quantidade mínima (pra lista de compras automática) não é definida
+// aqui — vive em FS_minimos_alimento, por nome, independente do estoque
+// (ver api/estoque/definir_minimo.php).
 //
 // Só junta com um alimento já existente (soma a quantidade em vez de criar
 // linha nova) quando nome, unidade E validade são TODOS iguais — ou seja,
@@ -19,7 +20,6 @@ $nome          = trim($dados['nome'] ?? '');
 $quantidadeStr = trim((string) ($dados['quantidade'] ?? ''));
 $unidade       = trim($dados['unidade'] ?? 'kg');
 $validade      = trim($dados['validade'] ?? '');
-$qtdMinima     = $dados['quantidade_minima'] ?? null;
 
 if (!$nome || !$quantidadeStr || !$validade) {
     responder(false, 'Preencha todos os campos.', [], 422);
@@ -56,14 +56,6 @@ try {
         );
         $stmt->execute([$uid, $nome, $quantidade, $unidade, $validade]);
         $novoId = (int) $pdo->lastInsertId();
-    }
-
-    if ($qtdMinima !== null && $qtdMinima !== '') {
-        $stmtMin = $pdo->prepare(
-            "INSERT INTO FS_alimentos_minimos (alimento_id, quantidade_minima) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE quantidade_minima = VALUES(quantidade_minima)"
-        );
-        $stmtMin->execute([$novoId, (float) $qtdMinima]);
     }
 
     // Se o alimento cadastrado corresponde a algo que já estava pendente na
