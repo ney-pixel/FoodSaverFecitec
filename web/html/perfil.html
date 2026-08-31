@@ -138,11 +138,6 @@
                 <label><i class="bi bi-calendar-event"></i> Data de validade</label>
                 <input type="date" id="invValidade" required>
               </div>
-              <div class="form-group">
-                <label><i class="bi bi-bell"></i> Quantidade mínima <span class="opcional-tag">opcional</span></label>
-                <input type="text" id="invQtdMinima" placeholder="Ex: 1">
-                <p class="campo-hint">Avisamos você na lista de compras assim que o estoque cair abaixo desse valor.</p>
-              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-ghost" onclick="fecharModalInv()">Cancelar</button>
@@ -200,6 +195,25 @@
               <button type="submit" class="btn-primary" id="movSubmitBtn"><i class="bi bi-check2"></i> Registrar</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- MODAL: LOTES DE UM ALIMENTO (mesmo nome, validades diferentes) -->
+      <div class="modal-overlay hidden" id="modalLotes">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-boxes"></i></div>
+              <div>
+                <h3 id="lotesModalTitulo">—</h3>
+                <p class="campo-hint" id="lotesModalSub" style="margin:2px 0 0"></p>
+              </div>
+            </div>
+            <button type="button" class="modal-close" onclick="fecharModalLotes()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="modal-body modal-body-scroll">
+            <div id="lotesList" style="display:flex;flex-direction:column;gap:12px"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -356,20 +370,54 @@
           <h1 class="page-title">Lista de Compras</h1>
           <p class="page-sub">O que falta comprar</p>
         </div>
-        <div class="header-actions">
+        <div class="header-actions" id="comprasHeaderActions">
           <button class="btn-primary" onclick="abrirModalCompra()"><i class="bi bi-plus-lg"></i> Adicionar Item</button>
         </div>
       </div>
 
       <div id="compraMsg"></div>
 
-      <div id="compraEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
-        <i class="bi bi-cart" style="font-size:40px;color:var(--text-dim)"></i>
-        <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Sua lista de compras está vazia.<br>Adicione o que estiver faltando!</p>
-        <button class="btn-primary" style="margin-top:20px" onclick="abrirModalCompra()"><i class="bi bi-plus-lg"></i> Adicionar Item</button>
+      <div class="receitas-tabs">
+        <button type="button" class="rtab-btn active" data-ctab="lista" onclick="mudarTabCompras('lista')">
+          <i class="bi bi-cart-fill"></i> Lista
+        </button>
+        <button type="button" class="rtab-btn" data-ctab="minimos" onclick="mudarTabCompras('minimos')">
+          <i class="bi bi-sliders"></i> Mínimos
+        </button>
       </div>
 
-      <div class="compras-list" id="comprasList"></div>
+      <!-- TAB: LISTA -->
+      <div id="tabComprasLista">
+        <div id="compraEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
+          <i class="bi bi-cart" style="font-size:40px;color:var(--text-dim)"></i>
+          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Sua lista de compras está vazia.<br>Adicione o que estiver faltando!</p>
+          <button class="btn-primary" style="margin-top:20px" onclick="abrirModalCompra()"><i class="bi bi-plus-lg"></i> Adicionar Item</button>
+        </div>
+
+        <div class="compras-list" id="comprasList"></div>
+
+        <div id="concluirBar" class="hidden" style="margin-top:16px">
+          <button type="button" class="btn-primary" style="width:100%;justify-content:center" onclick="abrirModalConcluir()">
+            <i class="bi bi-check2-circle"></i> <span id="concluirBarTexto">Concluir</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB: MÍNIMOS (por nome do alimento — não precisa estar no estoque) -->
+      <div id="tabComprasMinimos" class="hidden">
+        <div class="glass-card" style="padding:14px 18px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start">
+          <i class="bi bi-info-circle" style="color:var(--text-dim);font-size:14px;margin-top:2px"></i>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin:0">Escolha qualquer alimento, mesmo que ainda não esteja no seu estoque. Quando a quantidade ficar abaixo do mínimo, ele entra automaticamente na Lista de Compras.</p>
+        </div>
+
+        <div id="minimoEmpty" class="glass-card" style="text-align:center;padding:48px 24px;display:none">
+          <i class="bi bi-sliders" style="font-size:40px;color:var(--text-dim)"></i>
+          <p style="margin-top:16px;color:var(--text-muted);font-size:14px">Nenhum mínimo definido ainda.<br>Escolha um alimento — do estoque ou não.</p>
+          <button class="btn-primary" style="margin-top:20px" onclick="abrirModalMinimo()"><i class="bi bi-plus-lg"></i> Definir Mínimo</button>
+        </div>
+
+        <div class="compras-list" id="minimosList"></div>
+      </div>
 
       <!-- MODAL: ADICIONAR ITEM À LISTA -->
       <div class="modal-overlay hidden" id="modalCompra">
@@ -405,6 +453,68 @@
               <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Adicionar</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- MODAL: DEFINIR/EDITAR MÍNIMO -->
+      <div class="modal-overlay hidden" id="modalMinimo">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-sliders"></i></div>
+              <h3 id="modalMinimoTitulo">Definir Mínimo</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="fecharModalMinimo()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <form id="formMinimo">
+            <input type="hidden" id="minimoId" value="0">
+            <div class="modal-body">
+              <div class="form-group">
+                <label><i class="bi bi-tag"></i> Nome do alimento</label>
+                <input type="text" id="minimoNome" list="minimoSugestoes" placeholder="Ex: Arroz" required autocomplete="off">
+                <datalist id="minimoSugestoes"></datalist>
+                <p class="campo-hint">Não precisa já estar no seu estoque.</p>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label><i class="bi bi-123"></i> Qtd. mínima</label>
+                  <input type="text" id="minimoQuantidade" placeholder="Ex: 1" required>
+                </div>
+                <div class="form-group">
+                  <label><i class="bi bi-rulers"></i> Unidade</label>
+                  <select id="minimoUnidade">
+                    <option>kg</option><option>g</option><option>L</option><option>und</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-ghost" id="minimoRemoverBtn" style="display:none;color:#f87171" onclick="removerMinimoAtual()">Remover</button>
+              <button type="button" class="btn-ghost" onclick="fecharModalMinimo()">Cancelar</button>
+              <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODAL: CONCLUIR COMPRAS -->
+      <div class="modal-overlay hidden" id="modalConcluir">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-check2-circle"></i></div>
+              <h3>Concluir Compras</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="fecharModalConcluir()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="modal-body">
+            <p class="campo-hint" style="margin-bottom:14px">Informe a validade de cada item para adicioná-los ao seu estoque.</p>
+            <div id="concluirList" style="display:flex;flex-direction:column;gap:12px;max-height:340px;overflow-y:auto"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-ghost" onclick="fecharModalConcluir()">Cancelar</button>
+            <button type="button" class="btn-primary" id="concluirSalvarBtn" onclick="submitConcluir()"><i class="bi bi-check2"></i> Concluir</button>
+          </div>
         </div>
       </div>
     </section>

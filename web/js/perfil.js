@@ -11,6 +11,7 @@ const ESTADO = {
   biblioteca: [],
   receitasIA: [],
   compras: [],
+  minimos: [],
   gruposAlimentos: [],
   config: null,
   movimentacoes: null,
@@ -64,11 +65,12 @@ function limparMsg(containerId) {
 
 // ── CARREGAMENTO DE DADOS ────────────────────────────────────
 async function carregarTudo() {
-  const [alimentosResp, bibliotecaResp, receitasIAResp, comprasResp, configResp, gAlResp, movResp] = await Promise.all([
+  const [alimentosResp, bibliotecaResp, receitasIAResp, comprasResp, minimosResp, configResp, gAlResp, movResp] = await Promise.all([
     apiFetch('/estoque/listar_alimentos.php'),
     apiFetch('/biblioteca/listar_biblioteca.php'),
     apiFetch('/ia/listar_receitas_ia.php'),
     apiFetch('/compras/listar_compras.php'),
+    apiFetch('/estoque/listar_minimos.php'),
     apiFetch('/configuracoes/listar_configuracoes.php'),
     apiFetch('/grupos/gerenciar_grupo_alimentos.php'),
     apiFetch('/estoque/listar_movimentacoes.php'),
@@ -77,6 +79,7 @@ async function carregarTudo() {
   ESTADO.biblioteca = bibliotecaResp.receitas || [];
   ESTADO.receitasIA = receitasIAResp.receitas || [];
   ESTADO.compras = comprasResp.lista_compras || [];
+  ESTADO.minimos = minimosResp.minimos || [];
   ESTADO.config = configResp.configuracoes || null;
   ESTADO.gruposAlimentos = gAlResp.grupos || [];
   ESTADO.movimentacoes = movResp.sucesso ? movResp : null;
@@ -88,6 +91,7 @@ function renderTudo() {
   renderReceitas();
   renderIngredientesSelecionadosCriar();
   renderCompras();
+  renderMinimos();
   renderGruposAlimentos();
   renderRelatorios();
   renderConfig();
@@ -147,6 +151,49 @@ function fecharConfirm(resultado) {
 // ══════════════════════════════════════════════════════════════
 // INVENTÁRIO
 // ══════════════════════════════════════════════════════════════
+// Agrupa por nome (ignorando maiúsculas/minúsculas) porque o mesmo
+// alimento pode ter vários lotes com validades diferentes (ex.: comprou
+// mais carne, mas venceu num dia diferente do que já tinha) — cada lote
+// continua sendo uma linha própria no banco (necessário pros relatórios),
+// só a exibição é que agrupa. Mesmo critério usado no app mobile.
+function agruparAlimentosPorNome(lista) {
+  const mapa = new Map();
+  for (const item of lista) {
+    const chave = item.nome.trim().toLowerCase();
+    if (mapa.has(chave)) {
+      mapa.get(chave).lotes.push(item);
+    } else {
+      mapa.set(chave, { nome: item.nome, lotes: [item] });
+    }
+  }
+  return Array.from(mapa.values());
+}
+
+// pior classe entre os lotes manda no destaque do card (danger > warning > good)
+function piorClasseValidade(lotes) {
+  const classes = lotes.map((l) => classeValidade(diasValidade(l.validade)));
+  if (classes.includes('danger')) return 'danger';
+  if (classes.includes('warning')) return 'warning';
+  return 'good';
+}
+
+// o lote que vence primeiro — é o texto de validade mostrado no resumo
+function loteMaisProximo(lotes) {
+  return lotes.reduce((a, b) => (diasValidade(a.validade) <= diasValidade(b.validade) ? a : b));
+}
+
+// Soma por unidade (não dá pra somar kg com und sem converter, então se
+// houver mistura de unidades entre os lotes, mostra cada uma separada).
+function somaPorUnidade(lotes) {
+  const somas = {};
+  for (const l of lotes) {
+    somas[l.unidade] = (somas[l.unidade] || 0) + parseFloat(l.quantidade);
+  }
+  return Object.entries(somas).map(([unidade, qtd]) => qtdFormatada(qtd, unidade)).join(' + ');
+}
+
+let _gruposInventarioAtual = [];
+
 function renderInventario() {
   const grid = document.getElementById('inventoryGrid');
   const vazio = ESTADO.alimentos.length === 0;
@@ -155,25 +202,87 @@ function renderInventario() {
   document.getElementById('invSub').textContent =
     `Seus alimentos em estoque (${ESTADO.alimentos.length} ${ESTADO.alimentos.length === 1 ? 'item' : 'itens'})`;
 
-  grid.innerHTML = ESTADO.alimentos.map((it) => {
+  const grupos = agruparAlimentosPorNome(ESTADO.alimentos);
+  _gruposInventarioAtual = grupos;
+
+  grid.innerHTML = grupos.map((g, i) => {
+    if (g.lotes.length === 1) {
+      const it = g.lotes[0];
+      const dias = diasValidade(it.validade);
+      const classe = classeValidade(dias);
+      const texto = textoValidade(dias);
+      return `
+      <div class="inv-card" data-name="${esc(it.nome.toLowerCase())}">
+        <div class="inv-info">
+          <span class="inv-name">${esc(it.nome)}</span>
+          <span class="inv-qty">${esc(it.quantidade)} ${esc(it.unidade)}</span>
+          <div class="inv-expiry ${classe}"><i class="bi bi-clock"></i> ${texto}</div>
+        </div>
+        <div class="inv-actions">
+          <button type="button" class="inv-btn use" title="Registrar consumo/descarte" onclick="abrirModalMov(${it.id})"><i class="bi bi-arrow-down-circle-fill"></i></button>
+          <button type="button" class="inv-btn edit" title="Editar" onclick="abrirModalEdit(${it.id})"><i class="bi bi-pencil-fill"></i></button>
+          <button type="button" class="inv-btn delete" title="Excluir" onclick="excluirAlimento(${it.id})"><i class="bi bi-trash3-fill"></i></button>
+        </div>
+        <div class="inv-status-bar ${classe}"></div>
+      </div>`;
+    }
+
+    const classe = piorClasseValidade(g.lotes);
+    const proximo = loteMaisProximo(g.lotes);
+    const texto = textoValidade(diasValidade(proximo.validade));
+    return `
+    <div class="inv-card inv-card-grupo" data-name="${esc(g.nome.toLowerCase())}" onclick="abrirModalLotes(${i})">
+      <div class="inv-info">
+        <span class="inv-name">${esc(g.nome)}<span class="inv-lotes-tag">${g.lotes.length} lotes</span></span>
+        <span class="inv-qty">${esc(somaPorUnidade(g.lotes))}</span>
+        <div class="inv-expiry ${classe}"><i class="bi bi-clock"></i> Mais próximo: ${texto}</div>
+      </div>
+      <div class="inv-actions">
+        <i class="bi bi-chevron-right" style="color:var(--text-dim);font-size:16px"></i>
+      </div>
+      <div class="inv-status-bar ${classe}"></div>
+    </div>`;
+  }).join('');
+}
+
+// Lista cada lote individualmente (mesmo card de sempre, com as mesmas
+// ações) — fecha este modal antes de abrir qualquer outro (editar, mover,
+// excluir) pra não ficar com dado desatualizado na tela por trás.
+function abrirModalLotes(i) {
+  const grupo = _gruposInventarioAtual[i];
+  if (!grupo) return;
+
+  document.getElementById('lotesModalTitulo').textContent = grupo.nome;
+  document.getElementById('lotesModalSub').textContent = `${grupo.lotes.length} lotes · ${somaPorUnidade(grupo.lotes)} no total`;
+
+  const ordenados = [...grupo.lotes].sort((a, b) => diasValidade(a.validade) - diasValidade(b.validade));
+  document.getElementById('lotesList').innerHTML = ordenados.map((it) => {
     const dias = diasValidade(it.validade);
     const classe = classeValidade(dias);
     const texto = textoValidade(dias);
     return `
-    <div class="inv-card" data-name="${esc(it.nome.toLowerCase())}">
+    <div class="inv-card" style="position:relative">
       <div class="inv-info">
         <span class="inv-name">${esc(it.nome)}</span>
         <span class="inv-qty">${esc(it.quantidade)} ${esc(it.unidade)}</span>
         <div class="inv-expiry ${classe}"><i class="bi bi-clock"></i> ${texto}</div>
       </div>
       <div class="inv-actions">
-        <button type="button" class="inv-btn use" title="Registrar consumo/descarte" onclick="abrirModalMov(${it.id})"><i class="bi bi-arrow-down-circle-fill"></i></button>
-        <button type="button" class="inv-btn edit" title="Editar" onclick="abrirModalEdit(${it.id})"><i class="bi bi-pencil-fill"></i></button>
-        <button type="button" class="inv-btn delete" title="Excluir" onclick="excluirAlimento(${it.id})"><i class="bi bi-trash3-fill"></i></button>
+        <button type="button" class="inv-btn use" title="Registrar consumo/descarte" onclick="fecharModalLotes(); abrirModalMov(${it.id})"><i class="bi bi-arrow-down-circle-fill"></i></button>
+        <button type="button" class="inv-btn edit" title="Editar" onclick="fecharModalLotes(); abrirModalEdit(${it.id})"><i class="bi bi-pencil-fill"></i></button>
+        <button type="button" class="inv-btn delete" title="Excluir" onclick="fecharModalLotes(); excluirAlimento(${it.id})"><i class="bi bi-trash3-fill"></i></button>
       </div>
       <div class="inv-status-bar ${classe}"></div>
     </div>`;
   }).join('');
+
+  document.getElementById('modalLotes').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharModalLotes() {
+  document.getElementById('modalLotes').classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 function abrirModalAdd() {
@@ -184,7 +293,6 @@ function abrirModalAdd() {
   document.getElementById('invQuantidade').value = '';
   document.getElementById('invUnidade').value = 'kg';
   document.getElementById('invValidade').value = '';
-  document.getElementById('invQtdMinima').value = '';
   document.getElementById('modalInv').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -198,7 +306,6 @@ function abrirModalEdit(id) {
   document.getElementById('invQuantidade').value = it.quantidade;
   document.getElementById('invUnidade').value = it.unidade;
   document.getElementById('invValidade').value = it.validade;
-  document.getElementById('invQtdMinima').value = it.quantidade_minima ?? '';
   document.getElementById('modalInv').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -215,7 +322,6 @@ async function submitFormInv(e) {
     quantidade: document.getElementById('invQuantidade').value.trim(),
     unidade: document.getElementById('invUnidade').value,
     validade: document.getElementById('invValidade').value,
-    quantidade_minima: document.getElementById('invQtdMinima').value.trim(),
   };
   let resp;
   if (id > 0) {
@@ -691,6 +797,13 @@ function renderCompras() {
       <button type="button" class="inv-btn delete" title="Remover" onclick="removerCompra(${item.id})"><i class="bi bi-trash3-fill"></i></button>
     </div>
   `).join('');
+
+  // Botão "Concluir" só aparece quando há algo marcado como comprado — é o
+  // que efetivamente joga a quantidade comprada pro estoque (pedindo a
+  // validade de cada item antes).
+  const comprados = ESTADO.compras.filter((c) => c.comprado);
+  document.getElementById('concluirBar').classList.toggle('hidden', comprados.length === 0);
+  document.getElementById('concluirBarTexto').textContent = `Concluir (${comprados.length})`;
 }
 
 function abrirModalCompra() {
@@ -723,20 +836,14 @@ async function submitFormCompra(e) {
 }
 
 async function toggleCompra(id) {
+  // Só alterna a marcação de comprado — não mexe no estoque ainda. O
+  // alimento só entra de fato no inventário quando o usuário confirma em
+  // "Concluir" (ver abrirModalConcluir), informando a validade de cada item.
   const resp = await apiFetch('/compras/editar_compra.php', { method: 'PATCH', body: { id } });
   if (resp.sucesso) {
     const item = ESTADO.compras.find((c) => c.id === id);
-    const ficouComprado = item && !item.comprado;
     if (item) item.comprado = !item.comprado;
     renderCompras();
-    // Marcar como comprado soma a quantidade no estoque (ou cria o item lá);
-    // recarrega o inventário para refletir isso na tela.
-    if (ficouComprado) {
-      const alimentosResp = await apiFetch('/estoque/listar_alimentos.php');
-      ESTADO.alimentos = alimentosResp.alimentos || [];
-      renderInventario();
-      renderRelatorios();
-    }
   }
 }
 
@@ -745,6 +852,179 @@ async function removerCompra(id) {
   const resp = await apiFetch('/compras/editar_compra.php', { method: 'DELETE', body: { id } });
   if (resp.sucesso) {
     ESTADO.compras = ESTADO.compras.filter((c) => c.id !== id);
+    renderCompras();
+  }
+}
+
+// ── CONCLUIR COMPRAS: joga os itens marcados como comprado pro estoque,
+// pedindo a validade de cada um (cada um vira um alimento novo — mesmo
+// critério do cadastro manual: nomes iguais com validades diferentes são
+// lotes diferentes, de propósito). ──
+
+function abrirModalConcluir() {
+  const comprados = ESTADO.compras.filter((c) => c.comprado);
+  if (comprados.length === 0) return;
+
+  document.getElementById('concluirList').innerHTML = comprados.map((item) => `
+    <div class="form-group" style="margin-bottom:0">
+      <label>${esc(item.nome_alimento)} <span style="color:var(--text-dim);font-weight:400">(${esc(qtdFormatada(item.quantidade, item.unidade_medida))})</span></label>
+      <input type="date" class="concluir-data" data-id="${item.id}" required>
+    </div>
+  `).join('');
+
+  document.getElementById('modalConcluir').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharModalConcluir() {
+  document.getElementById('modalConcluir').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+async function submitConcluir() {
+  const inputs = Array.from(document.querySelectorAll('#concluirList .concluir-data'));
+  const itens = [];
+  for (const input of inputs) {
+    if (!input.value) {
+      input.focus();
+      msgFeedback('compraMsg', 'erro', 'Informe a validade de todos os itens selecionados.');
+      return;
+    }
+    itens.push({ id: parseInt(input.dataset.id, 10), validade: input.value });
+  }
+
+  const btn = document.getElementById('concluirSalvarBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Concluindo...';
+
+  const resp = await apiFetch('/compras/concluir_compras.php', { method: 'POST', body: { itens } });
+
+  btn.disabled = false;
+  btn.innerHTML = original;
+
+  if (resp.sucesso) {
+    fecharModalConcluir();
+    const [comprasResp, alimentosResp] = await Promise.all([
+      apiFetch('/compras/listar_compras.php'),
+      apiFetch('/estoque/listar_alimentos.php'),
+    ]);
+    ESTADO.compras = comprasResp.lista_compras || [];
+    ESTADO.alimentos = alimentosResp.alimentos || [];
+    renderCompras();
+    renderInventario();
+    renderRelatorios();
+    msgFeedback('compraMsg', 'ok', resp.mensagem || 'Itens adicionados ao estoque!');
+  } else {
+    msgFeedback('compraMsg', 'erro', resp.mensagem || 'Erro ao concluir as compras.');
+  }
+}
+
+// ── SUBABA: MÍNIMOS (por NOME de alimento — não precisa estar no estoque) ──
+// Igual ao app mobile: o mínimo é vinculado ao nome do alimento
+// (FS_minimos_alimento), não a um item específico do estoque — dá pra
+// definir um mínimo mesmo pra algo que você ainda não tem em casa.
+
+function mudarTabCompras(tab) {
+  document.querySelectorAll('.rtab-btn[data-ctab]').forEach((b) => b.classList.toggle('active', b.dataset.ctab === tab));
+  document.getElementById('tabComprasLista').classList.toggle('hidden', tab !== 'lista');
+  document.getElementById('tabComprasMinimos').classList.toggle('hidden', tab !== 'minimos');
+  document.getElementById('comprasHeaderActions').innerHTML = tab === 'lista'
+    ? '<button class="btn-primary" onclick="abrirModalCompra()"><i class="bi bi-plus-lg"></i> Adicionar Item</button>'
+    : '<button class="btn-primary" onclick="abrirModalMinimo()"><i class="bi bi-plus-lg"></i> Definir Mínimo</button>';
+
+  // Voltar pra Lista pode ter itens automáticos novos/removidos por causa
+  // de um mínimo que acabou de mudar — recarrega pra refletir isso.
+  if (tab === 'lista') {
+    apiFetch('/compras/listar_compras.php').then((resp) => {
+      ESTADO.compras = resp.lista_compras || [];
+      renderCompras();
+    });
+  }
+}
+
+function renderMinimos() {
+  document.getElementById('minimoEmpty').style.display = ESTADO.minimos.length === 0 ? '' : 'none';
+  document.getElementById('minimosList').innerHTML = ESTADO.minimos.map((m) => `
+    <div class="compra-item ${m.abaixo_do_minimo ? 'minimo-alerta' : ''}">
+      <i class="bi ${m.abaixo_do_minimo ? 'bi-exclamation-triangle-fill' : 'bi-sliders'}" style="font-size:18px;color:${m.abaixo_do_minimo ? '#f87171' : 'var(--green)'}"></i>
+      <div class="compra-info">
+        <span class="compra-nome">${esc(m.nome_alimento)}</span>
+        <span class="compra-qtd">Mínimo: ${esc(qtdFormatada(m.quantidade_minima, m.unidade_medida))} · Estoque atual: ${esc(qtdFormatada(m.quantidade_atual, m.unidade_medida))}</span>
+      </div>
+      <button type="button" class="inv-btn edit" title="Editar" onclick="abrirModalMinimo(${m.id})"><i class="bi bi-pencil-fill"></i></button>
+    </div>
+  `).join('');
+}
+
+function abrirModalMinimo(id) {
+  // Sugestões de nomes: alimentos já usados no estoque que ainda não têm
+  // mínimo definido — um atalho, mas o campo aceita qualquer nome digitado.
+  const nomesComMinimo = new Set(ESTADO.minimos.map((m) => m.nome_alimento.trim().toLowerCase()));
+  const vistos = new Set();
+  const sugestoes = ESTADO.alimentos.filter((a) => {
+    const chave = a.nome.trim().toLowerCase();
+    if (vistos.has(chave) || nomesComMinimo.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+  document.getElementById('minimoSugestoes').innerHTML = sugestoes.map((a) => `<option value="${esc(a.nome)}">`).join('');
+
+  const it = id ? ESTADO.minimos.find((m) => m.id === id) : null;
+  document.getElementById('modalMinimoTitulo').textContent = it ? 'Editar Mínimo' : 'Definir Mínimo';
+  document.getElementById('minimoId').value = it ? it.id : '0';
+  document.getElementById('minimoNome').value = it ? it.nome_alimento : '';
+  document.getElementById('minimoQuantidade').value = it ? it.quantidade_minima : '';
+  document.getElementById('minimoUnidade').value = it ? it.unidade_medida : 'kg';
+  document.getElementById('minimoRemoverBtn').style.display = it ? '' : 'none';
+  document.getElementById('modalMinimo').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharModalMinimo() {
+  document.getElementById('modalMinimo').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+async function submitFormMinimo(e) {
+  e.preventDefault();
+  const id = parseInt(document.getElementById('minimoId').value, 10);
+  const payload = {
+    nome: document.getElementById('minimoNome').value.trim(),
+    unidade: document.getElementById('minimoUnidade').value,
+    quantidade_minima: document.getElementById('minimoQuantidade').value.trim(),
+  };
+  if (id > 0) payload.id = id;
+  const resp = await apiFetch('/estoque/definir_minimo.php', { method: 'POST', body: payload });
+  if (resp.sucesso) {
+    fecharModalMinimo();
+    const [minimosResp, comprasResp] = await Promise.all([
+      apiFetch('/estoque/listar_minimos.php'),
+      apiFetch('/compras/listar_compras.php'),
+    ]);
+    ESTADO.minimos = minimosResp.minimos || [];
+    ESTADO.compras = comprasResp.lista_compras || [];
+    renderMinimos();
+    renderCompras();
+  } else {
+    msgFeedback('compraMsg', 'erro', resp.mensagem || 'Erro ao salvar o mínimo.');
+  }
+}
+
+async function removerMinimoAtual() {
+  const id = parseInt(document.getElementById('minimoId').value, 10);
+  if (!id) return;
+  if (!(await abrirConfirm('Remover este mínimo?', { titulo: 'Remover mínimo' }))) return;
+  const resp = await apiFetch('/estoque/definir_minimo.php', { method: 'DELETE', body: { id } });
+  if (resp.sucesso) {
+    fecharModalMinimo();
+    const [minimosResp, comprasResp] = await Promise.all([
+      apiFetch('/estoque/listar_minimos.php'),
+      apiFetch('/compras/listar_compras.php'),
+    ]);
+    ESTADO.minimos = minimosResp.minimos || [];
+    ESTADO.compras = comprasResp.lista_compras || [];
+    renderMinimos();
     renderCompras();
   }
 }
@@ -1158,6 +1438,7 @@ async function main() {
   document.getElementById('formInv').addEventListener('submit', submitFormInv);
   document.getElementById('formMov').addEventListener('submit', submitFormMov);
   document.getElementById('formCompra').addEventListener('submit', submitFormCompra);
+  document.getElementById('formMinimo').addEventListener('submit', submitFormMinimo);
   document.getElementById('formGrupoAlimento').addEventListener('submit', submitFormGrupoAlimento);
   document.getElementById('formAddAlimentoGrupo').addEventListener('submit', submitFormAddAlimentoGrupo);
   document.getElementById('formPerfil').addEventListener('submit', submitFormPerfil);
@@ -1173,8 +1454,17 @@ async function main() {
   document.getElementById('modalMov').addEventListener('click', (e) => {
     if (e.target.id === 'modalMov') fecharModalMov();
   });
+  document.getElementById('modalLotes').addEventListener('click', (e) => {
+    if (e.target.id === 'modalLotes') fecharModalLotes();
+  });
   document.getElementById('modalCompra').addEventListener('click', (e) => {
     if (e.target.id === 'modalCompra') fecharModalCompra();
+  });
+  document.getElementById('modalMinimo').addEventListener('click', (e) => {
+    if (e.target.id === 'modalMinimo') fecharModalMinimo();
+  });
+  document.getElementById('modalConcluir').addEventListener('click', (e) => {
+    if (e.target.id === 'modalConcluir') fecharModalConcluir();
   });
   document.getElementById('modalReceita').addEventListener('click', (e) => {
     if (e.target.id === 'modalReceita') fecharModalReceita();
@@ -1186,7 +1476,10 @@ async function main() {
     if (e.key === 'Escape') {
       fecharModalInv();
       fecharModalMov();
+      fecharModalLotes();
       fecharModalCompra();
+      fecharModalMinimo();
+      fecharModalConcluir();
       fecharModalReceita();
       fecharConfirm(false);
     }
