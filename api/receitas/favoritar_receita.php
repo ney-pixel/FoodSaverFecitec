@@ -1,6 +1,5 @@
 <?php
-// Adiciona ou remove uma receita dos favoritos do usuário (coluna
-// FS_receitas.favorito). Alterna o valor atual (toggle).
+// Alterna (toggle) o favorito de uma receita do usuário.
 
 require_once __DIR__ . '/../helpers.php';
 

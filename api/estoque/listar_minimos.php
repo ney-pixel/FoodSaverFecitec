@@ -1,9 +1,5 @@
 <?php
-// Lista os mínimos definidos pelo usuário (FS_minimos_alimento), cada um
-// já com a quantidade atual em estoque somada por nome (comparação
-// case-insensitive, convertendo unidade quando possível) — é o que
-// listar_compras.php também usa pra decidir se entra um item automático
-// na lista de compras.
+// Lista os mínimos do usuário com a quantidade atual em estoque somada por nome.
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -28,8 +24,7 @@ foreach ($minimos as $m) {
 
     $atual = 0.0;
     foreach ($stmtLotes->fetchAll() as $lote) {
-        // Lotes com unidade incompatível (ex.: "un" quando o mínimo é em
-        // "kg") são ignorados na soma — não tem como comparar os dois.
+        // Lotes com unidade incompatível são ignorados na soma
         $convertido = converterQuantidade((float) $lote['quantidade'], $lote['unidade_medida'], $m['unidade_medida']);
         if ($convertido !== null) {
             $atual += $convertido;

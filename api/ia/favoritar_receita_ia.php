@@ -1,11 +1,7 @@
 <?php
 // Favorita ou desfavorita uma receita gerada por IA.
-//
-// Diferente de biblioteca/favoritar_biblioteca.php: a receita da IA só
-// existe no banco quando favoritada — não tem id ainda na primeira vez
-// (a geração em ia/gerar_receita.php não salva nada).
-//   - Se o corpo trouxer "id" > 0: a receita já estava salva -> desfavoritar = apaga a linha.
-//   - Se não trouxer id (ou vier 0): ainda não existe -> favoritar = insere com os dados enviados.
+// Com id > 0: já salva -> desfavoritar apaga a linha.
+// Sem id: ainda não existe -> favoritar insere.
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -24,7 +20,7 @@ if ($id > 0) {
     responder(true, 'Receita removida dos favoritos.', ['favorito' => false, 'id' => 0]);
 }
 
-// Ainda não existe: favoritar = inserir com os dados da receita gerada.
+// Ainda não existe: insere os dados da receita gerada.
 $titulo      = trim($dados['titulo'] ?? '');
 $modoPreparo = $dados['modo_preparo'] ?? [];
 

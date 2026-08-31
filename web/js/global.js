@@ -7,7 +7,7 @@ window.addEventListener("load", () => {
   document.body.classList.add("fade-in");
 });
 
-// Fade-out em navegação (aceita .html, .php, etc. — mas não âncoras internas "#")
+// Fade-out em navegação (ignora âncoras internas "#")
 document.querySelectorAll("a").forEach((link) => {
   link.addEventListener("click", function (e) {
     const destino = this.getAttribute("href");

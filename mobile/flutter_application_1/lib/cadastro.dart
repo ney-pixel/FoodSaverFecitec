@@ -71,15 +71,13 @@ class _TelaCadastroState extends State<TelaCadastro>
     final senha        = _controladorSenha.text;
 
     try {
-      // Passo 1: cadastra o usuário na API.
+      // Cadastra e já loga em seguida com as mesmas credenciais
       await ApiCliente.post('/usuarios/cadastro.php', corpo: {
         'username': nomeCompleto,
         'email': email,
         'senha': senha,
       });
 
-      // Passo 2: o cadastro não cria sessão sozinho — loga em seguida com as
-      // mesmas credenciais pra já entrar direto no app, como antes.
       final resp = await ApiCliente.post('/usuarios/login.php', corpo: {
         'email': email,
         'senha': senha,

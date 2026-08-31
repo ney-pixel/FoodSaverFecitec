@@ -1,7 +1,5 @@
 <?php
 // Exclui um grupo de alimentos do usuário logado.
-// FS_grupo_alimentos (as associações do grupo com os alimentos) cai em
-// cascata (ON DELETE CASCADE) — os alimentos em si não são afetados.
 
 require_once __DIR__ . '/../helpers.php';
 

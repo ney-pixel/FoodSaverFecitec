@@ -65,9 +65,7 @@ class _TelaReceitasState extends State<TelaReceitas>
       final grupo = j as Map<String, dynamic>;
       final itens = (grupo['receitas'] as List).map((it) {
         final id = it['id'] as int;
-        // Hidrata com o objeto completo da biblioteca (o endpoint de grupo
-        // só devolve id/título/porções); cai pra um objeto mínimo se por
-        // acaso não achar (não deveria acontecer, biblioteca é fixa).
+        // Hidrata com o objeto completo da biblioteca
         return _biblioteca.firstWhere(
           (r) => r.id == id,
           orElse: () => Receita(
@@ -107,9 +105,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     );
   }
 
-  // Favoritar/desfavoritar funciona diferente dependendo de onde a receita
-  // veio: biblioteca (catálogo fixo, favorito por linha em FS_biblioteca_favoritos)
-  // ou gerada por IA (só existe no banco — FS_receitas_ia — quando favoritada).
+  // Favoritar funciona diferente: biblioteca (catálogo fixo) vs gerada por IA
   Future<void> _alternarFavorito(Receita receita) async {
     if (receita.geradaPorIA) {
       await _alternarFavoritoIA(receita);
@@ -322,8 +318,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     );
   }
 
-  //chama a IA (Gemini, via api/ia/gerar_receita.php) com os ingredientes
-  //selecionados do estoque, porções, nível de fome e observações
+  //chama a IA (api/ia/gerar_receita.php) com os ingredientes selecionados
   Future<void> _gerarReceita() async {
     setState(() => _gerando = true);
     try {
@@ -346,8 +341,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     }
   }
 
-  // Mostra a receita recém-gerada num painel completo (mesmo modal usado
-  // pela Biblioteca e por Favoritas — ver _abrirDetalheReceita).
+  // Mostra a receita num painel completo (ver _abrirDetalheReceita)
   void _mostrarReceita(Receita receita) =>
       _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
@@ -537,9 +531,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
 }
 
 //subaba favoritas
-// Modal de detalhe de receita — compartilhado entre Criar (IA recém-gerada),
-// Biblioteca e Favoritas, pra abrir sempre a mesma tela completa não
-// importa de onde a receita veio.
+// Modal de detalhe de receita — compartilhado entre Criar, Biblioteca e Favoritas
 void _abrirDetalheReceita(BuildContext context, Receita receita, Future<void> Function(Receita) aoFavoritar) {
   bool favoritado = receita.favorita;
 
@@ -735,10 +727,7 @@ class _SubabaFavoritas extends StatelessWidget {
   }
 }
 
-// Mesmo formato de linha da Biblioteca (_CartaoBiblioteca) — ícone, nome,
-// categoria e pílulas — pra abrir a receita completa com um toque. O
-// coração à direita continua permitindo desfavoritar direto da lista,
-// sem precisar abrir o painel.
+// Mesmo formato de linha da Biblioteca — coração à direita desfavorita direto da lista
 class _CartaoFavorita extends StatelessWidget {
   final Receita receita;
   final VoidCallback aoAbrir;
@@ -1051,9 +1040,7 @@ class _CartaoGrupoReceitas extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Subaba: Biblioteca de Receitas
-//  Catálogo fixo, mantido pelos desenvolvedores, igual para todo mundo.
-//  Filtro por nome/categoria e favoritar direto por aqui.
+//  Subaba: Biblioteca de Receitas (catálogo fixo)
 // ─────────────────────────────────────────────
 class _SubabaBiblioteca extends StatefulWidget {
   final List<Receita> biblioteca;

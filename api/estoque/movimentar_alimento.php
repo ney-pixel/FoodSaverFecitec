@@ -1,14 +1,10 @@
 <?php
-// Registra uma movimentação de estoque (entrada, consumo ou desperdício)
-// em FS_movimentacoes e ajusta a quantidade do alimento em FS_alimentos.
-// Essa movimentação é o que alimenta os relatórios de impacto.
+// Registra uma movimentação de estoque e ajusta a quantidade do alimento.
 
 require_once __DIR__ . '/../helpers.php';
 
 exigirMetodo(['POST']);
 $uid = exigirLogin();
-
-// converterQuantidade() mora em helpers.php (compartilhada com editar_compra.php).
 
 $dados      = corpoRequisicao();
 $alimentoId = (int) ($dados['alimento_id'] ?? 0);
@@ -33,8 +29,7 @@ if ($unidade === '') {
     $unidade = $alimento['unidade_medida'];
 }
 
-// A movimentação é registrada na unidade escolhida pelo usuário, mas o
-// estoque em FS_alimentos sempre fica na unidade original do alimento.
+// Estoque sempre fica na unidade original do alimento
 $quantidadeEstoque = converterQuantidade($quantidade, $unidade, $alimento['unidade_medida']);
 if ($quantidadeEstoque === null) {
     responder(false, "Não é possível converter de \"{$unidade}\" para \"{$alimento['unidade_medida']}\".", [], 422);
@@ -61,11 +56,7 @@ try {
         $stmtUpd = $pdo->prepare("UPDATE FS_alimentos SET quantidade = quantidade - ? WHERE id = ?");
         $stmtUpd->execute([$quantidadeEstoque, $alimentoId]);
 
-        // Se o consumo/desperdício zerou o estoque do alimento, ele não faz
-        // mais sentido no inventário: removemos a linha de FS_alimentos.
-        // A movimentação que acabamos de gravar continua existindo (guarda o
-        // nome em descricao_alimento e alimento_id vira NULL via ON DELETE
-        // SET NULL), então o histórico/relatórios não são afetados.
+        // Zerou o estoque: remove a linha (histórico continua intacto)
         $stmtCheck = $pdo->prepare("SELECT quantidade FROM FS_alimentos WHERE id = ?");
         $stmtCheck->execute([$alimentoId]);
         $quantidadeRestante = (float) $stmtCheck->fetchColumn();
@@ -77,8 +68,7 @@ try {
                 $stmtDel->execute([$alimentoId]);
                 $removido = true;
             } catch (PDOException $e) {
-                // FK RESTRICT: alimento vinculado a uma receita. Mantemos o
-                // registro (com quantidade zerada) em vez de falhar a movimentação.
+                // FK RESTRICT: alimento vinculado a uma receita, mantém o registro
             }
         }
     }

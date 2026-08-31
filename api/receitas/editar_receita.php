@@ -1,6 +1,5 @@
 <?php
-// Edita uma receita existente e substitui suas relações de ingredientes
-// em FS_receita_alimentos, preservando o vínculo com os alimentos do estoque.
+// Edita uma receita existente e substitui suas relações de ingredientes.
 
 require_once __DIR__ . '/../helpers.php';
 

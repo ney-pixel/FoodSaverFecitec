@@ -1,6 +1,5 @@
 <?php
-// Cadastra um novo usuário em FS_usuarios, com validações reforçadas
-// (formato de usuário/e-mail, força mínima de senha, senha != usuário/e-mail).
+// Cadastro de usuário
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -9,7 +8,7 @@ exigirMetodo(['POST']);
 $dados    = corpoRequisicao();
 $username = trim($dados['username'] ?? '');
 $email    = strtolower(trim($dados['email'] ?? ''));
-$senha    = (string) ($dados['senha'] ?? ''); // senha não é "trimada": espaços podem ser intencionais
+$senha    = (string) ($dados['senha'] ?? ''); // não trima: espaço pode ser intencional
 
 $erros = [];
 

@@ -1,6 +1,5 @@
 <?php
-// Desativa a conta do usuário logado (ação "desativar_conta" que existia
-// em perfil.php). A conta é reativada automaticamente no próximo login.
+// Desativa a conta do usuário logado (reativada automaticamente no próximo login).
 
 require_once __DIR__ . '/../helpers.php';
 

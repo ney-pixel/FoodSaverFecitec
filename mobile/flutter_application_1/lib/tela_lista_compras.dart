@@ -5,13 +5,7 @@ import 'lista_compras.dart';
 import 'alimento.dart';
 import 'api_cliente.dart';
 
-// A API já sincroniza a lista de compras sozinha: toda vez que
-// listar_compras.php é chamado, ela compara a quantidade mínima de
-// cada alimento (FS_minimos_alimento, por nome — ver aba Mínimos) com o
-// estoque atual e cria/remove automaticamente os itens "automáticos" da
-// lista. Por isso não existe mais uma etapa client-side separada de
-// "itens faltantes" — os itens automáticos já vêm prontos na própria
-// lista, só marcados com um selo "Automático".
+// A API sincroniza a lista de compras sozinha, criando/removendo itens "automáticos"
 class TelaListaCompras extends StatefulWidget {
   final Usuario usuario;
   const TelaListaCompras({super.key, required this.usuario});
@@ -46,9 +40,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     super.dispose();
   }
 
-  // Toda vez que sai da aba "Mínimos" de volta pra "Lista", recarrega a
-  // lista — definir/editar um mínimo pode ter mudado (ou criado/removido)
-  // um item automático nela.
+  // Recarrega a lista ao voltar de "Mínimos" (pode ter mudado itens automáticos)
   void _aoTrocarSubaba() {
     final atual = _controladorSubabas.index;
     if (atual != _abaAnterior) {
@@ -258,9 +250,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // Só alterna a marcação de comprado — não mexe no estoque ainda. O
-  // alimento só entra de fato no inventário quando o usuário confirma em
-  // "Concluir" (ver _abrirDialogoConcluir), informando a validade.
+  // Só alterna a marcação de comprado — estoque só é atualizado em "Concluir"
   Future<void> _alternarComprado(ItemListaCompras item) async {
     setState(() => item.comprado = !item.comprado); // otimista
     try {
@@ -393,8 +383,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // ── Diálogo: quantidade mínima por alimento (por nome, não por lote —
-  // pode ser um alimento que nem está no estoque ainda) ─────────
+  // ── Diálogo: quantidade mínima por alimento (por nome, não por lote) ──
 
   void _abrirDialogoMinimo({MinimoAlimento? edicao}) {
     final ctrlNome = TextEditingController(text: edicao?.nome ?? '');
@@ -408,8 +397,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     String? erroNome, erroQtd;
     bool enviando = false;
 
-    // Sugestões: nomes já usados no estoque que ainda não têm mínimo —
-    // um atalho, mas o campo aceita qualquer nome digitado.
+    // Sugestões: alimentos do estoque que ainda não têm mínimo
     final vistos = <String>{};
     final sugestoes = <AlimentoEstoque>[];
     if (edicao == null) {
@@ -768,9 +756,7 @@ class _SubabaLista extends StatelessWidget {
                 ),
         ),
 
-        // Só aparece quando há algo marcado como comprado: é o que
-        // efetivamente joga a quantidade comprada pro estoque (pedindo a
-        // validade de cada item antes).
+        // Só aparece quando há algo marcado como comprado
         if (nComprados > 0)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),

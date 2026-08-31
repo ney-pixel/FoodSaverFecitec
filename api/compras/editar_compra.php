@@ -1,8 +1,5 @@
 <?php
-// Edita um item da lista de compras do usuário logado.
-// Como a especificação não prevê um arquivo separado para marcar como
-// comprado ou remover, essas ações (que já existiam em perfil.php) ficam
-// aqui, diferenciadas pelo método HTTP:
+// Edita um item da lista de compras, por método HTTP:
 //   PUT/POST -> edita nome/quantidade/unidade
 //   PATCH    -> alterna comprado/não comprado
 //   DELETE   -> remove o item
@@ -42,9 +39,7 @@ if ($metodo === 'PATCH') {
         responder(false, 'Item não encontrado.', [], 404);
     }
 
-    // Só alterna a marcação de "comprado" — não mexe no estoque. O item só
-    // entra de fato no inventário quando o usuário confirma em "Concluir"
-    // (ver concluir_compras.php), onde ele informa a validade de cada um.
+    // Só alterna "comprado" — vai pro estoque em concluir_compras.php
     $novoComprado = !((bool) $item['comprado']);
     $stmt = $pdo->prepare("UPDATE FS_lista_compras SET comprado = ? WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$novoComprado ? 1 : 0, $id, $uid]);

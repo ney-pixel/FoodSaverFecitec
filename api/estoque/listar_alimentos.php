@@ -1,7 +1,5 @@
 <?php
-// Lista os alimentos do estoque do usuário logado, com a quantidade
-// mínima (se definida) e informações de validade já calculadas
-// (mesma lógica que existia em perfil.php: diasValidade/classeValidade/textoValidade).
+// Lista os alimentos do estoque do usuário logado, com validade calculada.
 
 require_once __DIR__ . '/../helpers.php';
 

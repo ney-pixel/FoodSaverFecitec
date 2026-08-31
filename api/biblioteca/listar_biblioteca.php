@@ -1,7 +1,5 @@
 <?php
-// Lista o catálogo fixo de receitas da biblioteca (imutável, mantido
-// pelos desenvolvedores — não confundir com FS_receitas, que é a
-// feature "Minhas Receitas" do site), com o favorito marcado por usuário.
+// Lista o catálogo de receitas da biblioteca, com favorito por usuário.
 
 require_once __DIR__ . '/../helpers.php';
 

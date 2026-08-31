@@ -1,7 +1,5 @@
 <?php
 // Exclui um grupo de receitas da biblioteca do usuário logado.
-// FS_grupo_biblioteca (associações do grupo com as receitas) cai em
-// cascata (ON DELETE CASCADE) — as receitas da biblioteca em si não são afetadas.
 
 require_once __DIR__ . '/../helpers.php';
 

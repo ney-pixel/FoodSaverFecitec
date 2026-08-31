@@ -1,7 +1,5 @@
 <?php
 // Edita um alimento existente do usuário logado.
-// A quantidade mínima não é editada aqui — vive em FS_minimos_alimento,
-// por nome, independente do estoque (ver api/estoque/definir_minimo.php).
 
 require_once __DIR__ . '/../helpers.php';
 

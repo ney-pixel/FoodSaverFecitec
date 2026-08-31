@@ -1,7 +1,5 @@
 <?php
-// Cadastra uma receita e vincula os alimentos do estoque selecionados
-// como ingredientes (FS_receita_alimentos), preservando a relação:
-// receita -> FS_receita_alimentos -> alimentos do estoque.
+// Cadastra uma receita e vincula os alimentos do estoque selecionados.
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -47,7 +45,6 @@ try {
     }
 
     if ($vinculados === 0) {
-        // Nenhum dos ingredientes enviados pertence ao usuário/inventário atual.
         $pdo->rollBack();
         responder(false, 'Os ingredientes selecionados não foram encontrados no seu inventário.', [], 422);
     }

@@ -1,18 +1,13 @@
 <?php
-// Funções e bootstrap comuns a todos os endpoints da API.
-// Inclui sessão, conexão PDO e helpers de resposta/validação.
+// Bootstrap comum a todos os endpoints da API.
 
-// Blindagem: qualquer erro/aviso/exceção do PHP que não seja tratado pelo
-// próprio endpoint NUNCA deve ser impresso na resposta (isso quebraria o
-// JSON e o app receberia "resposta inválida do servidor"). Em vez disso,
-// registramos no log do servidor (visível no terminal onde o `php -S`
-// está rodando) e devolvemos um JSON de erro genérico.
+// Nunca imprime erro/aviso/exceção na resposta; registra no log e devolve JSON genérico.
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 set_error_handler(function (int $codigo, string $mensagem, string $arquivo, int $linha): bool {
     error_log("[PHP] $mensagem em $arquivo:$linha");
-    return true; // impede o handler padrão do PHP de também imprimir o erro
+    return true; // impede o handler padrão de também imprimir o erro
 });
 
 set_exception_handler(function (Throwable $e): void {
@@ -31,12 +26,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json; charset=utf-8');
 
-// CORS: necessário quando quem chama a API roda em outra origem (porta)
-// da mesma máquina — por exemplo o Flutter em modo Web/Chrome (ex:
-// http://localhost:5000) enquanto a API roda em http://localhost:8000.
-// Apps nativos (Android/iOS/Windows) ignoram CORS e não são afetados.
-// Como a sessão usa cookie, é obrigatório ecoar a origem específica (e
-// não "*") e habilitar credenciais.
+// CORS: permite chamadas de outra origem (ex: Flutter Web), com credenciais.
 if (isset($_SERVER['HTTP_ORIGIN'])) {
     header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
     header('Access-Control-Allow-Credentials: true');
@@ -44,7 +34,7 @@ if (isset($_SERVER['HTTP_ORIGIN'])) {
     header('Access-Control-Allow-Headers: Content-Type');
 }
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    // Requisição de "preflight" do navegador: só confirma os cabeçalhos acima.
+    // Preflight do navegador
     http_response_code(204);
     exit;
 }
@@ -66,8 +56,7 @@ function responder(bool $sucesso, string $mensagem = '', array $dados = [], int 
 }
 
 /**
- * Lê o corpo da requisição (JSON) e retorna como array associativo.
- * Aceita também dados enviados via form-urlencoded ($_POST) como fallback.
+ * Lê o corpo da requisição (JSON, com fallback para $_POST).
  */
 function corpoRequisicao(): array
 {
@@ -82,8 +71,7 @@ function corpoRequisicao(): array
 }
 
 /**
- * Garante que existe uma sessão de usuário válida.
- * Encerra a requisição com 401 caso não haja.
+ * Garante que existe uma sessão de usuário válida (401 caso não haja).
  */
 function exigirLogin(): int
 {
@@ -104,10 +92,7 @@ function exigirMetodo(array $metodos): void
 }
 
 /**
- * Converte um valor numérico digitado pelo usuário para float, aceitando
- * tanto ponto quanto vírgula como separador decimal (ex.: "2,5" ou "2.5").
- * Sem isso, (float) trunca "2,5" em 2.0 silenciosamente. Retorna null se
- * o valor estiver vazio ou não for um número válido.
+ * Converte para float aceitando ponto ou vírgula como decimal.
  */
 function normalizarDecimal($valor): ?float
 {
@@ -120,9 +105,6 @@ function normalizarDecimal($valor): ?float
 
 /**
  * Converte uma quantidade entre unidades compatíveis (só massa, por ora).
- * Unidades iguais sempre "convertem" 1:1. Retorna null se não for possível
- * (unidades incompatíveis, ex.: "kg" para "un").
- * Compartilhada entre movimentar_alimento.php e editar_compra.php.
  */
 function converterQuantidade(float $qtd, string $de, string $para): ?float
 {

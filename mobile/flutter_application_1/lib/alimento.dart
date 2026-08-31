@@ -76,7 +76,6 @@ class AlimentoEstoque {
   }
 
   //escolhe um icone com base em palavras-chave no nome do alimento
-  //(nao depende mais de categoria, que foi removida do cadastro)
   static IconData iconePorNome(String nome) {
     final n = nome.toLowerCase();
     const mapa = <List<String>, IconData>{
@@ -100,9 +99,7 @@ class AlimentoEstoque {
   }
 }
 
-// Quantidade mínima definida por NOME de alimento (não por lote/id do
-// estoque) — por isso dá pra definir um mínimo mesmo pra algo que ainda
-// não está cadastrado no estoque. Vem de api/estoque/listar_minimos.php.
+// Quantidade mínima definida por NOME de alimento (não por lote/id do estoque)
 class MinimoAlimento {
   final String id;
   final String nome;

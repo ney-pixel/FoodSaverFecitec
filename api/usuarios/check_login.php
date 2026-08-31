@@ -1,6 +1,5 @@
 <?php
 // Verifica se existe uma sessão de usuário válida.
-// Usado pelo front-end para proteger páginas como perfil.html.
 
 require_once __DIR__ . '/../helpers.php';
 

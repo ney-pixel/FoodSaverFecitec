@@ -1,9 +1,4 @@
-// ══════════════════════════════════════════════════════════════
 // FoodSaver — Perfil (SPA client-side)
-// Toda a lógica de acesso ao banco foi movida para ../../api/.
-// Este arquivo só busca dados via fetch() e desenha a interface,
-// preservando o layout/CSS original de perfil.php.
-// ══════════════════════════════════════════════════════════════
 
 const ESTADO = {
   usuario: null,
@@ -17,9 +12,7 @@ const ESTADO = {
   movimentacoes: null,
 };
 
-// Receitas favoritadas: as da biblioteca (catálogo fixo, favorito é uma
-// coluna na própria receita) e as geradas por IA que o usuário salvou
-// (só existem no banco a partir do momento que são favoritadas).
+// Receitas favoritadas: da biblioteca + geradas por IA salvas
 function receitasFavoritas() {
   return [...ESTADO.biblioteca.filter((r) => r.favorito), ...ESTADO.receitasIA];
 }
@@ -151,11 +144,7 @@ function fecharConfirm(resultado) {
 // ══════════════════════════════════════════════════════════════
 // INVENTÁRIO
 // ══════════════════════════════════════════════════════════════
-// Agrupa por nome (ignorando maiúsculas/minúsculas) porque o mesmo
-// alimento pode ter vários lotes com validades diferentes (ex.: comprou
-// mais carne, mas venceu num dia diferente do que já tinha) — cada lote
-// continua sendo uma linha própria no banco (necessário pros relatórios),
-// só a exibição é que agrupa. Mesmo critério usado no app mobile.
+// Agrupa por nome — mesmo alimento pode ter vários lotes com validades diferentes
 function agruparAlimentosPorNome(lista) {
   const mapa = new Map();
   for (const item of lista) {
@@ -182,8 +171,7 @@ function loteMaisProximo(lotes) {
   return lotes.reduce((a, b) => (diasValidade(a.validade) <= diasValidade(b.validade) ? a : b));
 }
 
-// Soma por unidade (não dá pra somar kg com und sem converter, então se
-// houver mistura de unidades entre os lotes, mostra cada uma separada).
+// Soma por unidade (mistura de unidades mostra cada uma separada)
 function somaPorUnidade(lotes) {
   const somas = {};
   for (const l of lotes) {
@@ -245,9 +233,7 @@ function renderInventario() {
   }).join('');
 }
 
-// Lista cada lote individualmente (mesmo card de sempre, com as mesmas
-// ações) — fecha este modal antes de abrir qualquer outro (editar, mover,
-// excluir) pra não ficar com dado desatualizado na tela por trás.
+// Lista cada lote individualmente
 function abrirModalLotes(i) {
   const grupo = _gruposInventarioAtual[i];
   if (!grupo) return;
@@ -414,10 +400,7 @@ async function submitFormMov(e) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// RECEITAS
-// Três subabas, iguais ao app mobile (menos "Grupos", que não existe
-// no web): Criar, Favoritas e Biblioteca. Não é mais o usuário que
-// cadastra receita — a biblioteca é um catálogo fixo, mantido por nós.
+// RECEITAS (Criar, Favoritas, Biblioteca)
 // ══════════════════════════════════════════════════════════════
 function dificuldadeClasse(d) {
   if (d === 'Fácil') return 'good';
@@ -548,9 +531,7 @@ function selecionarFomeCriar(indice) {
   document.querySelectorAll('#criarFomeToggle .fome-btn').forEach((b) => b.classList.toggle('active', Number(b.dataset.fome) === indice));
 }
 
-// Chama a IA (Gemini, via api/ia/gerar_receita.php) com os ingredientes
-// selecionados do estoque, porções, nível de fome e observações — mesmo
-// endpoint usado pelo app mobile (lib/receitas.dart).
+// Chama a IA (api/ia/gerar_receita.php) com os ingredientes selecionados
 async function gerarReceita() {
   if (criarReceitaState.ingredientes.length === 0) return;
 
@@ -581,9 +562,8 @@ async function gerarReceita() {
   exibirReceitaNoModal(resp.receita);
 }
 
-// ── SUBABA: FAVORITAS ────────────────────────────────────────────
-// Usa índice (não id) nos onclick porque biblioteca e receitas de IA têm
-// contadores de id independentes — o mesmo id pode existir nas duas.
+// ── SUBABA: FAVORITAS ──
+// Usa índice (não id) nos onclick — biblioteca e receitas de IA têm ids independentes
 let _favoritasAtuais = [];
 
 function renderFavoritas() {
@@ -659,11 +639,8 @@ function renderBiblioteca() {
   `).join('');
 }
 
-// ── MODAL DE DETALHE (compartilhado entre as 3 subabas) ─────────
-// _receitaModalId: id na biblioteca (quando a receita mostrada é de lá).
-// _receitaModalIA: o objeto inteiro (quando a receita mostrada veio da IA
-// — antes de favoritada ela não tem id nenhuma tabela, então guardamos o
-// objeto todo pra poder favoritar depois).
+// ── MODAL DE DETALHE (compartilhado entre as 3 subabas) ──
+// _receitaModalId: id na biblioteca. _receitaModalIA: receita de IA (ainda sem id)
 let _receitaModalId = null;
 let _receitaModalIA = null;
 
@@ -740,9 +717,7 @@ async function favoritarReceita(id) {
   }
 }
 
-// Favorita/desfavorita uma receita gerada por IA (api/ia/favoritar_receita_ia.php):
-//   - ainda sem id (nunca favoritada) -> manda a receita inteira, o servidor insere e devolve o id.
-//   - já com id (estava favoritada)   -> manda só o id, o servidor apaga (desfavoritar).
+// Favorita/desfavorita receita de IA: sem id manda a receita inteira, com id manda só o id
 async function favoritarReceitaIA(receita) {
   const corpo = receita.id > 0
     ? { id: receita.id }
@@ -798,9 +773,7 @@ function renderCompras() {
     </div>
   `).join('');
 
-  // Botão "Concluir" só aparece quando há algo marcado como comprado — é o
-  // que efetivamente joga a quantidade comprada pro estoque (pedindo a
-  // validade de cada item antes).
+  // Botão "Concluir" só aparece com algo marcado como comprado
   const comprados = ESTADO.compras.filter((c) => c.comprado);
   document.getElementById('concluirBar').classList.toggle('hidden', comprados.length === 0);
   document.getElementById('concluirBarTexto').textContent = `Concluir (${comprados.length})`;
@@ -836,9 +809,7 @@ async function submitFormCompra(e) {
 }
 
 async function toggleCompra(id) {
-  // Só alterna a marcação de comprado — não mexe no estoque ainda. O
-  // alimento só entra de fato no inventário quando o usuário confirma em
-  // "Concluir" (ver abrirModalConcluir), informando a validade de cada item.
+  // Só alterna a marcação de comprado — estoque só é atualizado em "Concluir"
   const resp = await apiFetch('/compras/editar_compra.php', { method: 'PATCH', body: { id } });
   if (resp.sucesso) {
     const item = ESTADO.compras.find((c) => c.id === id);
@@ -856,10 +827,7 @@ async function removerCompra(id) {
   }
 }
 
-// ── CONCLUIR COMPRAS: joga os itens marcados como comprado pro estoque,
-// pedindo a validade de cada um (cada um vira um alimento novo — mesmo
-// critério do cadastro manual: nomes iguais com validades diferentes são
-// lotes diferentes, de propósito). ──
+// ── CONCLUIR COMPRAS: joga os itens marcados pro estoque, pedindo a validade de cada um ──
 
 function abrirModalConcluir() {
   const comprados = ESTADO.compras.filter((c) => c.comprado);
@@ -920,10 +888,7 @@ async function submitConcluir() {
   }
 }
 
-// ── SUBABA: MÍNIMOS (por NOME de alimento — não precisa estar no estoque) ──
-// Igual ao app mobile: o mínimo é vinculado ao nome do alimento
-// (FS_minimos_alimento), não a um item específico do estoque — dá pra
-// definir um mínimo mesmo pra algo que você ainda não tem em casa.
+// ── SUBABA: MÍNIMOS (vinculado ao NOME do alimento, não a um item do estoque) ──
 
 function mudarTabCompras(tab) {
   document.querySelectorAll('.rtab-btn[data-ctab]').forEach((b) => b.classList.toggle('active', b.dataset.ctab === tab));
@@ -933,8 +898,7 @@ function mudarTabCompras(tab) {
     ? '<button class="btn-primary" onclick="abrirModalCompra()"><i class="bi bi-plus-lg"></i> Adicionar Item</button>'
     : '<button class="btn-primary" onclick="abrirModalMinimo()"><i class="bi bi-plus-lg"></i> Definir Mínimo</button>';
 
-  // Voltar pra Lista pode ter itens automáticos novos/removidos por causa
-  // de um mínimo que acabou de mudar — recarrega pra refletir isso.
+  // Recarrega a lista ao voltar (mínimos podem ter mudado os itens automáticos)
   if (tab === 'lista') {
     apiFetch('/compras/listar_compras.php').then((resp) => {
       ESTADO.compras = resp.lista_compras || [];
@@ -958,8 +922,7 @@ function renderMinimos() {
 }
 
 function abrirModalMinimo(id) {
-  // Sugestões de nomes: alimentos já usados no estoque que ainda não têm
-  // mínimo definido — um atalho, mas o campo aceita qualquer nome digitado.
+  // Sugestões: alimentos do estoque que ainda não têm mínimo definido
   const nomesComMinimo = new Set(ESTADO.minimos.map((m) => m.nome_alimento.trim().toLowerCase()));
   const vistos = new Set();
   const sugestoes = ESTADO.alimentos.filter((a) => {
@@ -1030,8 +993,7 @@ async function removerMinimoAtual() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// GRUPOS (só de alimentos — grupos de receitas saiu junto com a
-// antiga feature "Minhas Receitas", substituída pela Biblioteca)
+// GRUPOS (de alimentos)
 // ══════════════════════════════════════════════════════════════
 function renderGruposAlimentos() {
   const selGrupo = document.getElementById('selGrupoAlimento');
@@ -1374,10 +1336,7 @@ async function submitFormSenha(e) {
   }
 }
 
-// Preferências (modo de tela e alertas): persistidas em FS_configuracoes.
-// Observação: o design original é um tema único fixo; o toggle abaixo
-// grava a preferência real no banco, mas não há uma paleta clara
-// implementada nesta refatoração para não alterar o design existente.
+// Preferências (modo de tela e alertas)
 async function alternarModoTela() {
   const novo = ESTADO.config.modo_tela === 'escuro' ? 'claro' : 'escuro';
   const resp = await apiFetch('/configuracoes/atualizar_configuracoes.php', { method: 'POST', body: { modo_tela: novo } });
@@ -1447,7 +1406,7 @@ async function main() {
   // Fecha o dropdown de sugestões de ingrediente (aba Criar) ao clicar fora
   document.addEventListener('click', fecharSugestoesCriarSeFora);
 
-  // Fecha modais clicando fora ou com ESC (igual ao comportamento original)
+  // Fecha modais clicando fora ou com ESC
   document.getElementById('modalInv').addEventListener('click', (e) => {
     if (e.target.id === 'modalInv') fecharModalInv();
   });

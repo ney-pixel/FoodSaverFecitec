@@ -11,9 +11,7 @@ const roxoIAClaro    = Color(0xFF9B59B6);
 //neutros / fundo
 const fundoEscuro    = Color(0xFF0A0A0A);
 const cartaoEscuro   = Color(0xFF141414);
-// Borda quase invisível (branco a ~6%) em vez de cinza chapado — mesma
-// ideia do site (--border: rgba(255,255,255,.05)): os cards parecem
-// "flutuar" em vez de terem uma caixa desenhada em volta.
+// Borda quase invisível (branco a ~6%)
 const bordaCartao    = Color(0x0FFFFFFF);
 
 //gradiente de marca, usado em destaques (logo, botões hero, etc)
@@ -23,8 +21,7 @@ const gradienteMarca = LinearGradient(
   colors: [verdePrimario, verdeEscuro],
 );
 
-// Sombras suaves — dão profundidade sem "gritar". Usadas nos componentes
-// compartilhados abaixo (logo, botão principal, cabeçalho, cards).
+// Sombras suaves
 const sombraCartao = [
   BoxShadow(color: Color(0x33000000), blurRadius: 18, offset: Offset(0, 8)),
 ];

@@ -269,8 +269,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     );
   }
 
-  // Registra consumo ou desperdício de parte (ou todo) do item — é o que
-  // alimenta os relatórios de aproveitamento/desperdício.
+  // Registra consumo ou desperdício de parte (ou todo) do item
   void _abrirDialogoMovimentar(AlimentoEstoque item) {
     final ctrlQtd = TextEditingController();
     String tipo = 'consumo';
@@ -732,12 +731,7 @@ class _SubabaAlimentos extends StatelessWidget {
           child: alimentos.isEmpty
               ? _vazio(controladorBusca.text)
               : Builder(builder: (context) {
-                  // Agrupa por nome (ignorando maiúsculas/minúsculas) porque o
-                  // mesmo alimento pode ter vários lotes com validades
-                  // diferentes (ex.: comprou mais carne, mas venceu num dia
-                  // distinto do que já tinha) — cada lote continua sendo uma
-                  // linha própria no banco (necessário pros relatórios), só a
-                  // exibição é que agrupa.
+                  // Agrupa por nome — mesmo alimento pode ter vários lotes com validades diferentes
                   final grupos = _agruparPorNome(alimentos);
                   return ListView.separated(
                     physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -757,8 +751,7 @@ class _SubabaAlimentos extends StatelessWidget {
     );
   }
 
-  // Junta os lotes de mesmo nome (case-insensitive) em um só grupo, mantendo
-  // a ordem de primeira aparição na lista original.
+  // Junta os lotes de mesmo nome (case-insensitive) em um só grupo
   List<_GrupoAlimento> _agruparPorNome(List<AlimentoEstoque> lista) {
     final mapa = <String, _GrupoAlimento>{};
     for (final item in lista) {
@@ -867,9 +860,7 @@ class _CartaoAlimento extends StatelessWidget {
         child: Icon(icone, size: 12, color: cor));
 }
 
-// Vários lotes do mesmo alimento (mesmo nome, ignorando maiúsculas/minúsculas)
-// com validades possivelmente diferentes — cada AlimentoEstoque aqui
-// continua sendo a linha própria dele no banco; isso só existe pra exibição.
+// Vários lotes do mesmo alimento, agrupados só para exibição
 class _GrupoAlimento {
   final String nome; // nome de exibição (do primeiro lote encontrado)
   final List<AlimentoEstoque> lotes;
@@ -894,8 +885,7 @@ class _GrupoAlimento {
   AlimentoEstoque get loteMaisProximo =>
       lotes.reduce((a, b) => a.diasValidade <= b.diasValidade ? a : b);
 
-  // Soma por unidade (não dá pra somar kg com unidade sem converter, então
-  // se houver mistura de unidades entre os lotes, mostra cada uma separada).
+  // Soma por unidade (mistura de unidades mostra cada uma separada)
   String get quantidadeFormatada {
     final porUnidade = <String, double>{};
     for (final l in lotes) {
@@ -912,8 +902,7 @@ class _GrupoAlimento {
       [...lotes]..sort((a, b) => a.diasValidade.compareTo(b.diasValidade));
 }
 
-// Card de resumo para quando há mais de um lote do mesmo alimento — mostra o
-// total e o vencimento mais próximo; tocar abre o detalhe com cada lote.
+// Card de resumo quando há mais de um lote — tocar abre o detalhe
 class _CartaoGrupoAlimento extends StatelessWidget {
   final _GrupoAlimento grupo;
   final void Function(AlimentoEstoque) aoEditar;
@@ -979,9 +968,7 @@ class _CartaoGrupoAlimento extends StatelessWidget {
     );
   }
 
-  // Lista cada lote individualmente (mesmo card de sempre, com as mesmas
-  // ações) — fecha este painel antes de abrir qualquer diálogo de
-  // editar/mover/excluir pra não ficar com dado desatualizado na tela.
+  // Lista cada lote individualmente
   void _abrirDetalheLotes(BuildContext context) {
     showModalBottomSheet(
       context: context,

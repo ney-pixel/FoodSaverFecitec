@@ -1,17 +1,12 @@
 <?php
-// Gera uma receita com IA (Gemini) a partir de ingredientes selecionados
-// pelo usuário no próprio estoque, número de porções, nível de fome e
-// observações opcionais.
-//
-// Diferente da Biblioteca (FS_biblioteca_receitas), a receita gerada aqui
-// NÃO é salva no banco — é só exibida na hora. A chave da IA nunca é
-// enviada ao cliente: toda a chamada ao Gemini acontece aqui no servidor.
+// Gera uma receita com IA (Gemini) a partir dos ingredientes selecionados.
+// Não é salva no banco; a chamada ao Gemini acontece só no servidor.
 
 require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../ia_config.php';
 
 exigirMetodo(['POST']);
-exigirLogin(); // exige sessão só pra evitar uso indevido da chave por quem não é da aplicação
+exigirLogin();
 
 $dados        = corpoRequisicao();
 $ingredientes = $dados['ingredientes'] ?? [];
@@ -43,8 +38,7 @@ $prompt = "Você é um chef de cozinha profissional e prático, especialista em 
     . '"modo_preparo":[lista de strings, um passo do preparo por item, em ordem],"dicas":[lista de 1 a 3 strings com dicas úteis]}';
 
 /**
- * Chama o Gemini via cURL e devolve o texto gerado já decodificado como array.
- * Lança RuntimeException com uma mensagem amigável em caso de falha.
+ * Chama o Gemini via cURL e devolve o texto gerado já decodificado.
  */
 function chamarGeminiParaReceita(string $prompt): array
 {
@@ -105,12 +99,11 @@ try {
     responder(false, 'Não foi possível gerar a receita agora. Tente novamente em instantes.', [], 502);
 }
 
-// Normaliza os campos (garante os tipos certos e preenche o que a IA
-// porventura tenha deixado de fora), pra nunca quebrar o parsing no app.
+// Normaliza os campos (tipos certos, preenche o que faltar).
 $listaOuVazia = fn ($v) => is_array($v) ? array_values(array_map('strval', $v)) : [];
 
 $receita = [
-    'id'                       => 0, // não é salva no banco — sem id de verdade
+    'id'                       => 0, // não salva no banco
     'gerada_por_ia'            => true,
     'titulo'                   => (string) ($receitaIA['titulo'] ?? 'Receita sem título'),
     'descricao'                => (string) ($receitaIA['descricao'] ?? ''),

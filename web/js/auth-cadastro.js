@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     campoInput.closest('.campo').classList.toggle('invalido', !!mensagem);
   }
 
-  // Validação em tempo real ao sair do campo (feedback humanizado, sem esperar o envio)
+  // Validação ao sair do campo (blur)
   campoUsername.addEventListener('blur', () => mostrarErroCampo(campoUsername, 'erroUsername', validarUsername()));
   campoEmail.addEventListener('blur', () => mostrarErroCampo(campoEmail, 'erroEmail', validarEmail()));
   campoSenha.addEventListener('blur', () => mostrarErroCampo(campoSenha, 'erroSenha', validarSenha()));

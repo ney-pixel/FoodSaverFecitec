@@ -1,9 +1,5 @@
 <?php
-// Adiciona ou remove uma receita da biblioteca dos favoritos do usuário
-// logado (toggle). Diferente de receitas/favoritar_receita.php: aqui o
-// favorito fica numa tabela à parte (FS_biblioteca_favoritos), porque a
-// receita da biblioteca é compartilhada por todos os usuários — o
-// "favorito" é por usuário, não uma coluna na própria receita.
+// Alterna favorito de uma receita da biblioteca para o usuário logado.
 
 require_once __DIR__ . '/../helpers.php';
 

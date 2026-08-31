@@ -1,13 +1,10 @@
-// ── HELPER DE COMUNICAÇÃO COM A API ──────────────────────────
-// Todas as páginas do front-end usam esta função para conversar
-// com a API PHP em ../../api/... via fetch(), sempre em JSON.
+// Helper de comunicação com a API (fetch em JSON)
 
 const API_BASE = '../../api';
 
 /**
- * Faz uma requisição para a API e retorna o JSON já decodificado.
  * @param {string} caminho  Ex: '/estoque/listar_alimentos.php'
- * @param {object} opcoes   { method, body } — body é serializado como JSON automaticamente
+ * @param {object} opcoes   { method, body }
  */
 async function apiFetch(caminho, opcoes = {}) {
   const config = {

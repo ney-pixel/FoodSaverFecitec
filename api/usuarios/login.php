@@ -1,6 +1,5 @@
 <?php
-// Autentica o usuário e cria a sessão. Reativa a conta automaticamente
-// se ela estava desativada (ativo = 0), igual ao comportamento anterior.
+// Autentica o usuário e cria a sessão.
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -8,7 +7,7 @@ exigirMetodo(['POST']);
 
 $dados = corpoRequisicao();
 $email = strtolower(trim($dados['email'] ?? ''));
-$senha = (string) ($dados['senha'] ?? ''); // senha não é "trimada": espaços podem ser intencionais
+$senha = (string) ($dados['senha'] ?? ''); // não trima: espaço pode ser intencional
 
 $erros = [];
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {

@@ -18,7 +18,7 @@ require_once __DIR__ . '/../helpers.php';
 exigirMetodo(['GET']);
 $uid = exigirLogin();
 
-// Período selecionado (dias). Aceita 7, 30 ou 90. Default: 30.
+// Período selecionado (dias): 7, 30 ou 90 (default 30)
 $periodosValidos = [7, 30, 90];
 $periodo = (int) ($_GET['periodo'] ?? 30);
 if (!in_array($periodo, $periodosValidos, true)) {
@@ -51,7 +51,7 @@ $stmtVenc = $pdo->prepare(
 $stmtVenc->execute([$uid]);
 $vencidos = (int) $stmtVenc->fetchColumn();
 
-// Próximos do vencimento: vencem em até 7 dias (e ainda não venceram)
+// Próximos do vencimento (até 7 dias)
 $stmtProx = $pdo->prepare(
     "SELECT COUNT(*) FROM FS_alimentos
      WHERE usuario_id = ?
@@ -94,7 +94,7 @@ $stmtGraf = $pdo->prepare(
 );
 $stmtGraf->execute([$uid, $inicioAtual, $fimAtual]);
 
-// Preenche todos os dias do período com 0 para o gráfico não ter lacunas
+// Preenche dias sem movimentação com 0 (sem lacunas no gráfico)
 $mapaDias = [];
 $cursor = new DateTime($inicioAtual);
 $fim    = new DateTime($fimAtual);

@@ -1,5 +1,5 @@
 <?php
-// Encerra a sessão do usuário (ação "logout" que existia em perfil.php).
+// Encerra a sessão do usuário.
 
 require_once __DIR__ . '/../helpers.php';
 

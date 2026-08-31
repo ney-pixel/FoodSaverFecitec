@@ -1,9 +1,5 @@
 <?php
-// Atualiza as configurações do usuário logado: nome/e-mail (FS_usuarios),
-// modo claro/escuro e alertas de validade (FS_configuracoes), e,
-// opcionalmente, a senha (mesmas validações do antigo "alterar_senha").
-//
-// Cada bloco de dados é atualizado somente se enviado na requisição.
+// Atualiza configurações do usuário: perfil, senha e preferências.
 
 require_once __DIR__ . '/../helpers.php';
 

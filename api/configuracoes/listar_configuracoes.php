@@ -1,7 +1,5 @@
 <?php
-// Busca as configurações atuais do usuário logado: nome, e-mail (FS_usuarios)
-// e modo claro/escuro + alertas de validade (FS_configuracoes).
-// Nunca retorna a senha.
+// Busca as configurações atuais do usuário logado.
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -20,7 +18,7 @@ $stmtCfg = $pdo->prepare("SELECT modo_tela, alertas_validade FROM FS_configuraco
 $stmtCfg->execute([$uid]);
 $config = $stmtCfg->fetch();
 
-// Usuários cadastrados antes da existência de FS_configuracoes ainda não têm linha: cria com os padrões da tabela
+// Sem linha ainda: cria com os padrões da tabela
 if (!$config) {
     $ins = $pdo->prepare("INSERT INTO FS_configuracoes (usuario_id) VALUES (?)");
     $ins->execute([$uid]);

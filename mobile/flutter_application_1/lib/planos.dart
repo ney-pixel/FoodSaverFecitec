@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'visual.dart';
 
-// Tela de planos — só visual por enquanto (sem cobrança real, sem endpoint
-// próprio): mostra o que cada plano oferece, no mesmo espírito da aba
-// "Planos" do site (web/html/perfil.html), pra o usuário saber o que ganha
-// se fizer upgrade. O plano de verdade continua vindo de
-// FS_usuarios.plano / listar_configuracoes.php.
+// Tela de planos — só visual por enquanto (sem cobrança real)
 class TelaPlanos extends StatelessWidget {
   final String planoAtual;
   const TelaPlanos({super.key, required this.planoAtual});
@@ -229,8 +225,7 @@ class TelaPlanos extends StatelessWidget {
     );
   }
 
-  // Só visual por enquanto: nenhuma cobrança real acontece, então avisamos
-  // o usuário em vez de fingir que o upgrade/downgrade foi feito.
+  // Nenhuma cobrança real acontece — só avisa o usuário
   void _aoTocarBotao(BuildContext context, bool destaque) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
