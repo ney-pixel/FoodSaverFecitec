@@ -1,5 +1,5 @@
 <?php
-// Busca as configurações atuais do usuário logado.
+//busca as configurações atuais do usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -18,7 +18,7 @@ $stmtCfg = $pdo->prepare("SELECT modo_tela, alertas_validade FROM FS_configuraco
 $stmtCfg->execute([$uid]);
 $config = $stmtCfg->fetch();
 
-// Sem linha ainda: cria com os padrões da tabela
+//sem linha ainda: cria com os padrões da tabela
 if (!$config) {
     $ins = $pdo->prepare("INSERT INTO FS_configuracoes (usuario_id) VALUES (?)");
     $ins->execute([$uid]);

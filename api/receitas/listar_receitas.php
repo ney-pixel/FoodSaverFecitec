@@ -1,5 +1,5 @@
 <?php
-// Lista as receitas do usuário logado, com os ingredientes vinculados.
+//lista as receitas do usuário logado, com os ingredientes vinculados.
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -21,13 +21,13 @@ $stmt->execute([$uid]);
 $receitas = [];
 while ($row = $stmt->fetch()) {
     $receitas[] = [
-        'id'           => (int) $row['id'],
-        'titulo'       => $row['titulo'],
-        'descricao'    => $row['descricao'],
-        'porcoes'      => (int) $row['porcoes'],
+        'id' => (int) $row['id'],
+        'titulo'=> $row['titulo'],
+        'descricao' => $row['descricao'],
+        'porcoes'=> (int) $row['porcoes'],
         'modo_preparo' => $row['modo_preparo'],
-        'favorito'     => (bool) $row['favorito'],
-        'criado_em'    => $row['criado_em'],
+        'favorito' => (bool) $row['favorito'],
+        'criado_em' => $row['criado_em'],
         'ingredientes' => $row['ingredientes_str'] ? explode('||', $row['ingredientes_str']) : [],
     ];
 }

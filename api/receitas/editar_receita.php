@@ -1,5 +1,5 @@
 <?php
-// Edita uma receita existente e substitui suas relações de ingredientes.
+//edita uma receita existente e substitui suas relações de ingredientes
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -37,7 +37,7 @@ try {
     );
     $stmt->execute([$titulo, $descricao, $porcoes, $modoPreparo, $id, $uid]);
 
-    // Se a lista de ingredientes foi enviada, substitui as relações existentes
+    //se a lista de ingredientes foi enviada, substitui as relações existentes
     if (is_array($ingredientesId)) {
         $del = $pdo->prepare("DELETE FROM FS_receita_alimentos WHERE receita_id = ?");
         $del->execute([$id]);

@@ -5,7 +5,7 @@ import 'lista_compras.dart';
 import 'alimento.dart';
 import 'api_cliente.dart';
 
-// A API sincroniza a lista de compras sozinha, criando/removendo itens "automáticos"
+//a API sincroniza a lista de compras sozinha, cria e remove itens automaticamente
 class TelaListaCompras extends StatefulWidget {
   final Usuario usuario;
   const TelaListaCompras({super.key, required this.usuario});
@@ -40,7 +40,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     super.dispose();
   }
 
-  // Recarrega a lista ao voltar de "Mínimos" (pode ter mudado itens automáticos)
+  //recarrega a lista ao voltar de "Mínimos", é bom caso o usuario tenha mudado algum minimo
   void _aoTrocarSubaba() {
     final atual = _controladorSubabas.index;
     if (atual != _abaAnterior) {
@@ -102,7 +102,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
   String _formatarIso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  // ── Diálogos: item da lista ─────────────────────
+  //dialogos: item da lista
 
   void _abrirDialogoAdicionarItem() {
     final ctrlNome = TextEditingController();
@@ -250,18 +250,18 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // Só alterna a marcação de comprado — estoque só é atualizado em "Concluir"
+  //solterna a marcaçao de comprado, mas estoque só é atualizado em "Concluir"
   Future<void> _alternarComprado(ItemListaCompras item) async {
-    setState(() => item.comprado = !item.comprado); // otimista
+    setState(() => item.comprado = !item.comprado); 
     try {
       await ApiCliente.patch('/compras/editar_compra.php', corpo: {'id': int.parse(item.id)});
     } on ApiException catch (e) {
-      setState(() => item.comprado = !item.comprado); // desfaz
+      setState(() => item.comprado = !item.comprado);
       _mostrarErro(e.mensagem);
     }
   }
 
-  // ── Diálogo: concluir compras marcadas ────────────
+  //dialogo: concluir compras marcadas
 
   void _abrirDialogoConcluir() {
     final pendentes = _listaCompras.where((i) => i.comprado).toList();
@@ -383,7 +383,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // ── Diálogo: quantidade mínima por alimento (por nome, não por lote) ──
+  //dialogo: qtd min por alimento (pelo nome em)
 
   void _abrirDialogoMinimo({MinimoAlimento? edicao}) {
     final ctrlNome = TextEditingController(text: edicao?.nome ?? '');
@@ -397,7 +397,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     String? erroNome, erroQtd;
     bool enviando = false;
 
-    // Sugestões: alimentos do estoque que ainda não têm mínimo
+    //sugestoes (alimentos do estoque que aind anao possuem minimo definido)
     final vistos = <String>{};
     final sugestoes = <AlimentoEstoque>[];
     if (edicao == null) {
@@ -503,7 +503,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // ── Widgets auxiliares de diálogo ─────────────
+  //uns widgets auxiliares
 
   Widget _campo(String hint, IconData icone, TextEditingController ctrl, {TextInputType tipo = TextInputType.text, String? erro}) =>
       TextField(
@@ -536,7 +536,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
         ),
       );
 
-  // ── Build ──────────────────────────────────────
+  //build
 
   @override
   Widget build(BuildContext context) {
@@ -632,9 +632,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
       );
 }
 
-// ─────────────────────────────────────────────
-//  Subaba: Lista de Compras
-// ─────────────────────────────────────────────
+//subaba lista de compras
 class _SubabaLista extends StatelessWidget {
   final List<ItemListaCompras> itens;
   final int nComprados;
@@ -756,7 +754,7 @@ class _SubabaLista extends StatelessWidget {
                 ),
         ),
 
-        // Só aparece quando há algo marcado como comprado
+        //so aparece quando ha algo marcado como conxluido
         if (nComprados > 0)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
@@ -783,7 +781,7 @@ class _SubabaLista extends StatelessWidget {
   }
 }
 
-// Cartão de item da lista
+//card do item na lista
 class _CartaoItemLista extends StatelessWidget {
   final ItemListaCompras item;
   final void Function(ItemListaCompras) aoEditar;
@@ -864,9 +862,7 @@ class _CartaoItemLista extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Subaba: Mínimos (por NOME de alimento — não precisa estar no estoque)
-// ─────────────────────────────────────────────
+//subaba minimos: por nome
 class _SubabaMinimos extends StatelessWidget {
   final List<MinimoAlimento> minimos;
   final VoidCallback aoNovoMinimo;

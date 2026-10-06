@@ -1,5 +1,5 @@
 <?php
-// Cadastro de usuário
+//cadastro de usuário
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -8,7 +8,7 @@ exigirMetodo(['POST']);
 $dados    = corpoRequisicao();
 $username = trim($dados['username'] ?? '');
 $email    = strtolower(trim($dados['email'] ?? ''));
-$senha    = (string) ($dados['senha'] ?? ''); // não trima: espaço pode ser intencional
+$senha    = (string) ($dados['senha'] ?? ''); //não trima: espaço pode ser intencional
 
 $erros = [];
 

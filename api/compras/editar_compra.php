@@ -1,8 +1,8 @@
 <?php
-// Edita um item da lista de compras, por método HTTP:
-//   PUT/POST -> edita nome/quantidade/unidade
-//   PATCH    -> alterna comprado/não comprado
-//   DELETE   -> remove o item
+//edita um item da lista de compras, por método HTTP:
+//PUT/POST-> edita nome/quantidade/unidade
+//PATCH -> alterna comprado/não comprado
+//DELETE-> remove o item
 
 require_once __DIR__ . '/../helpers.php';
 

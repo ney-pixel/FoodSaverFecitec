@@ -25,7 +25,7 @@ class TelaSobreFoodSaver extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         children: [
 
-          //logo + o slogan
+
           Container(
             padding: const EdgeInsets.symmetric(vertical: 32),
             child: Column(children: [
@@ -87,7 +87,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
             ]),
           ),
 
-          //imagem de destaque
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.asset(
@@ -113,7 +112,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          //o que é
           _secao(
             icone: Icons.info_outline_rounded,
             titulo: "O que é",
@@ -123,7 +121,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          //objetivos
           _secao(
             icone: Icons.flag_outlined,
             titulo: "Objetivo",
@@ -133,7 +130,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          //funcionalidade
           _secao(
             icone: Icons.auto_awesome_outlined,
             titulo: "Como funciona",
@@ -160,7 +156,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          //img
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.asset(
@@ -174,7 +169,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          //img
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.asset(
@@ -188,7 +182,6 @@ class TelaSobreFoodSaver extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          //rodafeet
           Center(
             child: Text(
               "© 2026 FoodSaver  ·  Tecnologia • Sustentabilidade • Consciência",

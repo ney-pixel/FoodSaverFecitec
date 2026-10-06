@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'visual.dart';
 
-// Tela de planos — só visual por enquanto (sem cobrança real)
+//tela de planos (pagamento ainda n funciona)
 class TelaPlanos extends StatelessWidget {
   final String planoAtual;
   const TelaPlanos({super.key, required this.planoAtual});
@@ -225,7 +225,7 @@ class TelaPlanos extends StatelessWidget {
     );
   }
 
-  // Nenhuma cobrança real acontece — só avisa o usuário
+  //so avisa o usuario, sem pagamento real
   void _aoTocarBotao(BuildContext context, bool destaque) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

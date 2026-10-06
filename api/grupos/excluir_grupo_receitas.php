@@ -1,5 +1,5 @@
 <?php
-// Exclui um grupo de receitas do usuário logado.
+//exclui um grupo de receitas do usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 

@@ -1,5 +1,5 @@
 <?php
-// Registra uma movimentação de estoque e ajusta a quantidade do alimento.
+//registra uma movimentação de estoque e ajusta a quantidade do alimento
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -29,7 +29,7 @@ if ($unidade === '') {
     $unidade = $alimento['unidade_medida'];
 }
 
-// Estoque sempre fica na unidade original do alimento
+//estoque sempre fica na unidade original do alimento
 $quantidadeEstoque = converterQuantidade($quantidade, $unidade, $alimento['unidade_medida']);
 if ($quantidadeEstoque === null) {
     responder(false, "Não é possível converter de \"{$unidade}\" para \"{$alimento['unidade_medida']}\".", [], 422);
@@ -56,7 +56,7 @@ try {
         $stmtUpd = $pdo->prepare("UPDATE FS_alimentos SET quantidade = quantidade - ? WHERE id = ?");
         $stmtUpd->execute([$quantidadeEstoque, $alimentoId]);
 
-        // Zerou o estoque: remove a linha (histórico continua intacto)
+        //zrou o estoque: remove a linha (histórico continua intacto)
         $stmtCheck = $pdo->prepare("SELECT quantidade FROM FS_alimentos WHERE id = ?");
         $stmtCheck->execute([$alimentoId]);
         $quantidadeRestante = (float) $stmtCheck->fetchColumn();
@@ -68,7 +68,7 @@ try {
                 $stmtDel->execute([$alimentoId]);
                 $removido = true;
             } catch (PDOException $e) {
-                // FK RESTRICT: alimento vinculado a uma receita, mantém o registro
+                //FK RESTRICT: alimento vinculado a uma receita, mantém o registro
             }
         }
     }

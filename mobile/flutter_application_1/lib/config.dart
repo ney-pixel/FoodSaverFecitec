@@ -68,14 +68,14 @@ class _TelaConfigState extends State<TelaConfig> {
       await ApiCliente.post('/configuracoes/atualizar_configuracoes.php', corpo: corpo);
     } on ApiException catch (e) {
       _mostrarErro(e.mensagem);
-      await _carregarConfiguracoes(); // reverte visualmente em caso de erro
+      await _carregarConfiguracoes(); //aq reverte visualmente em caso de erro
     }
   }
 
   void _editarCampoTexto({
     required String titulo,
     required String valorAtual,
-    required String campo, // 'username' ou 'email'
+    required String campo, //'username' ou 'email'
     TextInputType? tipoTeclado,
   }) {
     final ctrl = TextEditingController(text: valorAtual);

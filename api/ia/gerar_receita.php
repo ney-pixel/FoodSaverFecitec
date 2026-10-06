@@ -1,18 +1,17 @@
 <?php
-// Gera uma receita com IA (Gemini) a partir dos ingredientes selecionados.
-// Não é salva no banco; a chamada ao Gemini acontece só no servidor.
-
+//gera uma receita com IA (Gemini) a partir dos ingredientes selecionados
+//não é salva no banco; a chamada ao Gemini acontece só no servidor
 require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../ia_config.php';
 
 exigirMetodo(['POST']);
 exigirLogin();
 
-$dados        = corpoRequisicao();
+$dados = corpoRequisicao();
 $ingredientes = $dados['ingredientes'] ?? [];
-$porcoes      = (int) ($dados['porcoes'] ?? 2);
-$nivelFome    = trim($dados['nivel_fome'] ?? 'Médio');
-$observacoes  = trim($dados['observacoes'] ?? '');
+$porcoes = (int) ($dados['porcoes'] ?? 2);
+$nivelFome = trim($dados['nivel_fome'] ?? 'Médio');
+$observacoes = trim($dados['observacoes'] ?? '');
 
 if (!is_array($ingredientes) || empty($ingredientes)) {
     responder(false, 'Selecione ao menos um ingrediente.', [], 422);
@@ -22,7 +21,7 @@ if ($porcoes < 1) {
 }
 
 $listaIngredientes = implode(', ', array_map('strval', $ingredientes));
-$plural            = $porcoes > 1 ? 'ões' : 'ão';
+$plural = $porcoes > 1 ? 'ões' : 'ão';
 
 $prompt = "Você é um chef de cozinha profissional e prático, especialista em aproveitar bem os ingredientes disponíveis para reduzir desperdício de alimentos.\n"
     . "Crie uma receita usando SOMENTE ou PRINCIPALMENTE os seguintes ingredientes disponíveis: {$listaIngredientes}.\n"
@@ -99,7 +98,7 @@ try {
     responder(false, 'Não foi possível gerar a receita agora. Tente novamente em instantes.', [], 502);
 }
 
-// Normaliza os campos (tipos certos, preenche o que faltar).
+//normaliza os campos (tipos certos, preenche o que faltar)
 $listaOuVazia = fn ($v) => is_array($v) ? array_values(array_map('strval', $v)) : [];
 
 $receita = [

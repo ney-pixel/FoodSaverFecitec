@@ -1,6 +1,6 @@
 
 class Receita {
-  int id; // 0 até favoritar (receitas de IA)
+  int id; 
   final String nome;
   final String descricao;
   final String categoria;
@@ -14,7 +14,7 @@ class Receita {
   final List<String> ingredientesNecessarios;
   final List<String> preparo;
   final List<String> dicas;
-  final bool geradaPorIA; // true = veio de ia/gerar_receita.php
+  final bool geradaPorIA; 
 
   Receita({
     required this.id,
@@ -58,7 +58,7 @@ class Receita {
   }
 }
 
-// Grupo de receitas da biblioteca
+//aq é o grupo de receitas (das favoritadas)
 class GrupoReceitas {
   final String id;
   final String nome;

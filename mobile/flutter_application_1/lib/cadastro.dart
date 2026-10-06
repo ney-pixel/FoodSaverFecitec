@@ -71,7 +71,7 @@ class _TelaCadastroState extends State<TelaCadastro>
     final senha        = _controladorSenha.text;
 
     try {
-      // Cadastra e já loga em seguida com as mesmas credenciais
+      //aq cadastra e ja loga em seguida com as mesmas credenciais
       await ApiCliente.post('/usuarios/cadastro.php', corpo: {
         'username': nomeCompleto,
         'email': email,

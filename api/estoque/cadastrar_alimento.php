@@ -1,5 +1,5 @@
 <?php
-// Cadastra um novo alimento no estoque do usuário logado.
+//cadastra um novo alimento no estoque do usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -23,7 +23,7 @@ if ($quantidade === null || $quantidade <= 0) {
 
 $pdo->beginTransaction();
 try {
-    // Mesmo item = nome, unidade e validade iguais: soma em vez de criar linha
+    //mesmo item=nome, unidade e validade iguais: soma em vez de criar linha
     $stmtExistente = $pdo->prepare(
         "SELECT id FROM FS_alimentos
          WHERE usuario_id = ? AND LOWER(TRIM(descricao)) = LOWER(TRIM(?))
@@ -48,7 +48,7 @@ try {
         $novoId = (int) $pdo->lastInsertId();
     }
 
-    // Marca como comprado o item pendente correspondente na lista de compras
+    // mrca como comprado o item pendente correspondente na lista de compras
     $stmtLista = $pdo->prepare(
         "UPDATE FS_lista_compras SET comprado = 1
          WHERE usuario_id = ? AND comprado = 0 AND LOWER(TRIM(nome_alimento)) = LOWER(TRIM(?))"

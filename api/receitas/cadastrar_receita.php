@@ -1,5 +1,5 @@
 <?php
-// Cadastra uma receita e vincula os alimentos do estoque selecionados.
+//cadastra uma receita e vincula os alimentos do estoque selecionados.
 
 require_once __DIR__ . '/../helpers.php';
 

@@ -1,5 +1,5 @@
 <?php
-// Desativa a conta do usuário logado (reativada automaticamente no próximo login).
+//desativa a conta do usuário logado (reativada automaticamente no próximo login)
 
 require_once __DIR__ . '/../helpers.php';
 

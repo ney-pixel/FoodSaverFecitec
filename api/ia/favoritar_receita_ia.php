@@ -1,7 +1,7 @@
 <?php
-// Favorita ou desfavorita uma receita gerada por IA.
-// Com id > 0: já salva -> desfavoritar apaga a linha.
-// Sem id: ainda não existe -> favoritar insere.
+//favorita ou desfavorita uma receita gerada por IA
+//com id > 0: já salva: desfavoritar apaga a linha
+//sem id: ainda não existe: favoritar insere
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -20,7 +20,7 @@ if ($id > 0) {
     responder(true, 'Receita removida dos favoritos.', ['favorito' => false, 'id' => 0]);
 }
 
-// Ainda não existe: insere os dados da receita gerada.
+//ainda não existe: insere os dados da receita gerada
 $titulo      = trim($dados['titulo'] ?? '');
 $modoPreparo = $dados['modo_preparo'] ?? [];
 

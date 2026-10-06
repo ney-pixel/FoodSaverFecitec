@@ -14,7 +14,7 @@ class GrupoAlimentos {
 
   int get totalItens => alimentos.length;
 
-  //monta um grupo a partir do JSON de grupos/gerenciar_grupo_alimentos.php (GET)
+  //aq monta um grupo a partir do JSON de grupos/gerenciar_grupo_alimentos.php (GET)
   factory GrupoAlimentos.fromJson(Map<String, dynamic> json) {
     final itens = (json['alimentos'] as List? ?? [])
         .map((a) => AlimentoEstoque(

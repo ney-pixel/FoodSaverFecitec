@@ -269,7 +269,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     );
   }
 
-  // Registra consumo ou desperdício de parte (ou todo) do item
+  // Registra consumo ou desperdicio de parte do item ou do item inteiro
   void _abrirDialogoMovimentar(AlimentoEstoque item) {
     final ctrlQtd = TextEditingController();
     String tipo = 'consumo';
@@ -686,7 +686,7 @@ class _SubabaAlimentos extends StatelessWidget {
           ),
         ),
 
-        // Estatísticas
+        //estatisticas 🤓☝️
         Container(
           margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -699,7 +699,7 @@ class _SubabaAlimentos extends StatelessWidget {
           ]),
         ),
 
-        //filtarr por status
+        //filtar por status
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -731,7 +731,8 @@ class _SubabaAlimentos extends StatelessWidget {
           child: alimentos.isEmpty
               ? _vazio(controladorBusca.text)
               : Builder(builder: (context) {
-                  // Agrupa por nome — mesmo alimento pode ter vários lotes com validades diferentes
+                  //aq grupa por nome
+                  //mesmo alimento pode ter diferentes lotes com diferentes quantidades e validades
                   final grupos = _agruparPorNome(alimentos);
                   return ListView.separated(
                     physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -751,7 +752,7 @@ class _SubabaAlimentos extends StatelessWidget {
     );
   }
 
-  // Junta os lotes de mesmo nome (case-insensitive) em um só grupo
+  //aq junta os lotes de mesmo nome (case-insensitive) em um só grupo
   List<_GrupoAlimento> _agruparPorNome(List<AlimentoEstoque> lista) {
     final mapa = <String, _GrupoAlimento>{};
     for (final item in lista) {
@@ -860,13 +861,13 @@ class _CartaoAlimento extends StatelessWidget {
         child: Icon(icone, size: 12, color: cor));
 }
 
-// Vários lotes do mesmo alimento, agrupados só para exibição
+//varios lotes do mesmo alimento, agrupados só para mostrar
 class _GrupoAlimento {
-  final String nome; // nome de exibição (do primeiro lote encontrado)
+  final String nome; //nome de exibição (do primeiro lote encontrado)
   final List<AlimentoEstoque> lotes;
   _GrupoAlimento({required this.nome, required this.lotes});
 
-  // pior status entre os lotes manda no destaque do card (Urgente > Atenção > OK)
+  //pior status entre os lotes manda no destaque do card (tipo, se tiver um urgente, o card vai aparecer como urgente)
   String get status {
     if (lotes.any((l) => l.status == 'Urgente')) return 'Urgente';
     if (lotes.any((l) => l.status == 'Atenção')) return 'Atenção';
@@ -881,11 +882,11 @@ class _GrupoAlimento {
     }
   }
 
-  // o lote que vence primeiro — é o texto de validade mostrado no resumo
+  //o lote que vence primeiro eh o texto de validade mostrado no resumo
   AlimentoEstoque get loteMaisProximo =>
       lotes.reduce((a, b) => a.diasValidade <= b.diasValidade ? a : b);
 
-  // Soma por unidade (mistura de unidades mostra cada uma separada)
+  //soma por unidade (mistura de unidades mostra cada uma separada)
   String get quantidadeFormatada {
     final porUnidade = <String, double>{};
     for (final l in lotes) {
@@ -897,12 +898,12 @@ class _GrupoAlimento {
     }).join(' + ');
   }
 
-  // lotes do mais próximo de vencer para o mais distante
+  //lotes do mais próximo de vencer para o mais distante
   List<AlimentoEstoque> get lotesOrdenados =>
       [...lotes]..sort((a, b) => a.diasValidade.compareTo(b.diasValidade));
 }
 
-// Card de resumo quando há mais de um lote — tocar abre o detalhe
+//card de resumo quando há mais de um lote, ent o click abre e mostra os detlahes
 class _CartaoGrupoAlimento extends StatelessWidget {
   final _GrupoAlimento grupo;
   final void Function(AlimentoEstoque) aoEditar;
@@ -968,7 +969,7 @@ class _CartaoGrupoAlimento extends StatelessWidget {
     );
   }
 
-  // Lista cada lote individualmente
+  //lista cada lote individualmente
   void _abrirDetalheLotes(BuildContext context) {
     showModalBottomSheet(
       context: context,
