@@ -1,5 +1,5 @@
 <?php
-// Conclui compras: move os itens marcados como comprados para o estoque.
+//conclui compras: move os itens marcados como comprados para o estoque
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -13,7 +13,7 @@ if (!is_array($itens) || empty($itens)) {
     responder(false, 'Selecione ao menos um item comprado para concluir.', [], 422);
 }
 
-// Valida o formato de todos os itens antes de mexer no banco.
+//valida o formato de todos os itens antes de mexer no banco
 $itensValidados = [];
 foreach ($itens as $it) {
     $id       = (int) ($it['id'] ?? 0);
@@ -44,7 +44,7 @@ try {
         $stmtBusca->execute([$it['id'], $uid]);
         $item = $stmtBusca->fetch();
         if (!$item) {
-            // não encontrado/comprado: ignora sem falhar o lote inteiro
+            //não encontrado/comprado: ignora sem falhar o lote inteiro
             continue;
         }
 

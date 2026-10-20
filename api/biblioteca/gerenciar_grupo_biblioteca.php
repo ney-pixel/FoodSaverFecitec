@@ -1,8 +1,8 @@
 <?php
-// Gerencia os grupos de receitas da biblioteca do usuário logado:
-//   GET    -> lista os grupos com suas receitas
-//   POST   -> adiciona uma receita da biblioteca a um grupo
-//   DELETE -> remove uma receita de um grupo
+//gerencia os grupos de receitas da biblioteca do usuário logado:
+//GET:lista os grupos com suas receitas
+//POST:adiciona uma receita da biblioteca a um grupo
+//DELETE:remove uma receita de um grupo
 
 require_once __DIR__ . '/../helpers.php';
 

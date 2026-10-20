@@ -1,9 +1,5 @@
--- Biblioteca de receitas do app mobile: catálogo fixo/imutável mantido
--- pelos desenvolvedores (não confundir com FS_receitas, que é a feature
--- "Minhas Receitas" do site, onde o próprio usuário cadastra as dele).
---
--- Estrutura própria e independente de FS_receitas/FS_grupos_receitas —
--- nada aqui altera ou depende do que o site já usa.
+-- Biblioteca de receitas do app mobile:catálogo fixo
+
 
 CREATE TABLE IF NOT EXISTS FS_biblioteca_receitas (
   id INT NOT NULL AUTO_INCREMENT,
@@ -15,10 +11,10 @@ CREATE TABLE IF NOT EXISTS FS_biblioteca_receitas (
   porcoes INT NOT NULL,
   calorias INT NOT NULL,
   imagem VARCHAR(255),
-  ingredientes TEXT NOT NULL,               -- itens com medida, separados por '||'
-  ingredientes_necessarios TEXT NOT NULL,   -- nomes simples usados no "match" com o estoque, separados por '||'
-  modo_preparo TEXT NOT NULL,               -- passos do preparo, separados por '||'
-  dicas TEXT,                               -- dicas, separadas por '||'
+  ingredientes TEXT NOT NULL,               
+  ingredientes_necessarios TEXT NOT NULL,   
+  modo_preparo TEXT NOT NULL,             
+  dicas TEXT,                               
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

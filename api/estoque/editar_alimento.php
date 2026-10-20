@@ -1,5 +1,5 @@
 <?php
-// Edita um alimento existente do usuário logado.
+//edita um alimento existente do usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -28,7 +28,7 @@ $stmt = $pdo->prepare(
 $stmt->execute([$nome, $quantidade, $unidade, $validade, $id, $uid]);
 
 if ($stmt->rowCount() === 0) {
-    // Pode não ter mudado nenhum valor; confirma se o item existe e pertence ao usuário
+    //pode não ter mudado nenhum valor; confirma se o item existe e pertence ao usuário
     $chk = $pdo->prepare("SELECT id FROM FS_alimentos WHERE id = ? AND usuario_id = ?");
     $chk->execute([$id, $uid]);
     if (!$chk->fetch()) {

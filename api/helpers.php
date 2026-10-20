@@ -1,7 +1,7 @@
 <?php
-// Bootstrap comum a todos os endpoints da API.
+//bootstrap comum a todos os endpoints da API
 
-// Nunca imprime erro/aviso/exceção na resposta; registra no log e devolve JSON genérico.
+//nunca imprime erro/aviso/exceção na resposta, registra no log e devolve JSON generico
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
@@ -26,7 +26,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json; charset=utf-8');
 
-// CORS: permite chamadas de outra origem (ex: Flutter Web), com credenciais.
+//CORS: permite chamadas de outra origem (ex: Flutter Web), com credenciais
 if (isset($_SERVER['HTTP_ORIGIN'])) {
     header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
     header('Access-Control-Allow-Credentials: true');
@@ -34,16 +34,16 @@ if (isset($_SERVER['HTTP_ORIGIN'])) {
     header('Access-Control-Allow-Headers: Content-Type');
 }
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    // Preflight do navegador
+    //preflight do navegador
     http_response_code(204);
     exit;
 }
 
 require_once __DIR__ . '/conexao.php';
 
-/**
- * Envia uma resposta JSON padronizada e encerra o script.
- */
+
+ //envia uma resposta JSON padronizada e encerra o script
+
 function responder(bool $sucesso, string $mensagem = '', array $dados = [], int $statusHttp = 200): void
 {
     http_response_code($statusHttp);
@@ -55,9 +55,9 @@ function responder(bool $sucesso, string $mensagem = '', array $dados = [], int 
     exit;
 }
 
-/**
- * Lê o corpo da requisição (JSON, com fallback para $_POST).
- */
+
+ //Lê o corpo da requisição (JSON, com fallback para $_POST)
+ 
 function corpoRequisicao(): array
 {
     $raw = file_get_contents('php://input');
@@ -70,9 +70,9 @@ function corpoRequisicao(): array
     return $_POST ?? [];
 }
 
-/**
- * Garante que existe uma sessão de usuário válida (401 caso não haja).
- */
+
+ //garante que existe uma sessão de usuário válida (401 caso não haja)
+ 
 function exigirLogin(): int
 {
     if (!isset($_SESSION['usuario_id'])) {
@@ -81,9 +81,9 @@ function exigirLogin(): int
     return (int) $_SESSION['usuario_id'];
 }
 
-/**
- * Garante que o método HTTP da requisição está entre os permitidos.
- */
+
+ //Garante que o método HTTP da requisição está entre os permitidos
+ 
 function exigirMetodo(array $metodos): void
 {
     if (!in_array($_SERVER['REQUEST_METHOD'], $metodos, true)) {
@@ -91,9 +91,9 @@ function exigirMetodo(array $metodos): void
     }
 }
 
-/**
- * Converte para float aceitando ponto ou vírgula como decimal.
- */
+
+ //Converte para float aceitando ponto ou vírgula como decimal
+ 
 function normalizarDecimal($valor): ?float
 {
     $valor = str_replace(',', '.', trim((string) $valor));
@@ -103,9 +103,9 @@ function normalizarDecimal($valor): ?float
     return (float) $valor;
 }
 
-/**
- * Converte uma quantidade entre unidades compatíveis (só massa, por ora).
- */
+
+//Converte uma quantidade entre unidades compatíveis (só massa, por enquanto.........)
+ 
 function converterQuantidade(float $qtd, string $de, string $para): ?float
 {
     if ($de === $para) {

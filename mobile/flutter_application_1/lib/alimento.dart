@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-//unidades de mdidas disponivveis
+//aq sao as unidades que a gente disponibiliza
 const List<String> unidadesMedida = [
   'g', 'kg', 'ml', 'L', 'unid.', 'cx.', 'pct.', 'porção',
 ];
@@ -10,10 +10,10 @@ class AlimentoEstoque {
   final String nome;
   final double quantidade;
   final String unidade;
-  final String validade; // formato ISO (yyyy-MM-dd), como vem da API
+  final String validade; //como vem da api: formato iso: yyyy-mm-dd
   final int diasValidade;
-  final String status; // 'Urgente' | 'Atenção' | 'OK' (derivado de classe_validade)
-  final String textoValidade; // ex: "Vence em 3 dia(s)" / "Vencido há 2 dia(s)"
+  final String status; //o status pode ser urgente, ateçao ou ok (derivado de classe_validade)
+  final String textoValidade; //exemplo: vence em 3 dia(s)
 
   const AlimentoEstoque({
     required this.id,
@@ -51,7 +51,7 @@ class AlimentoEstoque {
     }
   }
 
-  //aqui defininfo a cor correspondente ao status
+  //aq a gente define a cor respectiva a cada status
   Color get corStatus {
     switch (status) {
       case 'Urgente': return const Color(0xFFFF4444);
@@ -60,7 +60,7 @@ class AlimentoEstoque {
     }
   }
 
-  //aqui tira o .0 qunado é inteiro
+  //aq tira o .0 qunado é inteiro
   String get quantidadeFormatada {
     final v = quantidade == quantidade.truncateToDouble()
         ? quantidade.toInt().toString()
@@ -75,7 +75,7 @@ class AlimentoEstoque {
     return '${partes[2]}/${partes[1]}/${partes[0]}';
   }
 
-  //escolhe um icone com base em palavras-chave no nome do alimento
+  //aq a gente tentou definir um icone para os alimentos, mas vamos tirar isso pois nao faz mais sentido
   static IconData iconePorNome(String nome) {
     final n = nome.toLowerCase();
     const mapa = <List<String>, IconData>{
@@ -99,13 +99,13 @@ class AlimentoEstoque {
   }
 }
 
-// Quantidade mínima definida por NOME de alimento (não por lote/id do estoque)
+//qtd min definida pelo nome do alimento
 class MinimoAlimento {
   final String id;
   final String nome;
   final String unidade;
   final double quantidadeMinima;
-  final double quantidadeAtual; // soma de todos os lotes desse nome no estoque
+  final double quantidadeAtual; //soma dos lotes do alimento
   final bool abaixoDoMinimo;
 
   const MinimoAlimento({

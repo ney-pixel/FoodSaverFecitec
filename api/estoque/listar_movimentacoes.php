@@ -1,5 +1,5 @@
 <?php
-// Resumo das movimentações (consumo/desperdício) para os gráficos de Relatórios.
+//resumo das movimentaçoes consumo/desperdício para os graicos de relatorios
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -37,7 +37,7 @@ for ($i = $dias - 1; $i >= 0; $i--) {
 $totalMovs = $totalConsumo + $totalDesperdicio;
 $taxaAproveitamento = $totalMovs > 0 ? round(($totalConsumo / $totalMovs) * 100, 1) : null;
 
-// Ranking por alimento (nome + unidade)
+//ranking por alimento (nome + unidade)
 $nomeSql = "COALESCE(NULLIF(TRIM(descricao_alimento), ''), 'Item removido') AS nome";
 
 $stmtConsumido = $pdo->prepare(

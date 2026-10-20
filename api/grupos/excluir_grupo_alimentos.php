@@ -1,5 +1,5 @@
 <?php
-// Exclui um grupo de alimentos do usuário logado.
+//exclui um grupo de alimentos do usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 

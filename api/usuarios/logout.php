@@ -1,5 +1,5 @@
 <?php
-// Encerra a sessão do usuário.
+//encerra a sessão do usuário
 
 require_once __DIR__ . '/../helpers.php';
 

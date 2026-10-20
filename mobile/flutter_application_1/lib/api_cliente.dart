@@ -1,5 +1,5 @@
-// Cliente HTTP central para a API PHP — usa sessão via cookie (PHPSESSID),
-// guardado em memória e no SharedPreferences para manter o login.
+//Cliente HTTP central para a API PHP: usamos sessão via cookie (PHPSESSID),
+//guardado em memória e no SharedPreferences para manter o login
 
 import 'dart:async';
 import 'dart:convert';
@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'http_cliente_web.dart' if (dart.library.io) 'http_cliente_nativo.dart'
     as plataforma;
 
-/// Erro de comunicação com a API (rede ou "sucesso": false).
+///aq erro de comunicação com a api (rede ou "sucesso": false).
 class ApiException implements Exception {
   final String mensagem;
   final int? statusHttp;
@@ -24,11 +24,11 @@ class ApiException implements Exception {
 class ApiCliente {
   ApiCliente._();
 
-  // Base da API — trocar se rodar em emulador/celular físico
+  //base da API: trocar se rodar em emulador/celular fisico
   // emulador Android: 10.0.2.2 · celular físico: IP da rede
   static const String baseUrl = 'http://localhost:8000/api';
 
-  // Controle manual de cookie só roda fora da Web (ver http_cliente_web.dart)
+  //controle manual de cookie só roda fora da web (ver http_cliente_web.dart)
   static final http.Client _cliente = plataforma.criarClienteHttp();
 
   static const _chaveCookie = 'foodsaver_cookie_sessao';
@@ -58,7 +58,7 @@ class ApiCliente {
     if (kIsWeb) return;
     final setCookie = resposta.headers['set-cookie'];
     if (setCookie == null || setCookie.isEmpty) return;
-    // O header pode vir com atributos (Path=/, HttpOnly...): guardamos só o par nome=valor.
+    //o header pode vir com atributos (Path=/, HttpOnly...): guardamos só o par nome=valor
     final parPrincipal = setCookie.split(';').first.trim();
     if (parPrincipal.isNotEmpty) {
       _salvarCookie(parPrincipal);
@@ -82,7 +82,7 @@ class ApiCliente {
     final cookieAtual = _cookie;
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      // Web: cookie é gerenciado pelo navegador (withCredentials)
+      //web: cookie é gerenciado pelo navegador (withCredentials)
       if (!kIsWeb && cookieAtual != null) 'Cookie': cookieAtual,
     };
     final corpoJson = corpo != null ? jsonEncode(corpo) : null;
@@ -184,10 +184,10 @@ class ApiCliente {
           {Map<String, dynamic>? corpo}) =>
       _requisitar('DELETE', caminho, corpo: corpo);
 
-  /// Apaga o cookie de sessão salvo localmente (usado no logout).
+  ///apaga o cookie de sessao salvo localmente (usado no logout)
   static Future<void> encerrarSessaoLocal() => _salvarCookie(null);
 
-  /// Se há cookie de sessão salvo (não garante que ainda é válido).
+  ///se tem cookie de sessão salvo (ainda nao garante que ainda é valido)
   static Future<bool> temSessaoSalva() async {
     if (kIsWeb) return true;
     await _carregarCookie();

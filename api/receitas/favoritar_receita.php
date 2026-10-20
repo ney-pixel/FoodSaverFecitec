@@ -1,5 +1,5 @@
 <?php
-// Alterna (toggle) o favorito de uma receita do usuário.
+//alterna (toggle) o favorito de uma receita do usuário
 
 require_once __DIR__ . '/../helpers.php';
 

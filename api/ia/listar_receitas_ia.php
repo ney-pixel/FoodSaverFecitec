@@ -1,5 +1,5 @@
 <?php
-// Lista as receitas geradas por IA favoritadas pelo usuário logado.
+//lista as receitas geradas por IA favoritadas pelo usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -16,21 +16,21 @@ $stmt->execute([$uid]);
 $receitas = [];
 while ($row = $stmt->fetch()) {
     $receitas[] = [
-        'id'                       => (int) $row['id'],
-        'titulo'                   => $row['titulo'],
-        'descricao'                => $row['descricao'],
-        'categoria'                => $row['categoria'],
-        'dificuldade'              => $row['dificuldade'],
-        'tempo_preparo'            => (int) $row['tempo_preparo'],
-        'porcoes'                  => (int) $row['porcoes'],
-        'calorias'                 => (int) $row['calorias'],
-        'imagem'                   => $row['imagem'],
-        'ingredientes'             => $row['ingredientes'] ? explode('||', $row['ingredientes']) : [],
+        'id' => (int) $row['id'],
+        'titulo' => $row['titulo'],
+        'descricao' => $row['descricao'],
+        'categoria' => $row['categoria'],
+        'dificuldade' => $row['dificuldade'],
+        'tempo_preparo'=> (int) $row['tempo_preparo'],
+        'porcoes' => (int) $row['porcoes'],
+        'calorias' => (int) $row['calorias'],
+        'imagem' => $row['imagem'],
+        'ingredientes'=> $row['ingredientes'] ? explode('||', $row['ingredientes']) : [],
         'ingredientes_necessarios' => $row['ingredientes_necessarios'] ? explode('||', $row['ingredientes_necessarios']) : [],
-        'modo_preparo'             => $row['modo_preparo'] ? explode('||', $row['modo_preparo']) : [],
-        'dicas'                    => $row['dicas'] ? explode('||', $row['dicas']) : [],
-        'favorito'                 => true,
-        'gerada_por_ia'            => true,
+        'modo_preparo' => $row['modo_preparo'] ? explode('||', $row['modo_preparo']) : [],
+        'dicas' => $row['dicas'] ? explode('||', $row['dicas']) : [],
+        'favorito'=> true,
+        'gerada_por_ia' => true,
     ];
 }
 

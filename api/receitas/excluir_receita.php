@@ -1,6 +1,6 @@
 <?php
-// Exclui uma receita do usuário logado.
-// FS_receita_alimentos e FS_grupo_receitas caem em cascata (ON DELETE CASCADE).
+//exclui uma receita do usuário logado
+//FS_receita_alimentos e FS_grupo_receitas caem em cascata (ON DELETE CASCADE)
 
 require_once __DIR__ . '/../helpers.php';
 

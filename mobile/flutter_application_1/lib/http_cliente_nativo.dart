@@ -1,4 +1,4 @@
-// Cliente HTTP para dart:io (Android/iOS/desktop) — sessão gerenciada manualmente pelo ApiCliente
+//cliente HTTP para dart:io: sessao gerenciada manualmente pelo ApiCliente
 import 'package:http/http.dart' as http;
 
 http.Client criarClienteHttp() => http.Client();

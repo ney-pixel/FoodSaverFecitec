@@ -50,7 +50,7 @@ class AplicativoFoodSaver extends StatelessWidget {
   }
 }
 
-// Decide, ao abrir o app, se já existe sessão válida — pula pra Home ou cai no login.
+//aq ele verifica se já tem sessao valida
 class TelaInicial extends StatefulWidget {
   const TelaInicial({super.key});
 

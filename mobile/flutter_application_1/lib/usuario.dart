@@ -17,7 +17,7 @@ class Usuario {
   // Free/gratuito trava recursos premium (IA, relatórios) no app
   bool get ehPremium => plano.toLowerCase() == 'premium';
 
-  //calcula as iniciais a partir de um nome/username qualquer
+  //calcula as iniciais a partir de um nome qualquer
   static String iniciaisDe(String nomeCompleto) {
     final partes = nomeCompleto.trim().split(RegExp(r'\s+'));
     if (partes.length >= 2 && partes.first.isNotEmpty && partes.last.isNotEmpty) {
@@ -30,7 +30,7 @@ class Usuario {
         : semEspacos.substring(0, 1).toUpperCase();
   }
 
-  //aqui cria uma copia com os campos atulaizados
+  //aq cria uma copia com os campos atulaizados
   Usuario copiarCom({
     int? id,
     String? nome,

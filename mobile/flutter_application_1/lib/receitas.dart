@@ -66,7 +66,7 @@ class _TelaReceitasState extends State<TelaReceitas>
       final grupo = j as Map<String, dynamic>;
       final itens = (grupo['receitas'] as List).map((it) {
         final id = it['id'] as int;
-        // Hidrata com o objeto completo da biblioteca
+
         return _biblioteca.firstWhere(
           (r) => r.id == id,
           orElse: () => Receita(
@@ -106,7 +106,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     );
   }
 
-  // Favoritar funciona diferente: biblioteca (catálogo fixo) vs gerada por IA
+  //o favoritar funciona diferente: biblioteca  x gerada por ia
   Future<void> _alternarFavorito(Receita receita) async {
     if (receita.geradaPorIA) {
       await _alternarFavoritoIA(receita);
@@ -285,8 +285,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
   List<String> get _alimentosDisponiveis =>
       widget.estoque.map((a) => a.nome).toList();
 
-  //sugestoes filtradas a partir do texto digitado (letras ou silabas), ja
-  //verificando se o alimento existe no estoque e ainda nao foi selecionado
+  //sugestoes filtradas a partir do texto digitado (letras ou silabas), ja verificando se o alimento existe no estoque e ainda nao foi selecionado
   List<String> get _sugestoes {
     final busca = _controladorBuscaIngrediente.text.trim().toLowerCase();
     if (busca.isEmpty) return [];
@@ -354,7 +353,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     }
   }
 
-  // Mostra a receita num painel completo (ver _abrirDetalheReceita)
+  //aq mostra a receita num painel completo (ver _abrirDetalheReceita)
   void _mostrarReceita(Receita receita) =>
       _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
@@ -544,7 +543,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
 }
 
 //subaba favoritas
-// Modal de detalhe de receita — compartilhado entre Criar, Biblioteca e Favoritas
+//modal de detalhe de receita: compartilhado entre Criar, Biblioteca e Favoritas
 void _abrirDetalheReceita(BuildContext context, Receita receita, Future<void> Function(Receita) aoFavoritar) {
   bool favoritado = receita.favorita;
 
@@ -740,7 +739,7 @@ class _SubabaFavoritas extends StatelessWidget {
   }
 }
 
-// Mesmo formato de linha da Biblioteca — coração à direita desfavorita direto da lista
+//mesmo formato da linha do favoritar da Biblioteca
 class _CartaoFavorita extends StatelessWidget {
   final Receita receita;
   final VoidCallback aoAbrir;
@@ -1052,9 +1051,7 @@ class _CartaoGrupoReceitas extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Subaba: Biblioteca de Receitas (catálogo fixo)
-// ─────────────────────────────────────────────
+//subaba biblioteca
 class _SubabaBiblioteca extends StatefulWidget {
   final List<Receita> biblioteca;
   final Future<void> Function(Receita) aoFavoritar;
@@ -1091,7 +1088,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
     super.dispose();
   }
 
-  // Mesmo modal completo usado em Criar e Favoritas — ver _abrirDetalheReceita.
+  //mesmo modal completo usado em criar e favoritas (dps ver _abrirDetalheReceita)
   void _verReceita(BuildContext context, Receita receita) =>
       _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
@@ -1101,7 +1098,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
 
     return Column(
       children: [
-        // Busca por nome
+        //busca por nome
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Container(
@@ -1127,7 +1124,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
           ),
         ),
 
-        // Contador de resultados
+        //contador de resultados
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
           child: Row(
@@ -1145,7 +1142,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
           ),
         ),
 
-        // Lista de receitas
+        //lista de receitas
         Expanded(
           child: filtradas.isEmpty
               ? Center(
@@ -1176,7 +1173,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
 
 }
 
-// Cartão visual da biblioteca
+//cartao visual da biblioteca
 class _CartaoBiblioteca extends StatelessWidget {
   final Receita receita;
   final bool isFavorita;

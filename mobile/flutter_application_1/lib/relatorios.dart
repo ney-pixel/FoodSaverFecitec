@@ -5,9 +5,7 @@ import 'usuario.dart';
 import 'api_cliente.dart';
 import 'planos.dart';
 
-// ─────────────────────────────────────────────
-//  Tela principal de Relatórios
-// ─────────────────────────────────────────────
+//tela relatorios
 class TelaRelatorios extends StatefulWidget {
   final Usuario usuario;
   const TelaRelatorios({super.key, required this.usuario});
@@ -17,7 +15,7 @@ class TelaRelatorios extends StatefulWidget {
 }
 
 class _TelaRelatoriosState extends State<TelaRelatorios> {
-  int _periodo = 30; // 7, 30 ou 90 dias
+  int _periodo = 30; //7, 30 ou 90 dias
   bool _carregando = true;
   String? _erro;
   Map<String, dynamic>? _dados;
@@ -64,13 +62,13 @@ class _TelaRelatoriosState extends State<TelaRelatorios> {
 
     return Column(
       children: [
-        // Cabeçalho com seletor de período
+        //cabeçalho com seletor de periodo
         _Cabecalho(
           periodo: _periodo,
           aoMudar: (p) { setState(() => _periodo = p); _buscarDados(); },
         ),
 
-        // Corpo
+        //corpo
         Expanded(
           child: _carregando
               ? const Center(child: CircularProgressIndicator(color: verdePrimario))
@@ -123,9 +121,7 @@ class _TelaRelatoriosState extends State<TelaRelatorios> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Cabeçalho com seletor de período
-// ─────────────────────────────────────────────
+//cabeçaklho com seletor de periodo
 class _Cabecalho extends StatelessWidget {
   final int periodo;
   final void Function(int) aoMudar;
@@ -145,7 +141,7 @@ class _Cabecalho extends StatelessWidget {
                 color: Colors.white,
                 letterSpacing: -0.5)),
         const Spacer(),
-        // Seletor de período
+        //seletor de periodo
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
@@ -185,9 +181,7 @@ class _Cabecalho extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  1. Resumo do estoque
-// ─────────────────────────────────────────────
+//resumo do estoque
 class _ResumoEstoque extends StatelessWidget {
   final Map<String, dynamic> dados;
   const _ResumoEstoque({required this.dados});
@@ -268,9 +262,7 @@ class _ResumoEstoque extends StatelessWidget {
       v == v.truncate() ? '${v.toInt()}' : v.toStringAsFixed(1);
 }
 
-// ─────────────────────────────────────────────
-//  6. Taxa de aproveitamento + comparação (7)
-// ─────────────────────────────────────────────
+//taxa de aproveitamento + comparaçao
 class _TaxaAproveitamento extends StatelessWidget {
   final Map<String, dynamic> dados;
   final Map<String, dynamic> comparacao;
@@ -304,7 +296,7 @@ class _TaxaAproveitamento extends StatelessWidget {
                     style: TextStyle(color: Colors.white38, fontSize: 13)))
             : Column(children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  // Número grande
+                  //numero grande
                   Text('${taxa.toStringAsFixed(1)}%',
                       style: TextStyle(
                           fontSize: 40,
@@ -313,7 +305,7 @@ class _TaxaAproveitamento extends StatelessWidget {
                               ? verdePrimario
                               : const Color(0xFFFFA726),
                           letterSpacing: -1.5)),
-                  // Gauge circular
+    
                   SizedBox(
                     width: 60, height: 60,
                     child: Stack(fit: StackFit.expand, children: [
@@ -340,10 +332,10 @@ class _TaxaAproveitamento extends StatelessWidget {
                   ),
                 ]),
                 const SizedBox(height: 12),
-                // Barra consumido vs desperdiçado
+                //barra consumido vs desperdiçado
                 _BarraConsumo(consumido: consumido, desperdicio: desperd),
                 const SizedBox(height: 12),
-                // Comparação com período anterior
+                //comparação com periodo anterior
                 if (taxaAnterior != null && varTaxa != null)
                   _chipComparacao(
                     'Período anterior: ${taxaAnterior.toStringAsFixed(1)}%  '
@@ -382,7 +374,7 @@ class _TaxaAproveitamento extends StatelessWidget {
       );
 }
 
-// Barra visual consumido/desperdiçado
+//aq bvarra visual consumido/desperdiçado
 class _BarraConsumo extends StatelessWidget {
   final double consumido;
   final double desperdicio;
@@ -432,9 +424,7 @@ class _BarraConsumo extends StatelessWidget {
       v == v.truncateToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1);
 }
 
-// ─────────────────────────────────────────────
-//  2. Gráfico de desperdício por dia
-// ─────────────────────────────────────────────
+//aq começa grafico desperidicoo por dia
 class _GraficoDesperdicoPorDia extends StatelessWidget {
   final List pontos;
   final int periodo;
@@ -448,7 +438,7 @@ class _GraficoDesperdicoPorDia extends StatelessWidget {
     final despAtual    = (comparacao['desperdicio_atual']    as num).toDouble();
     final despAnterior = (comparacao['desperdicio_anterior'] as num).toDouble();
 
-    // Converte pontos para FlSpot
+    //aq converte pontos para flspot
     final spots = pontos.asMap().entries.map((e) {
       final total = (e.value['total'] as num).toDouble();
       return FlSpot(e.key.toDouble(), total);
@@ -459,7 +449,7 @@ class _GraficoDesperdicoPorDia extends StatelessWidget {
         : spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
     final maxYAjustado = maxY == 0 ? 1.0 : maxY * 1.2;
 
-    // Intervalo de labels no eixo X
+    //aq intervalo de tempo no eixo x do grafico
     final intervalo = periodo == 7 ? 1 : periodo == 30 ? 7 : 15;
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -472,7 +462,7 @@ class _GraficoDesperdicoPorDia extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: bordaCartao)),
         child: Column(children: [
-          // Comparação de valores
+          //comparaçao dos valores
           if (varDesp != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
@@ -524,7 +514,7 @@ class _GraficoDesperdicoPorDia extends StatelessWidget {
               ]),
             ),
 
-          // Gráfico
+          //o grfico 😮😮😮😮😮😮😮😮😮😮
           SizedBox(
             height: 160,
             child: pontos.every((p) => (p['total'] as num) == 0)
@@ -637,9 +627,7 @@ class _GraficoDesperdicoPorDia extends StatelessWidget {
       v == v.truncateToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1);
 }
 
-// ─────────────────────────────────────────────
-//  3 & 4. Top alimentos (desperdiçados / consumidos)
-// ─────────────────────────────────────────────
+//top alimentos desperdiçados e consumidos
 class _TopAlimentos extends StatelessWidget {
   final String titulo;
   final IconData icone;
@@ -720,7 +708,7 @@ class _TopAlimentos extends StatelessWidget {
                           ),
                         ]),
                         const SizedBox(height: 6),
-                        // Barra de progresso relativa ao 1º
+                        //barra de pesquisa relativa ao primeiro
                         ClipRRect(
                           borderRadius: BorderRadius.circular(3),
                           child: LinearProgressIndicator(
@@ -750,9 +738,7 @@ class _TopAlimentos extends StatelessWidget {
       v == v.truncateToDouble() ? '${v.toInt()}' : v.toStringAsFixed(1);
 }
 
-// ─────────────────────────────────────────────
-//  5. Situação das validades
-// ─────────────────────────────────────────────
+//situaçao das validades
 class _SituacaoValidades extends StatelessWidget {
   final Map<String, dynamic> dados;
   const _SituacaoValidades({required this.dados});
@@ -823,7 +809,7 @@ class _GrupoValidadeState extends State<_GrupoValidade> {
   @override
   void initState() {
     super.initState();
-    // Expande automaticamente grupos de alerta
+    //expande automaticamente grupos de alerta
     _expandido = widget.lista.isNotEmpty &&
         widget.titulo != 'Validade OK';
   }
@@ -842,7 +828,7 @@ class _GrupoValidadeState extends State<_GrupoValidade> {
                     : widget.cor.withOpacity(0.25))),
         child: Column(
           children: [
-            // Cabeçalho clicável
+            //cabeçalho  clicavel
             GestureDetector(
               onTap: () => setState(() => _expandido = !_expandido),
               child: Padding(
@@ -887,7 +873,7 @@ class _GrupoValidadeState extends State<_GrupoValidade> {
               ),
             ),
 
-            // Itens expandidos
+            //itens expandidos
             if (_expandido && widget.lista.isNotEmpty) ...[
               const Divider(color: bordaCartao, height: 1),
               ...widget.lista.map((item) {
@@ -938,9 +924,7 @@ class _GrupoValidadeState extends State<_GrupoValidade> {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Estado de erro
-// ─────────────────────────────────────────────
+//estado derro
 class _ErroView extends StatelessWidget {
   final String mensagem;
   final VoidCallback aoTentar;

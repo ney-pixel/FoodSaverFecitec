@@ -44,13 +44,13 @@ class _TelaHomeState extends State<TelaHome>
     _controladorFade.forward(from: 0);
   }
 
-  // Abas: ícone ativo, ícone inativo, rótulo
+  //abas: ícone ativo, ícone inativo, rótulo
   static const _itensNavegacao = [
-    (Icons.inventory_2_rounded,          Icons.inventory_2_outlined,          'Estoque'),
-    (Icons.restaurant_menu_rounded,      Icons.restaurant_menu_outlined,      'Receitas'),
-    (Icons.shopping_cart_rounded,        Icons.shopping_cart_outlined,        'Compras'),
-    (Icons.bar_chart_rounded,            Icons.bar_chart_outlined,            'Relatórios'),
-    (Icons.settings_rounded,             Icons.settings_outlined,             'Config'),
+    (Icons.inventory_2_rounded, Icons.inventory_2_outlined, 'Estoque'),
+    (Icons.restaurant_menu_rounded, Icons.restaurant_menu_outlined,'Receitas'),
+    (Icons.shopping_cart_rounded, Icons.shopping_cart_outlined, 'Compras'),
+    (Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Relatórios'),
+    (Icons.settings_rounded, Icons.settings_outlined, 'Config'),
   ];
 
   @override

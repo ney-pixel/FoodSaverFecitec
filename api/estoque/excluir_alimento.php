@@ -1,5 +1,5 @@
 <?php
-// Exclui um alimento do estoque do usuário logado.
+//exclui um alimento do estoque do usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -17,7 +17,7 @@ try {
     $stmt = $pdo->prepare("DELETE FROM FS_alimentos WHERE id = ? AND usuario_id = ?");
     $stmt->execute([$id, $uid]);
 } catch (PDOException $e) {
-    // Violação de FK (RESTRICT) em FS_receita_alimentos
+    //violação de FK (RESTRICT) em FS_receita_alimentos
     responder(false, 'Não é possível excluir: este alimento está vinculado a uma receita.', [], 409);
 }
 

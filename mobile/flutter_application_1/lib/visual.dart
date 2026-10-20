@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 
+
+
+
+//VISUAL DEIXEI NA MAO DA IA 🤐
+
+
+
+
+
 //===== Identidade visual do FoodSaver =====
 //paleta principal
 const verdePrimario  = Color(0xFF16DB65);
 const verdeEscuro    = Color(0xFF0F9D4F);
 const verdeSuave     = Color(0xFF9CF5C4);
+
 const roxoIA         = Color(0xFF6C63FF); // cor de destaque para tudo que envolve IA
 const roxoIAClaro    = Color(0xFF9B59B6);
 

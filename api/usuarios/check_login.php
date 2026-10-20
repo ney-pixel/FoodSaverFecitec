@@ -1,5 +1,5 @@
 <?php
-// Verifica se existe uma sessão de usuário válida.
+//verifica se existe uma sessão de usuário válida
 
 require_once __DIR__ . '/../helpers.php';
 

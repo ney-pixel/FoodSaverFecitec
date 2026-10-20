@@ -1,5 +1,5 @@
 <?php
-// Alterna favorito de uma receita da biblioteca para o usuário logado.
+//alterna favorito de uma receita da biblioteca para o usuário logado
 
 require_once __DIR__ . '/../helpers.php';
 

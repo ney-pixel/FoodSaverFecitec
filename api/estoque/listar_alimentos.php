@@ -1,5 +1,5 @@
 <?php
-// Lista os alimentos do estoque do usuário logado, com validade calculada.
+//lista os alimentos do estoque do usuário logado, com validade calculada
 
 require_once __DIR__ . '/../helpers.php';
 
