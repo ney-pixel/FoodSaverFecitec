@@ -21,7 +21,7 @@ if (!empty($erros)) {
     responder(false, 'Dados inválidos.', ['erros' => $erros], 422);
 }
 
-$stmt = $pdo->prepare("SELECT id, nome_usuario AS username, senha, ativo FROM FS_usuarios WHERE email = ?");
+$stmt = $pdo->prepare("SELECT id, nome_usuario AS username, senha, plano, ativo FROM FS_usuarios WHERE email = ?");
 $stmt->execute([$email]);
 $usuario = $stmt->fetch();
 
@@ -46,5 +46,6 @@ responder(true, 'Login realizado com sucesso.', [
     'usuario' => [
         'id'       => (int) $usuario['id'],
         'username' => $usuario['username'],
+        'plano'    => $usuario['plano'],
     ],
 ]);

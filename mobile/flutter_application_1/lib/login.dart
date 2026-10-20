@@ -68,6 +68,7 @@ class _TelaLoginState extends State<TelaLogin>
         nome: username,
         email: _controladorEmail.text.trim(),
         iniciais: Usuario.iniciaisDe(username),
+        plano: (u['plano'] as String?) ?? 'gratis',
       );
 
       if (!mounted) return;

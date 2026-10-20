@@ -1,0 +1,17 @@
+[33m0b12e33[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m agora sim tudo pronto mobile/web funcionalidades funcionando plano
+[33m9d46386[m agora muda premium e gratuito
+[33m167d95e[m arrumei uns ngc mas deu erro na linha da chave
+[33m163dd45[m anotaçoes
+[33m9bde14f[m lista minimo arrumada no web
+[33m04ccfb2[m arrumei lista do mobile, somando nomes duplicados e colocando pesquisa no minimo
+[33m8111bf3[m lista de compras botao concluir
+[33mddc9cc0[m planos no mobile
+[33mccbd6fa[m segurança conexao
+[33m72e938b[m implementa IA no mobile e web
+[33m31419dc[m biblioteca e futura ia
+[33m9eda13a[m adicionado pesquisa por ingredientes_necessarios, execuçao no flutter web
+[33mbf854ab[m Merge pull request #1 from ney-pixel/receitas-auth-landing-melhorias
+[33m00796ac[m relatorio mais consumo
+[33ma68a01f[m adicionado: banco
+[33mbda2c24[m Corrige cadastro de receitas, reforça validações e redesenha landing page
+[33mba4afa8[m Adiciona API, aplicativo mobile e site

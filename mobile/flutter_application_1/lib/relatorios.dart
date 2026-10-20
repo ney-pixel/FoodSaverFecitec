@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'visual.dart';
 import 'usuario.dart';
 import 'api_cliente.dart';
+import 'bloqueio_premium.dart';
 
 // ─────────────────────────────────────────────
 //  Tela principal de Relatórios
@@ -24,7 +25,8 @@ class _TelaRelatoriosState extends State<TelaRelatorios> {
   @override
   void initState() {
     super.initState();
-    _buscarDados();
+    // Relatórios são exclusivos do Premium: no plano gratuito nem busca os dados.
+    if (ehPremium(widget.usuario)) _buscarDados();
   }
 
   Future<void> _buscarDados() async {
@@ -42,6 +44,20 @@ class _TelaRelatoriosState extends State<TelaRelatorios> {
 
   @override
   Widget build(BuildContext context) {
+    if (!ehPremium(widget.usuario)) {
+      return Column(children: [
+        cabecalhoPagina('Relatórios'),
+        Expanded(
+          child: BloqueioPremium(
+            usuario: widget.usuario,
+            icone: Icons.bar_chart_rounded,
+            titulo: 'Relatórios bloqueados',
+            descricao: 'O Relatório de Desperdícios está disponível apenas no plano Premium. Faça upgrade para acompanhar seu consumo e desperdício.',
+          ),
+        ),
+      ]);
+    }
+
     return Column(
       children: [
         // Cabeçalho com seletor de período

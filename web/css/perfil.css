@@ -1288,6 +1288,12 @@ input, select, textarea { font-family: inherit; outline: none; }
 
 .plano-btn.current { cursor: default; }
 
+.plano-card.plano-ativo { border-color: var(--green); }
+.plano-card.plano-ativo .plano-btn.current {
+  border-color: var(--green);
+  color: var(--green);
+}
+
 .upgrade-btn {
   background: var(--green);
   color: #0B0F14;

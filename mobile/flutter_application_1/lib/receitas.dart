@@ -4,6 +4,7 @@ import 'usuario.dart';
 import 'receita.dart';
 import 'alimento.dart';
 import 'api_cliente.dart';
+import 'bloqueio_premium.dart';
 
 class TelaReceitas extends StatefulWidget {
   final Usuario usuario;
@@ -191,7 +192,15 @@ class _TelaReceitasState extends State<TelaReceitas>
                   : TabBarView(
                       controller: _controladorSubabas,
                       children: [
-                        _SubabaCriar(estoque: _estoque, aoFavoritar: _alternarFavorito),
+                        // Criar receitas com IA é exclusivo do Premium.
+                        ehPremium(widget.usuario)
+                            ? _SubabaCriar(estoque: _estoque, aoFavoritar: _alternarFavorito)
+                            : BloqueioPremium(
+                                usuario: widget.usuario,
+                                icone: Icons.auto_awesome_rounded,
+                                titulo: 'Criar receitas com IA',
+                                descricao: 'A criação de receitas com IA é exclusiva do plano Premium. Faça upgrade para gerar receitas com os ingredientes do seu estoque.',
+                              ),
                         _SubabaFavoritas(favoritas: _favoritas, aoDesfavoritar: _alternarFavorito),
                         _SubabaGruposReceitas(
                           grupos: _grupos,

@@ -145,6 +145,24 @@ function aplicarRestricoesPlano() {
   });
   document.querySelector('.rtab-btn[data-rtab="criar"]')?.classList.toggle('hidden', !premium);
   if (!premium) mudarTabReceita('favoritas');
+  renderPlanos();
+}
+// Marca na aba Planos qual é o plano ativo do usuário (Free ou Premium).
+function renderPlanos() {
+  const premium = ehPremium();
+  const btnFree = document.getElementById('btnPlanoFree');
+  const btnPremium = document.getElementById('btnPlanoPremium');
+
+  btnFree.textContent = premium ? 'Voltar ao Free' : 'Plano Atual';
+  btnFree.classList.toggle('current', !premium);
+  btnFree.disabled = !premium;
+  btnFree.closest('.plano-card').classList.toggle('plano-ativo', !premium);
+
+  btnPremium.textContent = premium ? 'Plano Atual' : 'Fazer Upgrade';
+  btnPremium.classList.toggle('current', premium);
+  btnPremium.classList.toggle('upgrade-btn', !premium);
+  btnPremium.disabled = premium;
+  btnPremium.closest('.plano-card').classList.toggle('plano-ativo', premium);
 }
 function bindNav() {
   document.querySelectorAll('.nav-item').forEach((el) => {
