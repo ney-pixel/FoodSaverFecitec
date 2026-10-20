@@ -340,3 +340,60 @@ Widget cartao({required Widget filho, Color? corBorda}) => Container(
         border: Border.all(color: corBorda ?? bordaCartao),
         boxShadow: sombraCartao),
     child: filho);
+
+// Bloqueio de recurso premium (plano Free), com atalho pra tela de Planos
+Widget bloqueioPlanoPremium({
+  required String titulo,
+  required String descricao,
+  required IconData icone,
+  required VoidCallback aoTocarUpgrade,
+}) =>
+    Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                  color: roxoIA.withOpacity(0.08), shape: BoxShape.circle),
+              child: Icon(icone, color: roxoIA, size: 34),
+            ),
+            const SizedBox(height: 18),
+            Text(titulo,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(descricao,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white38, fontSize: 13)),
+            const SizedBox(height: 22),
+            GestureDetector(
+              onTap: aoTocarUpgrade,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+                decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [roxoIA, roxoIAClaro]),
+                    borderRadius: BorderRadius.circular(14)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.workspace_premium_rounded,
+                      color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text('Ver planos Premium',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13)),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );

@@ -14,6 +14,9 @@ class Usuario {
     this.plano = 'gratis',
   });
 
+  // Free/gratuito trava recursos premium (IA, relatórios) no app
+  bool get ehPremium => plano.toLowerCase() == 'premium';
+
   //calcula as iniciais a partir de um nome/username qualquer
   static String iniciaisDe(String nomeCompleto) {
     final partes = nomeCompleto.trim().split(RegExp(r'\s+'));

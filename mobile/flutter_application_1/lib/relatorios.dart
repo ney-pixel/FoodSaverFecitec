@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'visual.dart';
 import 'usuario.dart';
 import 'api_cliente.dart';
+import 'planos.dart';
 
 // ─────────────────────────────────────────────
 //  Tela principal de Relatórios
@@ -24,7 +25,7 @@ class _TelaRelatoriosState extends State<TelaRelatorios> {
   @override
   void initState() {
     super.initState();
-    _buscarDados();
+    if (widget.usuario.ehPremium) _buscarDados();
   }
 
   Future<void> _buscarDados() async {
@@ -42,6 +43,25 @@ class _TelaRelatoriosState extends State<TelaRelatorios> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.usuario.ehPremium) {
+      return Column(children: [
+        cabecalhoPagina('Relatórios'),
+        Expanded(
+          child: bloqueioPlanoPremium(
+            titulo: 'Relatórios é um recurso Premium',
+            descricao:
+                'Veja desperdício, taxa de aproveitamento e validades com o plano Premium.',
+            icone: Icons.bar_chart_rounded,
+            aoTocarUpgrade: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        TelaPlanos(planoAtual: widget.usuario.plano))),
+          ),
+        ),
+      ]);
+    }
+
     return Column(
       children: [
         // Cabeçalho com seletor de período
