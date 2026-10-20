@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         "SELECT ga.grupo_id, a.id, a.descricao AS nome, a.quantidade, a.unidade_medida AS unidade
          FROM FS_grupo_alimentos ga
          JOIN FS_alimentos a ON a.id = ga.alimento_id
-         WHERE ga.grupo_id = ?"
+         WHERE ga.grupo_id = ? AND a.data_validade >= CURDATE()"
     );
 
     $resultado = [];

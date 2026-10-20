@@ -11,7 +11,14 @@ require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../ia_config.php';
 
 exigirMetodo(['POST']);
-exigirLogin(); // exige sessão só pra evitar uso indevido da chave por quem não é da aplicação
+$uid = exigirLogin();
+
+// Criação de receita com IA é exclusiva do plano Premium.
+$stmtPlano = $pdo->prepare("SELECT plano FROM FS_usuarios WHERE id = ?");
+$stmtPlano->execute([$uid]);
+if ($stmtPlano->fetchColumn() !== 'premium') {
+    responder(false, 'A criação de receitas com IA é exclusiva do plano Premium. Faça upgrade para desbloquear.', [], 403);
+}
 
 $dados        = corpoRequisicao();
 $ingredientes = $dados['ingredientes'] ?? [];

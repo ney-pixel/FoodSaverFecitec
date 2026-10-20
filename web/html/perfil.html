@@ -370,6 +370,30 @@
       </div>
 
       <div class="compras-list" id="comprasList"></div>
+      <div id="comprasConcluirBar"></div>
+
+      <!-- MODAL: CONCLUIR COMPRAS (informa a validade e joga pro estoque) -->
+      <div class="modal-overlay hidden" id="modalConcluirCompra">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div class="modal-head-title">
+              <div class="modal-head-icon"><i class="bi bi-check-circle-fill"></i></div>
+              <h3>Concluir Compras</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="fecharModalConcluirCompra()"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <form id="formConcluirCompra" onsubmit="submitConcluirCompras(event)">
+            <div class="modal-body">
+              <p class="campo-hint" style="margin:0">Informe a validade de cada item para adicioná-los ao seu estoque.</p>
+              <div id="concluirCompraLista" style="display:flex;flex-direction:column;gap:14px"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-ghost" onclick="fecharModalConcluirCompra()">Cancelar</button>
+              <button type="submit" class="btn-primary"><i class="bi bi-check2"></i> Concluir</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <!-- MODAL: ADICIONAR ITEM À LISTA -->
       <div class="modal-overlay hidden" id="modalCompra">
@@ -470,7 +494,6 @@
           </div>
           <div class="plano-features">
             <div class="feat yes"><i class="bi bi-check-circle-fill"></i> Acesso à Biblioteca de Receitas</div>
-            <div class="feat yes"><i class="bi bi-check-circle-fill"></i> Aparecimento de Anúncios</div>
             <div class="feat no"><i class="bi bi-x-circle-fill"></i> Relatório de Desperdícios</div>
             <div class="feat no"><i class="bi bi-x-circle-fill"></i> Criação de Receitas com IA</div>
           </div>
@@ -487,8 +510,7 @@
             <div class="feat yes"><i class="bi bi-check-circle-fill"></i> Tudo do Free</div>
             <div class="feat yes"><i class="bi bi-check-circle-fill"></i> Criação de Receitas com IA</div>
             <div class="feat yes"><i class="bi bi-check-circle-fill"></i>Relatório de Desperdícios</div>
-            <div class="feat yes"><i class="bi bi-check-circle-fill"></i> Suporte prioritário 24h</div>
-            <div class="feat no"><i class="bi bi-x-circle-fill"></i> Aparecimento de Anúncios</div>
+
           </div>
           <button class="plano-btn upgrade-btn" id="btnPlanoPremium">Fazer Upgrade</button>
         </div>

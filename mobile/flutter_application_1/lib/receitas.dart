@@ -272,9 +272,9 @@ class _SubabaCriarState extends State<_SubabaCriar> {
   int get _totalSelecionados => _ingredientesSelecionados.length;
   List<String> get _nomesSelecionados => _ingredientesSelecionados;
 
-  //alimentos do estoque disponiveis para sugestao em receitas
+  //alimentos do estoque disponiveis para sugestao em receitas (vencidos nao entram)
   List<String> get _alimentosDisponiveis =>
-      widget.estoque.map((a) => a.nome).toList();
+      widget.estoque.where((a) => !a.vencido).map((a) => a.nome).toList();
 
   //sugestoes filtradas a partir do texto digitado (letras ou silabas), ja
   //verificando se o alimento existe no estoque e ainda nao foi selecionado

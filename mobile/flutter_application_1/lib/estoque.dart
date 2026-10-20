@@ -416,7 +416,8 @@ class _TelaEstoqueState extends State<TelaEstoque>
   }
 
   void _abrirDialogoAdicionarAoGrupo(GrupoAlimentos grupo) {
-    final selecionados = List<bool>.generate(_estoque.length, (i) => grupo.alimentos.any((g) => g.id == _estoque[i].id));
+    final disponiveis = _estoque.where((a) => !a.vencido).toList();
+    final selecionados = List<bool>.generate(disponiveis.length, (i) => grupo.alimentos.any((g) => g.id == disponiveis[i].id));
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -428,14 +429,14 @@ class _TelaEstoqueState extends State<TelaEstoque>
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: _estoque.length,
+              itemCount: disponiveis.length,
               itemBuilder: (_, i) => CheckboxListTile(
                 value: selecionados[i],
                 onChanged: (v) => setD(() => selecionados[i] = v ?? false),
                 activeColor: verdePrimario,
                 checkColor: Colors.black,
-                title: Text(_estoque[i].nome, style: const TextStyle(color: Colors.white, fontSize: 13)),
-                subtitle: Text(_estoque[i].quantidadeFormatada, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                title: Text(disponiveis[i].nome, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                subtitle: Text(disponiveis[i].quantidadeFormatada, style: const TextStyle(color: Colors.white38, fontSize: 11)),
               ),
             ),
           ),
@@ -445,7 +446,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
               style: ElevatedButton.styleFrom(backgroundColor: verdePrimario, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () async {
                 final idsAntes = grupo.alimentos.map((a) => a.id).toSet();
-                final idsDepois = {for (int i = 0; i < _estoque.length; i++) if (selecionados[i]) _estoque[i].id};
+                final idsDepois = {for (int i = 0; i < disponiveis.length; i++) if (selecionados[i]) disponiveis[i].id};
                 final paraAdicionar = idsDepois.difference(idsAntes);
                 final paraRemover   = idsAntes.difference(idsDepois);
 

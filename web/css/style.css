@@ -496,17 +496,11 @@ body.fade-out{
 
     padding: 38px 30px;
 
-    background: linear-gradient(
-        180deg,
-        #141B23,
-        #10151B
-    );
+    background: #121820;
 
-    border-radius: 30px;
+    border-radius: 20px;
 
     position: relative;
-
-    overflow: hidden;
 
     display: flex;
     flex-direction: column;
@@ -514,89 +508,21 @@ body.fade-out{
 
     border: 1px solid rgba(255,255,255,0.05);
 
-    transition: 0.4s;
+    transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
 /* CARD CENTRAL */
 
 .destaqueCard{
-    transform: translateY(-12px);
-
-    border-color: rgba(22,219,101,0.15);
-}
-
-/* GLOW */
-
-.cardFood::before{
-    content: "";
-
-    position: absolute;
-
-    width: 220px;
-    height: 220px;
-
-    background: rgba(22,219,101,0.15);
-
-    filter: blur(80px);
-
-    border-radius: 50%;
-
-    top: -120px;
-    right: -100px;
-
-    opacity: 0;
-
-    transition: 0.4s;
-}
-
-/* LINHA TOP */
-
-.cardFood::after{
-    content: "";
-
-    position: absolute;
-
-    top: 0;
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    width: 0%;
-    height: 3px;
-
-    background: #16DB65;
-
-    border-radius: 50px;
-
-    transition: 0.4s;
+    border-color: rgba(22,219,101,0.2);
 }
 
 /* HOVER */
 
-.cards:hover .cardFood{
-    opacity: 0.65;
-
-    transform: scale(0.97);
-}
-
 .cards .cardFood:hover{
-    opacity: 1;
-
-    transform: translateY(-12px) scale(1.02);
+    transform: translateY(-4px);
 
     border-color: rgba(22,219,101,0.25);
-
-    box-shadow:
-    0 20px 40px rgba(0,0,0,0.35),
-    0 0 30px rgba(22,219,101,0.08);
-}
-
-.cards .cardFood:hover::before{
-    opacity: 1;
-}
-
-.cards .cardFood:hover::after{
-    width: 75%;
 }
 
 /* ÍCONE DO CARD */
@@ -730,75 +656,31 @@ body.fade-out{
 /* CARD */
 
 .sobreCard{
-    background: linear-gradient(
-        180deg,
-        #141B23,
-        #10151B
-    );
+    background: #121820;
 
     padding: 42px 36px;
 
-    border-radius: 32px;
+    border-radius: 20px;
 
     border: 1px solid rgba(255,255,255,0.05);
 
     position: relative;
 
-    overflow: hidden;
-
-    transition: 0.4s;
+    transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
 /* CARD CENTRAL */
 
 .destaqueCard{
     border-color: rgba(22,219,101,0.16);
-
-    transform: translateY(-12px);
-}
-
-/* GLOW */
-
-.sobreCard::before{
-    content: "";
-
-    position: absolute;
-
-    width: 260px;
-    height: 260px;
-
-    background: rgba(22,219,101,0.10);
-
-    filter: blur(90px);
-
-    border-radius: 50%;
-
-    top: -140px;
-    right: -120px;
-
-    opacity: 0;
-
-    transition: 0.4s;
 }
 
 /* HOVER */
 
-.sobreGrid:hover .sobreCard{
-    opacity: 0.7;
-
-    transform: scale(0.98);
-}
-
 .sobreGrid .sobreCard:hover{
-    opacity: 1;
-
-    transform: translateY(-12px);
+    transform: translateY(-4px);
 
     border-color: rgba(22,219,101,0.18);
-
-    box-shadow:
-    0 20px 40px rgba(0,0,0,0.35),
-    0 0 30px rgba(22,219,101,0.08);
 }
 
 .sobreGrid .sobreCard:hover::before{
@@ -897,13 +779,9 @@ body.fade-out{
 /* BOX */
 
 .featureBox{
-    background: linear-gradient(
-        180deg,
-        #141B23,
-        #10151B
-    );
+    background: #121820;
 
-    border-radius: 34px;
+    border-radius: 24px;
 
     padding: 80px;
 
@@ -919,41 +797,15 @@ body.fade-out{
 
     position: relative;
 
-    overflow: hidden;
-
-    transition: 0.4s;
-}
-
-/* GLOW */
-
-.featureBox::before{
-    content: "";
-
-    position: absolute;
-
-    width: 400px;
-    height: 400px;
-
-    background: rgba(22,219,101,0.10);
-
-    filter: blur(100px);
-
-    border-radius: 50%;
-
-    top: -180px;
-    right: -120px;
+    transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
 /* HOVER */
 
 .featureBox:hover{
-    transform: translateY(-6px);
+    transform: translateY(-4px);
 
     border-color: rgba(22,219,101,0.18);
-
-    box-shadow:
-    0 20px 40px rgba(0,0,0,0.35),
-    0 0 30px rgba(22,219,101,0.06);
 }
 
 /* TEXTO */
@@ -1156,71 +1008,25 @@ body.fade-out{
 /* CARD */
 
 .stepCard{
-    background: linear-gradient(
-        180deg,
-        #141B23,
-        #10151B
-    );
+    background: #121820;
 
     padding: 45px 38px;
 
-    border-radius: 32px;
+    border-radius: 20px;
 
     position: relative;
 
-    overflow: hidden;
-
     border: 1px solid rgba(255,255,255,0.05);
 
-    transition: 0.4s;
-}
-
-/* GLOW */
-
-.stepCard::before{
-    content: "";
-
-    position: absolute;
-
-    width: 240px;
-    height: 240px;
-
-    background: rgba(22,219,101,0.12);
-
-    filter: blur(90px);
-
-    border-radius: 50%;
-
-    top: -120px;
-    right: -120px;
-
-    opacity: 0;
-
-    transition: 0.4s;
+    transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
 /* HOVER */
 
-.stepsGrid:hover .stepCard{
-    opacity: 0.65;
-
-    transform: scale(0.98);
-}
-
 .stepsGrid .stepCard:hover{
-    opacity: 1;
-
-    transform: translateY(-12px) scale(1.02);
+    transform: translateY(-4px);
 
     border-color: rgba(22,219,101,0.18);
-
-    box-shadow:
-    0 20px 40px rgba(0,0,0,0.35),
-    0 0 30px rgba(22,219,101,0.08);
-}
-
-.stepsGrid .stepCard:hover::before{
-    opacity: 1;
 }
 
 /* NÚMERO */
@@ -1349,13 +1155,9 @@ body.fade-out{
 
     padding: 38px 28px;
 
-    border-radius: 30px;
+    border-radius: 20px;
 
-    background: linear-gradient(
-        180deg,
-        #141B23,
-        #10151B
-    );
+    background: #121820;
 
     display: flex;
     flex-direction: column;
@@ -1365,54 +1167,17 @@ body.fade-out{
 
     border: 1px solid rgba(255,255,255,0.05);
 
-    transition: 0.4s;
+    transition: border-color 0.25s ease, transform 0.25s ease;
 
     position: relative;
-
-    overflow: hidden;
-}
-
-/* BRILHO */
-
-.devCardPadrao::before{
-    content: "";
-
-    position: absolute;
-
-    inset: 0;
-
-    background: radial-gradient(
-        circle at top,
-        rgba(22,219,101,0.12),
-        transparent 60%
-    );
-
-    opacity: 0;
-
-    transition: 0.4s;
 }
 
 /* HOVER */
 
-.devCardsPadrao:hover .devCardPadrao{
-    opacity: 0.65;
-    transform: scale(0.98);
-}
-
 .devCardsPadrao .devCardPadrao:hover{
-    opacity: 1;
-
-    transform: translateY(-12px) scale(1.02);
+    transform: translateY(-4px);
 
     border-color: rgba(22,219,101,0.25);
-
-    box-shadow:
-    0 15px 35px rgba(0,0,0,0.35),
-    0 0 30px rgba(22,219,101,0.08);
-}
-
-.devCardPadrao:hover::before{
-    opacity: 1;
 }
 
 /* IMAGEM */

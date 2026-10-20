@@ -12,9 +12,17 @@ const ESTADO = {
   receitasIA: [],
   compras: [],
   gruposAlimentos: [],
+  minimos: [],
   config: null,
   movimentacoes: null,
 };
+
+// Busca o mínimo definido (FS_minimos_alimento) pro nome de alimento dado,
+// comparação case-insensitive (mesmo critério usado no backend).
+function minimoPorNome(nome) {
+  const chave = (nome || '').trim().toLowerCase();
+  return ESTADO.minimos.find((m) => m.nome_alimento.trim().toLowerCase() === chave);
+}
 
 // Receitas favoritadas: as da biblioteca (catálogo fixo, favorito é uma
 // coluna na própria receita) e as geradas por IA que o usuário salvou
@@ -38,6 +46,9 @@ function classeValidade(dias) {
 function textoValidade(dias) {
   if (dias < 0) return `Vencido há ${Math.abs(dias)} dia(s)`;
   return `Vence em ${dias} dia(s)`;
+}
+function alimentoVencido(a) {
+  return diasValidade(a.validade) < 0;
 }
 function qtdFormatada(valor, unidade) {
   const v = parseFloat(valor);
@@ -64,7 +75,7 @@ function limparMsg(containerId) {
 
 // ── CARREGAMENTO DE DADOS ────────────────────────────────────
 async function carregarTudo() {
-  const [alimentosResp, bibliotecaResp, receitasIAResp, comprasResp, configResp, gAlResp, movResp] = await Promise.all([
+  const [alimentosResp, bibliotecaResp, receitasIAResp, comprasResp, configResp, gAlResp, movResp, minimosResp] = await Promise.all([
     apiFetch('/estoque/listar_alimentos.php'),
     apiFetch('/biblioteca/listar_biblioteca.php'),
     apiFetch('/ia/listar_receitas_ia.php'),
@@ -72,6 +83,7 @@ async function carregarTudo() {
     apiFetch('/configuracoes/listar_configuracoes.php'),
     apiFetch('/grupos/gerenciar_grupo_alimentos.php'),
     apiFetch('/estoque/listar_movimentacoes.php'),
+    apiFetch('/estoque/listar_minimos.php'),
   ]);
   ESTADO.alimentos = alimentosResp.alimentos || [];
   ESTADO.biblioteca = bibliotecaResp.receitas || [];
@@ -80,6 +92,7 @@ async function carregarTudo() {
   ESTADO.config = configResp.configuracoes || null;
   ESTADO.gruposAlimentos = gAlResp.grupos || [];
   ESTADO.movimentacoes = movResp.sucesso ? movResp : null;
+  ESTADO.minimos = minimosResp.minimos || [];
 }
 
 function renderTudo() {
@@ -108,12 +121,30 @@ function renderSidebar() {
 
 // ── NAVEGAÇÃO ENTRE SEÇÕES ───────────────────────────────────
 const SECOES = ['inventario', 'receitas', 'compras', 'grupos', 'planos', 'relatorios', 'config'];
+// Abas exclusivas do plano Premium — usuário Free não acessa nem via hash/URL direta.
+const SECOES_PREMIUM = ['compras', 'grupos', 'relatorios'];
+function ehPremium() {
+  return ESTADO.usuario?.plano === 'premium';
+}
 function mostrarSecao(sec) {
   if (!SECOES.includes(sec)) sec = 'inventario';
+  if (SECOES_PREMIUM.includes(sec) && !ehPremium()) sec = 'inventario';
   SECOES.forEach((s) => document.getElementById(s).classList.toggle('hidden', s !== sec));
   document.querySelectorAll('.nav-item').forEach((el) => el.classList.toggle('active', el.dataset.sec === sec));
   history.replaceState(null, '', `#${sec}`);
   if (window.innerWidth <= 900) toggleSidebar(true);
+}
+// Esconde da sidebar as abas exclusivas do Premium e a subaba "Criar"
+// (receita por IA) de Receitas, pra usuário Free. A navegação (mostrarSecao)
+// já bloqueia o acesso mesmo via hash direta; isso só evita mostrar o link.
+// O bloqueio que vale de verdade é no backend (api/ia/gerar_receita.php).
+function aplicarRestricoesPlano() {
+  const premium = ehPremium();
+  document.querySelectorAll('.nav-item').forEach((el) => {
+    if (SECOES_PREMIUM.includes(el.dataset.sec)) el.classList.toggle('hidden', !premium);
+  });
+  document.querySelector('.rtab-btn[data-rtab="criar"]')?.classList.toggle('hidden', !premium);
+  if (!premium) mudarTabReceita('favoritas');
 }
 function bindNav() {
   document.querySelectorAll('.nav-item').forEach((el) => {
@@ -198,7 +229,7 @@ function abrirModalEdit(id) {
   document.getElementById('invQuantidade').value = it.quantidade;
   document.getElementById('invUnidade').value = it.unidade;
   document.getElementById('invValidade').value = it.validade;
-  document.getElementById('invQtdMinima').value = it.quantidade_minima ?? '';
+  document.getElementById('invQtdMinima').value = minimoPorNome(it.nome)?.quantidade_minima ?? '';
   document.getElementById('modalInv').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -225,6 +256,12 @@ async function submitFormInv(e) {
     resp = await apiFetch('/estoque/cadastrar_alimento.php', { method: 'POST', body: payload });
   }
   if (resp.sucesso) {
+    if (payload.quantidade_minima) {
+      await apiFetch('/estoque/definir_minimo.php', {
+        method: 'POST',
+        body: { nome: payload.nome, unidade: payload.unidade, quantidade_minima: payload.quantidade_minima },
+      });
+    }
     fecharModalInv();
     await carregarTudo();
     renderInventario();
@@ -232,6 +269,7 @@ async function submitFormInv(e) {
     renderConfig();
     renderGruposAlimentos();
     renderCompras();
+    renderReceitas();
     msgFeedback('invMsg', 'ok', resp.mensagem);
   } else {
     msgFeedback('invMsg', 'erro', resp.mensagem || 'Erro ao salvar item.');
@@ -248,6 +286,7 @@ async function excluirAlimento(id) {
     renderConfig();
     renderGruposAlimentos();
     renderCompras();
+    renderReceitas();
   } else {
     msgFeedback('invMsg', 'erro', resp.mensagem || 'Erro ao excluir item.');
   }
@@ -301,6 +340,7 @@ async function submitFormMov(e) {
     renderConfig();
     renderGruposAlimentos();
     renderCompras();
+    renderReceitas();
     msgFeedback('invMsg', 'ok', resp.mensagem);
   } else {
     msgFeedback('invMsg', 'erro', resp.mensagem || 'Erro ao registrar movimentação.');
@@ -329,6 +369,7 @@ function mudarTabReceita(tab) {
 function renderReceitas() {
   renderFavoritas();
   renderBiblioteca();
+  renderIngredientesSelecionadosCriar();
 }
 
 // ── SUBABA: CRIAR (geração por IA a partir do estoque) ──
@@ -346,6 +387,7 @@ function renderSugestoesCriar() {
     return;
   }
   _sugestoesCriarAtual = ESTADO.alimentos
+    .filter((a) => !alimentoVencido(a))
     .map((a) => a.nome)
     .filter((nome) => nome.toLowerCase().includes(busca) && !criarReceitaState.ingredientes.includes(nome));
 
@@ -391,7 +433,7 @@ function selecionarIngredienteCriarPorAlimentoId(id) {
 
 function renderIngredientesDisponiveisCriar() {
   const wrap = document.getElementById('criarIngredientesDisponiveis');
-  const disponiveis = ESTADO.alimentos.filter((a) => !criarReceitaState.ingredientes.includes(a.nome));
+  const disponiveis = ESTADO.alimentos.filter((a) => !alimentoVencido(a) && !criarReceitaState.ingredientes.includes(a.nome));
 
   if (disponiveis.length === 0) {
     wrap.innerHTML = `<p class="ing-mini-empty"><i class="bi bi-info-circle"></i> ${
@@ -691,6 +733,12 @@ function renderCompras() {
       <button type="button" class="inv-btn delete" title="Remover" onclick="removerCompra(${item.id})"><i class="bi bi-trash3-fill"></i></button>
     </div>
   `).join('');
+
+  const nComprados = ESTADO.compras.filter((i) => i.comprado).length;
+  document.getElementById('comprasConcluirBar').innerHTML = nComprados === 0 ? '' : `
+    <button type="button" class="btn-primary" style="width:100%;margin-top:16px" onclick="abrirModalConcluirCompra()">
+      <i class="bi bi-check-circle-fill"></i> Concluir (${nComprados})
+    </button>`;
 }
 
 function abrirModalCompra() {
@@ -723,20 +771,14 @@ async function submitFormCompra(e) {
 }
 
 async function toggleCompra(id) {
+  // Só alterna a marcação de comprado — não mexe no estoque ainda. O item
+  // só entra de fato no inventário quando o usuário confirma em "Concluir"
+  // (ver submitConcluirCompras), informando a validade de cada um.
   const resp = await apiFetch('/compras/editar_compra.php', { method: 'PATCH', body: { id } });
   if (resp.sucesso) {
     const item = ESTADO.compras.find((c) => c.id === id);
-    const ficouComprado = item && !item.comprado;
     if (item) item.comprado = !item.comprado;
     renderCompras();
-    // Marcar como comprado soma a quantidade no estoque (ou cria o item lá);
-    // recarrega o inventário para refletir isso na tela.
-    if (ficouComprado) {
-      const alimentosResp = await apiFetch('/estoque/listar_alimentos.php');
-      ESTADO.alimentos = alimentosResp.alimentos || [];
-      renderInventario();
-      renderRelatorios();
-    }
   }
 }
 
@@ -749,6 +791,53 @@ async function removerCompra(id) {
   }
 }
 
+// Concluir: pega os itens já marcados como comprado, pede a validade de
+// cada um e manda pra /compras/concluir_compras.php, que cria um alimento
+// novo no estoque por item e remove-os da lista (igual ao app mobile).
+function abrirModalConcluirCompra() {
+  const comprados = ESTADO.compras.filter((i) => i.comprado);
+  if (comprados.length === 0) return;
+  document.getElementById('concluirCompraLista').innerHTML = comprados.map((item) => `
+    <div class="form-group">
+      <label><i class="bi bi-box-seam"></i> ${esc(item.nome_alimento)}
+        <span style="color:var(--text-muted);font-weight:400">(${esc(qtdFormatada(item.quantidade, item.unidade_medida))})</span>
+      </label>
+      <input type="date" class="concluir-validade-input" data-id="${item.id}" required>
+    </div>
+  `).join('');
+  limparMsg('compraMsg');
+  document.getElementById('modalConcluirCompra').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function fecharModalConcluirCompra() {
+  document.getElementById('modalConcluirCompra').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+async function submitConcluirCompras(e) {
+  e.preventDefault();
+  const itens = Array.from(document.querySelectorAll('#concluirCompraLista .concluir-validade-input'))
+    .map((inp) => ({ id: parseInt(inp.dataset.id, 10), validade: inp.value }));
+  if (itens.length === 0 || itens.some((it) => !it.validade)) {
+    msgFeedback('compraMsg', 'erro', 'Informe a validade de todos os itens.');
+    return;
+  }
+  const resp = await apiFetch('/compras/concluir_compras.php', { method: 'POST', body: { itens } });
+  if (resp.sucesso) {
+    fecharModalConcluirCompra();
+    await carregarTudo();
+    renderInventario();
+    renderRelatorios();
+    renderConfig();
+    renderGruposAlimentos();
+    renderCompras();
+    renderReceitas();
+    msgFeedback('compraMsg', 'ok', resp.mensagem);
+  } else {
+    msgFeedback('compraMsg', 'erro', resp.mensagem || 'Erro ao concluir as compras.');
+  }
+}
+
 // ══════════════════════════════════════════════════════════════
 // GRUPOS (só de alimentos — grupos de receitas saiu junto com a
 // antiga feature "Minhas Receitas", substituída pela Biblioteca)
@@ -757,11 +846,15 @@ function renderGruposAlimentos() {
   const selGrupo = document.getElementById('selGrupoAlimento');
   const selAlimento = document.getElementById('selAlimentoParaGrupo');
   selGrupo.innerHTML = ESTADO.gruposAlimentos.map((g) => `<option value="${g.id}">${esc(g.nome)}</option>`).join('') || '<option disabled selected>Crie um grupo primeiro</option>';
-  selAlimento.innerHTML = ESTADO.alimentos.map((a) => `<option value="${a.id}">${esc(a.nome)}</option>`).join('') || '<option disabled selected>Nenhum alimento no estoque</option>';
+  const alimentosNaoVencidos = ESTADO.alimentos.filter((a) => !alimentoVencido(a));
+  selAlimento.innerHTML = alimentosNaoVencidos.map((a) => `<option value="${a.id}">${esc(a.nome)}</option>`).join('') || '<option disabled selected>Nenhum alimento disponível</option>';
 
   document.getElementById('gruposAlimentosGrid').innerHTML = ESTADO.gruposAlimentos.map((g) => `
     <div class="grupo-card">
-      <div class="grupo-nome"><i class="bi bi-collection-fill"></i> ${esc(g.nome)}</div>
+      <div class="grupo-card-head">
+        <div class="grupo-nome"><i class="bi bi-collection-fill"></i> ${esc(g.nome)}</div>
+        <button type="button" class="grupo-excluir-btn" title="Excluir grupo" onclick="excluirGrupoAlimentos(${g.id})"><i class="bi bi-trash3"></i></button>
+      </div>
       <div class="grupo-itens">
         ${g.alimentos.map((a) => `<span class="grupo-item-tag">${esc(a.nome)} <button type="button" onclick="removerAlimentoDeGrupo(${g.id},${a.id})" title="Remover do grupo"><i class="bi bi-x-lg"></i></button></span>`).join('') || '<span style="color:var(--text-dim);font-size:12px">Nenhum alimento neste grupo</span>'}
       </div>
@@ -803,6 +896,16 @@ async function removerAlimentoDeGrupo(grupo_id, alimento_id) {
     const r = await apiFetch('/grupos/gerenciar_grupo_alimentos.php');
     ESTADO.gruposAlimentos = r.grupos || [];
     renderGruposAlimentos();
+  }
+}
+async function excluirGrupoAlimentos(grupo_id) {
+  if (!(await abrirConfirm('O grupo e sua organização serão removidos (os alimentos continuam no seu estoque).', { titulo: 'Excluir grupo' }))) return;
+  const resp = await apiFetch('/grupos/excluir_grupo_alimentos.php', { method: 'DELETE', body: { grupo_id } });
+  if (resp.sucesso) {
+    ESTADO.gruposAlimentos = ESTADO.gruposAlimentos.filter((g) => g.id !== grupo_id);
+    renderGruposAlimentos();
+  } else {
+    msgFeedback('grupoMsg', 'erro', resp.mensagem || 'Erro ao excluir grupo.');
   }
 }
 
@@ -1153,6 +1256,7 @@ async function main() {
     return;
   }
   ESTADO.usuario = check.usuario;
+  aplicarRestricoesPlano();
 
   bindNav();
   document.getElementById('formInv').addEventListener('submit', submitFormInv);

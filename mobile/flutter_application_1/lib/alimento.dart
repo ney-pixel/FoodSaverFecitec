@@ -51,6 +51,9 @@ class AlimentoEstoque {
     }
   }
 
+  //true quando a validade já passou (classe_validade == 'danger' no backend)
+  bool get vencido => diasValidade < 0;
+
   //aqui defininfo a cor correspondente ao status
   Color get corStatus {
     switch (status) {
