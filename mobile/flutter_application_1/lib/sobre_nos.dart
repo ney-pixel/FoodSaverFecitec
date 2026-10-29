@@ -24,7 +24,7 @@ class TelaSobreNos extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         children: [
 
-          //headlho
+          //cabecalho
           const SizedBox(height: 12),
           const Center(
             child: Text("Criadores do Projeto",
@@ -73,7 +73,7 @@ class TelaSobreNos extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          //missao nossa
+          //missao
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -132,7 +132,7 @@ class TelaSobreNos extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Foto ou iniciais
+            //foto ou iniciais
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.asset(

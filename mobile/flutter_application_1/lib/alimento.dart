@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-//unidades de mdidas disponivveis
+//unidades de medida
 const List<String> unidadesMedida = [
   'g', 'kg', 'ml', 'L', 'unid.', 'cx.', 'pct.', 'porção',
 ];
@@ -10,10 +10,10 @@ class AlimentoEstoque {
   final String nome;
   final double quantidade;
   final String unidade;
-  final String validade; // formato ISO (yyyy-MM-dd), como vem da API
+  final String validade;
   final int diasValidade;
-  final String status; // 'Urgente' | 'Atenção' | 'OK' (derivado de classe_validade)
-  final String textoValidade; // ex: "Vence em 3 dia(s)" / "Vencido há 2 dia(s)"
+  final String status;
+  final String textoValidade;
 
   const AlimentoEstoque({
     required this.id,
@@ -26,7 +26,7 @@ class AlimentoEstoque {
     this.textoValidade = '',
   });
 
-  //monta um AlimentoEstoque a partir do JSON de estoque/listar_alimentos.php
+  //JSON -> objeto
   factory AlimentoEstoque.fromJson(Map<String, dynamic> json) {
     return AlimentoEstoque(
       id: '${json['id']}',
@@ -51,10 +51,10 @@ class AlimentoEstoque {
     }
   }
 
-  //true quando a validade já passou (classe_validade == 'danger' no backend)
+  //vencido
   bool get vencido => diasValidade < 0;
 
-  //aqui defininfo a cor correspondente ao status
+  //cor do status
   Color get corStatus {
     switch (status) {
       case 'Urgente': return const Color(0xFFFF4444);
@@ -63,7 +63,7 @@ class AlimentoEstoque {
     }
   }
 
-  //aqui tira o .0 qunado é inteiro
+  //quantidade formatada
   String get quantidadeFormatada {
     final v = quantidade == quantidade.truncateToDouble()
         ? quantidade.toInt().toString()
@@ -71,15 +71,14 @@ class AlimentoEstoque {
     return '$v $unidade';
   }
 
-  //converte a validade ISO (yyyy-MM-dd) pra dd/mm/yyyy, usado ao editar
+  //validade em dd/mm/aaaa
   String get validadeFormatadaBr {
     final partes = validade.split('-');
     if (partes.length != 3) return validade;
     return '${partes[2]}/${partes[1]}/${partes[0]}';
   }
 
-  //escolhe um icone com base em palavras-chave no nome do alimento
-  //(nao depende mais de categoria, que foi removida do cadastro)
+  //icone pelo nome
   static IconData iconePorNome(String nome) {
     final n = nome.toLowerCase();
     const mapa = <List<String>, IconData>{
@@ -103,15 +102,13 @@ class AlimentoEstoque {
   }
 }
 
-// Quantidade mínima definida por NOME de alimento (não por lote/id do
-// estoque) — por isso dá pra definir um mínimo mesmo pra algo que ainda
-// não está cadastrado no estoque. Vem de api/estoque/listar_minimos.php.
+//quantidade minima
 class MinimoAlimento {
   final String id;
   final String nome;
   final String unidade;
   final double quantidadeMinima;
-  final double quantidadeAtual; // soma de todos os lotes desse nome no estoque
+  final double quantidadeAtual;
   final bool abaixoDoMinimo;
 
   const MinimoAlimento({

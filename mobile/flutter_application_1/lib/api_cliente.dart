@@ -1,10 +1,4 @@
-// Cliente HTTP central para conversar com a API PHP (FoodSaverFecitec/api).
-//
-// A API usa sessão PHP (cookie), não token: o login cria a sessão no
-// servidor e devolve um "Set-Cookie" com o PHPSESSID, que precisa ser
-// reenviado em toda requisição seguinte para o servidor saber quem
-// somos. Aqui guardamos esse cookie em memória e no SharedPreferences,
-// para o usuário continuar logado mesmo depois de fechar o app.
+//conexao com a API
 
 import 'dart:async';
 import 'dart:convert';
@@ -14,9 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'http_cliente_web.dart' if (dart.library.io) 'http_cliente_nativo.dart'
     as plataforma;
 
-/// Erro de comunicação com a API: tanto falhas de rede/timeout quanto
-/// respostas de negócio com "sucesso": false (ex: senha incorreta,
-/// validação, sessão expirada etc).
+//erro da API
 class ApiException implements Exception {
   final String mensagem;
   final int? statusHttp;
@@ -31,28 +23,9 @@ class ApiException implements Exception {
 class ApiCliente {
   ApiCliente._();
 
-  // ─────────────────────────────────────────────
-  // Endereço onde a API PHP (pasta api/) está rodando.
-  //
-  // Para a apresentação do TCC: a API roda localmente na mesma máquina
-  // via `php -S localhost:8000` (executado na raiz do projeto, onde fica
-  // a pasta api/), enquanto o banco MySQL continua no servidor da escola
-  // (143.106.241.4) — só a API PHP em si é local.
-  //
-  // "localhost" aqui só funciona quando o Flutter roda NA MESMA MÁQUINA
-  // que o `php -S` (Windows desktop, Chrome/web, ou um emulador que
-  // mapeie localhost do host — o Android Studio/emulador Android padrão
-  // NÃO conta: nele "localhost" aponta pro próprio emulador, então seria
-  // preciso trocar para 'http://10.0.2.2:8000/api'; em um celular físico
-  // na mesma rede Wi-Fi, use o IP local da máquina, ex. 'http://192.168.x.x:8000/api').
-  // ─────────────────────────────────────────────
+  //endereco da API
   static const String baseUrl = 'http://localhost:8000/api';
 
-  // No navegador (Flutter Web), JS não consegue ler "Set-Cookie" nem
-  // escrever "Cookie" manualmente — é o próprio navegador que guarda e
-  // reenvia o cookie de sessão, desde que o cliente HTTP peça pra incluir
-  // credenciais (ver http_cliente_web.dart). Por isso todo o controle
-  // manual de cookie abaixo só roda fora da Web.
   static final http.Client _cliente = plataforma.criarClienteHttp();
 
   static const _chaveCookie = 'foodsaver_cookie_sessao';
@@ -82,7 +55,6 @@ class ApiCliente {
     if (kIsWeb) return;
     final setCookie = resposta.headers['set-cookie'];
     if (setCookie == null || setCookie.isEmpty) return;
-    // O header pode vir com atributos (Path=/, HttpOnly...): guardamos só o par nome=valor.
     final parPrincipal = setCookie.split(';').first.trim();
     if (parPrincipal.isNotEmpty) {
       _salvarCookie(parPrincipal);
@@ -106,8 +78,7 @@ class ApiCliente {
     final cookieAtual = _cookie;
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      // No navegador, "Cookie" é um header proibido pro JS setar — quem
-      // cuida disso é o próprio navegador (ver withCredentials no cliente web).
+      //cookie de login
       if (!kIsWeb && cookieAtual != null) 'Cookie': cookieAtual,
     };
     final corpoJson = corpo != null ? jsonEncode(corpo) : null;
@@ -209,16 +180,10 @@ class ApiCliente {
           {Map<String, dynamic>? corpo}) =>
       _requisitar('DELETE', caminho, corpo: corpo);
 
-  /// Apaga o cookie de sessão salvo localmente (usado no logout).
+  //logout local
   static Future<void> encerrarSessaoLocal() => _salvarCookie(null);
 
-  /// Se existe um cookie de sessão salvo de uma vez anterior.
-  /// Não garante que o servidor ainda considera essa sessão válida —
-  /// use check_login.php para confirmar.
-  ///
-  /// No Web não há como saber isso localmente (o navegador guarda o
-  /// cookie, não o Dart) — sempre retorna true pra deixar quem chamar
-  /// tentar check_login.php e o navegador decidir se manda o cookie.
+  //tem sessao salva
   static Future<bool> temSessaoSalva() async {
     if (kIsWeb) return true;
     await _carregarCookie();

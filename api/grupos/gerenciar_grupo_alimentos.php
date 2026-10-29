@@ -1,8 +1,5 @@
 <?php
-// Gerencia os grupos de alimentos do usuário logado:
-//   GET    -> lista os grupos com seus alimentos
-//   POST   -> adiciona um alimento a um grupo
-//   DELETE -> remove um alimento de um grupo
+//grupos de alimentos: GET lista, POST adiciona, DELETE remove
 
 require_once __DIR__ . '/../helpers.php';
 

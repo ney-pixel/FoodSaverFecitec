@@ -1,14 +1,5 @@
 <?php
-// Conclui uma ou mais compras: pega os itens da lista que o usuário já
-// marcou como "comprado" e, pra cada um, cria um alimento novo no estoque
-// com a validade informada — depois remove o item da lista de compras
-// (seu papel ali já foi cumprido).
-//
-// Diferente de editar_compra.php (PATCH), que só alterna a marcação de
-// comprado, aqui é onde a quantidade de fato entra no inventário. Cada
-// item vira um alimento novo (não soma num existente): igual ao
-// cadastro manual em estoque.php, nomes iguais com validades diferentes
-// são lotes diferentes, de propósito.
+//concluir compras (itens comprados vao para o estoque)
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -22,7 +13,7 @@ if (!is_array($itens) || empty($itens)) {
     responder(false, 'Selecione ao menos um item comprado para concluir.', [], 422);
 }
 
-// Valida o formato de todos os itens antes de mexer no banco.
+//validacao dos itens
 $itensValidados = [];
 foreach ($itens as $it) {
     $id       = (int) ($it['id'] ?? 0);
@@ -53,10 +44,6 @@ try {
         $stmtBusca->execute([$it['id'], $uid]);
         $item = $stmtBusca->fetch();
         if (!$item) {
-            // Item não existe, não é do usuário, ou não está marcado como
-            // comprado — ignora em vez de falhar o lote inteiro (pode ter
-            // sido desmarcado/removido em outra aba entre a abertura do
-            // diálogo e a confirmação).
             continue;
         }
 

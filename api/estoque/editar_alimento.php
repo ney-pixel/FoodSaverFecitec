@@ -1,7 +1,5 @@
 <?php
-// Edita um alimento existente do usuário logado.
-// A quantidade mínima não é editada aqui — vive em FS_minimos_alimento,
-// por nome, independente do estoque (ver api/estoque/definir_minimo.php).
+//editar alimento
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -30,7 +28,6 @@ $stmt = $pdo->prepare(
 $stmt->execute([$nome, $quantidade, $unidade, $validade, $id, $uid]);
 
 if ($stmt->rowCount() === 0) {
-    // Pode não ter mudado nenhum valor; confirma se o item existe e pertence ao usuário
     $chk = $pdo->prepare("SELECT id FROM FS_alimentos WHERE id = ? AND usuario_id = ?");
     $chk->execute([$id, $uid]);
     if (!$chk->fetch()) {

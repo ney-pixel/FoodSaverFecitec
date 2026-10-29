@@ -5,13 +5,7 @@ import 'lista_compras.dart';
 import 'alimento.dart';
 import 'api_cliente.dart';
 
-// A API já sincroniza a lista de compras sozinha: toda vez que
-// listar_compras.php é chamado, ela compara a quantidade mínima de
-// cada alimento (FS_minimos_alimento, por nome — ver aba Mínimos) com o
-// estoque atual e cria/remove automaticamente os itens "automáticos" da
-// lista. Por isso não existe mais uma etapa client-side separada de
-// "itens faltantes" — os itens automáticos já vêm prontos na própria
-// lista, só marcados com um selo "Automático".
+//tela lista de compras
 class TelaListaCompras extends StatefulWidget {
   final Usuario usuario;
   const TelaListaCompras({super.key, required this.usuario});
@@ -46,9 +40,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     super.dispose();
   }
 
-  // Toda vez que sai da aba "Mínimos" de volta pra "Lista", recarrega a
-  // lista — definir/editar um mínimo pode ter mudado (ou criado/removido)
-  // um item automático nela.
+  //recarrega ao trocar de aba
   void _aoTrocarSubaba() {
     final atual = _controladorSubabas.index;
     if (atual != _abaAnterior) {
@@ -59,6 +51,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     }
   }
 
+  //carregar tudo
   Future<void> _carregarTudo() async {
     setState(() { _carregando = true; _erro = null; });
     try {
@@ -69,6 +62,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     }
   }
 
+  //API: listar compras
   Future<void> _carregarLista() async {
     final resp = await ApiCliente.get('/compras/listar_compras.php');
     final lista = (resp['lista_compras'] as List)
@@ -77,6 +71,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     if (mounted) setState(() => _listaCompras = lista);
   }
 
+  //API: listar estoque
   Future<void> _carregarEstoque() async {
     final resp = await ApiCliente.get('/estoque/listar_alimentos.php');
     final lista = (resp['alimentos'] as List)
@@ -85,6 +80,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     if (mounted) setState(() => _estoque = lista);
   }
 
+  //API: listar minimos
   Future<void> _carregarMinimos() async {
     final resp = await ApiCliente.get('/estoque/listar_minimos.php');
     final lista = (resp['minimos'] as List)
@@ -110,7 +106,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
   String _formatarIso(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  // ── Diálogos: item da lista ─────────────────────
+  //dialogo adicionar item
 
   void _abrirDialogoAdicionarItem() {
     final ctrlNome = TextEditingController();
@@ -258,20 +254,18 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // Só alterna a marcação de comprado — não mexe no estoque ainda. O
-  // alimento só entra de fato no inventário quando o usuário confirma em
-  // "Concluir" (ver _abrirDialogoConcluir), informando a validade.
+  //marcar como comprado
   Future<void> _alternarComprado(ItemListaCompras item) async {
-    setState(() => item.comprado = !item.comprado); // otimista
+    setState(() => item.comprado = !item.comprado);
     try {
       await ApiCliente.patch('/compras/editar_compra.php', corpo: {'id': int.parse(item.id)});
     } on ApiException catch (e) {
-      setState(() => item.comprado = !item.comprado); // desfaz
+      setState(() => item.comprado = !item.comprado);
       _mostrarErro(e.mensagem);
     }
   }
 
-  // ── Diálogo: concluir compras marcadas ────────────
+  //dialogo concluir compras
 
   void _abrirDialogoConcluir() {
     final pendentes = _listaCompras.where((i) => i.comprado).toList();
@@ -393,8 +387,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // ── Diálogo: quantidade mínima por alimento (por nome, não por lote —
-  // pode ser um alimento que nem está no estoque ainda) ─────────
+  //dialogo quantidade minima
 
   void _abrirDialogoMinimo({MinimoAlimento? edicao}) {
     final ctrlNome = TextEditingController(text: edicao?.nome ?? '');
@@ -408,8 +401,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     String? erroNome, erroQtd;
     bool enviando = false;
 
-    // Sugestões: nomes já usados no estoque que ainda não têm mínimo —
-    // um atalho, mas o campo aceita qualquer nome digitado.
+    //sugestoes de nomes
     final vistos = <String>{};
     final sugestoes = <AlimentoEstoque>[];
     if (edicao == null) {
@@ -515,7 +507,6 @@ class _TelaListaComprasState extends State<TelaListaCompras>
     );
   }
 
-  // ── Widgets auxiliares de diálogo ─────────────
 
   Widget _campo(String hint, IconData icone, TextEditingController ctrl, {TextInputType tipo = TextInputType.text, String? erro}) =>
       TextField(
@@ -548,7 +539,6 @@ class _TelaListaComprasState extends State<TelaListaCompras>
         ),
       );
 
-  // ── Build ──────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -644,9 +634,7 @@ class _TelaListaComprasState extends State<TelaListaCompras>
       );
 }
 
-// ─────────────────────────────────────────────
-//  Subaba: Lista de Compras
-// ─────────────────────────────────────────────
+//subaba lista de compras
 class _SubabaLista extends StatelessWidget {
   final List<ItemListaCompras> itens;
   final int nComprados;
@@ -768,9 +756,7 @@ class _SubabaLista extends StatelessWidget {
                 ),
         ),
 
-        // Só aparece quando há algo marcado como comprado: é o que
-        // efetivamente joga a quantidade comprada pro estoque (pedindo a
-        // validade de cada item antes).
+        //botao de concluir
         if (nComprados > 0)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
@@ -797,7 +783,7 @@ class _SubabaLista extends StatelessWidget {
   }
 }
 
-// Cartão de item da lista
+//cartao do item
 class _CartaoItemLista extends StatelessWidget {
   final ItemListaCompras item;
   final void Function(ItemListaCompras) aoEditar;
@@ -878,9 +864,7 @@ class _CartaoItemLista extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Subaba: Mínimos (por NOME de alimento — não precisa estar no estoque)
-// ─────────────────────────────────────────────
+//subaba minimos
 class _SubabaMinimos extends StatelessWidget {
   final List<MinimoAlimento> minimos;
   final VoidCallback aoNovoMinimo;

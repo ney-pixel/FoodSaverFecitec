@@ -1,11 +1,5 @@
 <?php
-// Cria, edita ou remove uma "quantidade mínima" — vinculada ao NOME do
-// alimento (FS_minimos_alimento), não a um lote específico do estoque.
-// Por isso o usuário pode definir um mínimo pra algo que ainda nem está
-// cadastrado em FS_alimentos.
-//
-//   POST/PUT -> cria (sem "id") ou edita (com "id") um mínimo
-//   DELETE   -> remove um mínimo pelo "id"
+//definir quantidade minima
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -58,8 +52,7 @@ if ($id) {
     responder(true, 'Mínimo atualizado!', ['id' => $id]);
 }
 
-// Criação: evita duplicar o mínimo do mesmo alimento (comparação
-// case-insensitive) — se já existir um, atualiza em vez de criar outro.
+//evita minimo duplicado
 $existente = $pdo->prepare(
     "SELECT id FROM FS_minimos_alimento WHERE usuario_id = ? AND LOWER(TRIM(nome_alimento)) = LOWER(TRIM(?))"
 );

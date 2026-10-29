@@ -49,6 +49,7 @@ class _TelaLoginState extends State<TelaLogin>
     return erros.isEmpty;
   }
 
+  //login
   Future<void> _entrar() async {
     if (!_validarFormulario()) return;
 

@@ -1,7 +1,5 @@
 <?php
-// Lista as receitas geradas por IA que o usuário logado favoritou
-// (a existência da linha em FS_receitas_ia já significa "favoritada" —
-// ver ia/favoritar_receita_ia.php).
+//listar receitas da IA favoritadas
 
 require_once __DIR__ . '/../helpers.php';
 

@@ -32,6 +32,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     verdePrimario,
   ];
 
+  //filtro por status e busca
   List<AlimentoEstoque> get _alimentosFiltrados {
     var lista = _indiceFiltroStatus == 0
         ? _estoque
@@ -48,6 +49,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
   }
 
   @override
+  //ao abrir a tela
   void initState() {
     super.initState();
     _controladorSubabas = TabController(length: 2, vsync: this);
@@ -63,6 +65,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     super.dispose();
   }
 
+  //carregar tudo
   Future<void> _carregarTudo() async {
     setState(() { _carregando = true; _erro = null; });
     try {
@@ -73,6 +76,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     }
   }
 
+  //API: listar alimentos
   Future<void> _carregarEstoque() async {
     final resp = await ApiCliente.get('/estoque/listar_alimentos.php');
     final lista = (resp['alimentos'] as List)
@@ -81,6 +85,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     if (mounted) setState(() => _estoque = lista);
   }
 
+  //API: listar grupos
   Future<void> _carregarGrupos() async {
     final resp = await ApiCliente.get('/grupos/gerenciar_grupo_alimentos.php');
     final lista = (resp['grupos'] as List)
@@ -106,7 +111,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     );
   }
 
-  //dialogue para adicionar
+  //dialogo adicionar/editar alimento
   void _abrirDialogoAdicionarAlimento({AlimentoEstoque? edicao}) {
     final ctrlNome       = TextEditingController(text: edicao?.nome ?? '');
     final ctrlQuantidade = TextEditingController(
@@ -269,8 +274,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
     );
   }
 
-  // Registra consumo ou desperdício de parte (ou todo) do item — é o que
-  // alimenta os relatórios de aproveitamento/desperdício.
+  //dialogo consumo/desperdicio
   void _abrirDialogoMovimentar(AlimentoEstoque item) {
     final ctrlQtd = TextEditingController();
     String tipo = 'consumo';
@@ -628,7 +632,7 @@ class _TelaEstoqueState extends State<TelaEstoque>
       );
 }
 
-//subaba de alimnetos
+//subaba alimentos
 class _SubabaAlimentos extends StatelessWidget {
   final List<AlimentoEstoque> alimentos;
   final List<AlimentoEstoque> totalEstoque;
@@ -662,7 +666,7 @@ class _SubabaAlimentos extends StatelessWidget {
 
     return Column(
       children: [
-        // Busca
+        //busca
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Container(
@@ -688,7 +692,7 @@ class _SubabaAlimentos extends StatelessWidget {
           ),
         ),
 
-        // Estatísticas
+        //estatisticas
         Container(
           margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -701,7 +705,7 @@ class _SubabaAlimentos extends StatelessWidget {
           ]),
         ),
 
-        //filtarr por status
+        //filtro por status
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -733,12 +737,7 @@ class _SubabaAlimentos extends StatelessWidget {
           child: alimentos.isEmpty
               ? _vazio(controladorBusca.text)
               : Builder(builder: (context) {
-                  // Agrupa por nome (ignorando maiúsculas/minúsculas) porque o
-                  // mesmo alimento pode ter vários lotes com validades
-                  // diferentes (ex.: comprou mais carne, mas venceu num dia
-                  // distinto do que já tinha) — cada lote continua sendo uma
-                  // linha própria no banco (necessário pros relatórios), só a
-                  // exibição é que agrupa.
+                  //lista de alimentos
                   final grupos = _agruparPorNome(alimentos);
                   return ListView.separated(
                     physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -758,8 +757,7 @@ class _SubabaAlimentos extends StatelessWidget {
     );
   }
 
-  // Junta os lotes de mesmo nome (case-insensitive) em um só grupo, mantendo
-  // a ordem de primeira aparição na lista original.
+  //agrupar por nome
   List<_GrupoAlimento> _agruparPorNome(List<AlimentoEstoque> lista) {
     final mapa = <String, _GrupoAlimento>{};
     for (final item in lista) {
@@ -794,7 +792,7 @@ class _SubabaAlimentos extends StatelessWidget {
   Widget _div() => Container(width: 0.5, height: 26, color: bordaCartao);
 }
 
-//cartao do aliimento
+//cartao do alimento
 class _CartaoAlimento extends StatelessWidget {
   final AlimentoEstoque item;
   final void Function(AlimentoEstoque) aoEditar;
@@ -868,15 +866,13 @@ class _CartaoAlimento extends StatelessWidget {
         child: Icon(icone, size: 12, color: cor));
 }
 
-// Vários lotes do mesmo alimento (mesmo nome, ignorando maiúsculas/minúsculas)
-// com validades possivelmente diferentes — cada AlimentoEstoque aqui
-// continua sendo a linha própria dele no banco; isso só existe pra exibição.
+//grupo de lotes do mesmo alimento
 class _GrupoAlimento {
-  final String nome; // nome de exibição (do primeiro lote encontrado)
+  final String nome;
   final List<AlimentoEstoque> lotes;
   _GrupoAlimento({required this.nome, required this.lotes});
 
-  // pior status entre os lotes manda no destaque do card (Urgente > Atenção > OK)
+  //pior status
   String get status {
     if (lotes.any((l) => l.status == 'Urgente')) return 'Urgente';
     if (lotes.any((l) => l.status == 'Atenção')) return 'Atenção';
@@ -891,12 +887,11 @@ class _GrupoAlimento {
     }
   }
 
-  // o lote que vence primeiro — é o texto de validade mostrado no resumo
+  //lote que vence primeiro
   AlimentoEstoque get loteMaisProximo =>
       lotes.reduce((a, b) => a.diasValidade <= b.diasValidade ? a : b);
 
-  // Soma por unidade (não dá pra somar kg com unidade sem converter, então
-  // se houver mistura de unidades entre os lotes, mostra cada uma separada).
+  //soma por unidade
   String get quantidadeFormatada {
     final porUnidade = <String, double>{};
     for (final l in lotes) {
@@ -908,13 +903,12 @@ class _GrupoAlimento {
     }).join(' + ');
   }
 
-  // lotes do mais próximo de vencer para o mais distante
+  //lotes por validade
   List<AlimentoEstoque> get lotesOrdenados =>
       [...lotes]..sort((a, b) => a.diasValidade.compareTo(b.diasValidade));
 }
 
-// Card de resumo para quando há mais de um lote do mesmo alimento — mostra o
-// total e o vencimento mais próximo; tocar abre o detalhe com cada lote.
+//cartao de varios lotes
 class _CartaoGrupoAlimento extends StatelessWidget {
   final _GrupoAlimento grupo;
   final void Function(AlimentoEstoque) aoEditar;
@@ -980,9 +974,7 @@ class _CartaoGrupoAlimento extends StatelessWidget {
     );
   }
 
-  // Lista cada lote individualmente (mesmo card de sempre, com as mesmas
-  // ações) — fecha este painel antes de abrir qualquer diálogo de
-  // editar/mover/excluir pra não ficar com dado desatualizado na tela.
+  //detalhe dos lotes
   void _abrirDetalheLotes(BuildContext context) {
     showModalBottomSheet(
       context: context,

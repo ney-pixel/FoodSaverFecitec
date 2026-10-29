@@ -32,6 +32,7 @@ class _TelaConfigState extends State<TelaConfig> {
     _carregarConfiguracoes();
   }
 
+  //API: carregar configuracoes
   Future<void> _carregarConfiguracoes() async {
     setState(() { _carregando = true; _erro = null; });
     try {
@@ -63,19 +64,20 @@ class _TelaConfigState extends State<TelaConfig> {
     );
   }
 
+  //API: salvar preferencia
   Future<void> _salvarPreferencia(Map<String, dynamic> corpo) async {
     try {
       await ApiCliente.post('/configuracoes/atualizar_configuracoes.php', corpo: corpo);
     } on ApiException catch (e) {
       _mostrarErro(e.mensagem);
-      await _carregarConfiguracoes(); // reverte visualmente em caso de erro
+      await _carregarConfiguracoes();
     }
   }
 
   void _editarCampoTexto({
     required String titulo,
     required String valorAtual,
-    required String campo, // 'username' ou 'email'
+    required String campo,
     TextInputType? tipoTeclado,
   }) {
     final ctrl = TextEditingController(text: valorAtual);
@@ -184,7 +186,7 @@ class _TelaConfigState extends State<TelaConfig> {
         isDense: true,
       );
 
-  // FS_usuarios.plano é um ENUM('gratuito','premium') no banco.
+  //nome do plano
   String get _rotuloPlano => switch (_plano.toLowerCase()) {
         'gratuito' || 'gratis' || '' => 'Plano Grátis',
         'premium' => 'Plano Premium',
@@ -289,7 +291,7 @@ class _TelaConfigState extends State<TelaConfig> {
 
               const SizedBox(height: 20),
 
-              //notific.
+              //notificacoes
               rotuloSecao("Notificações"),
               const SizedBox(height: 10),
               _itemToggle(
@@ -325,7 +327,7 @@ class _TelaConfigState extends State<TelaConfig> {
 
               const SizedBox(height: 20),
 
-              //quitar
+              //sair
               GestureDetector(
                 onTap: () => _confirmarSaida(context),
                 child: Container(
@@ -409,7 +411,6 @@ class _TelaConfigState extends State<TelaConfig> {
               try {
                 await ApiCliente.post('/usuarios/logout.php');
               } on ApiException catch (_) {
-                // Mesmo se der erro no servidor, ainda limpamos a sessão local.
               }
               await ApiCliente.encerrarSessaoLocal();
               if (!context.mounted) return;

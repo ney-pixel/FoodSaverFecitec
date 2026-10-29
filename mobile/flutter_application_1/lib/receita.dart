@@ -1,6 +1,6 @@
 
 class Receita {
-  int id; // mutável só pra receitas geradas por IA: começa em 0 e vira o id real ao favoritar
+  int id;
   final String nome;
   final String descricao;
   final String categoria;
@@ -14,7 +14,7 @@ class Receita {
   final List<String> ingredientesNecessarios;
   final List<String> preparo;
   final List<String> dicas;
-  final bool geradaPorIA; // true = veio de ia/gerar_receita.php (não da biblioteca) — favoritar salva em FS_receitas_ia; não dá pra agrupar
+  final bool geradaPorIA;
 
   Receita({
     required this.id,
@@ -34,8 +34,7 @@ class Receita {
     this.geradaPorIA = false,
   });
 
-  //monta uma receita a partir do JSON de biblioteca/listar_biblioteca.php
-  //ou de ia/gerar_receita.php (mesmo formato, mas sem id real)
+  //JSON -> objeto
   factory Receita.fromJson(Map<String, dynamic> json) {
     List<String> lista(dynamic v) =>
         (v as List?)?.map((e) => e.toString()).toList() ?? [];
@@ -59,8 +58,7 @@ class Receita {
   }
 }
 
-// Grupo de receitas da biblioteca (biblioteca/criar_grupo_biblioteca.php +
-// gerenciar_grupo_biblioteca.php).
+//grupo de receitas
 class GrupoReceitas {
   final String id;
   final String nome;

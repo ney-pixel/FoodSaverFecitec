@@ -1,6 +1,5 @@
 <?php
-// Conexão com o banco de dados via PDO (prepared statements nativos).
-// Mesmas credenciais/host/banco usados anteriormente com mysqli.
+//conexao com o banco
 
 $host   = "143.106.241.4";
 $usuario = "cl204211";

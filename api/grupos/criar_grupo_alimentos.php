@@ -1,5 +1,5 @@
 <?php
-// Cria um grupo de alimentos para o usuário logado.
+//criar grupo de alimentos
 
 require_once __DIR__ . '/../helpers.php';
 

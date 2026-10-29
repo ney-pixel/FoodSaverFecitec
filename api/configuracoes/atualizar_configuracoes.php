@@ -1,9 +1,5 @@
 <?php
-// Atualiza as configurações do usuário logado: nome/e-mail (FS_usuarios),
-// modo claro/escuro e alertas de validade (FS_configuracoes), e,
-// opcionalmente, a senha (mesmas validações do antigo "alterar_senha").
-//
-// Cada bloco de dados é atualizado somente se enviado na requisição.
+//atualizar configuracoes do usuario
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -13,7 +9,7 @@ $uid = exigirLogin();
 $dados = corpoRequisicao();
 $resultado = [];
 
-// ── PERFIL (nome/e-mail) ──────────────────────────────────
+//nome e e-mail
 if (array_key_exists('username', $dados) || array_key_exists('email', $dados)) {
     $stmtAtual = $pdo->prepare("SELECT nome_usuario, email FROM FS_usuarios WHERE id = ?");
     $stmtAtual->execute([$uid]);
@@ -41,7 +37,7 @@ if (array_key_exists('username', $dados) || array_key_exists('email', $dados)) {
     $resultado['perfil'] = 'atualizado';
 }
 
-// ── SENHA ──────────────────────────────────────────────────
+//senha
 if (array_key_exists('senha_nova', $dados)) {
     $senhaAtual = trim($dados['senha_atual'] ?? '');
     $senhaNova  = trim($dados['senha_nova'] ?? '');
@@ -68,7 +64,7 @@ if (array_key_exists('senha_nova', $dados)) {
     $resultado['senha'] = 'atualizada';
 }
 
-// ── PREFERÊNCIAS (modo claro/escuro, alertas de validade) ───
+//modo claro/escuro e alertas
 if (array_key_exists('modo_tela', $dados) || array_key_exists('alertas_validade', $dados)) {
     $stmtCfg = $pdo->prepare("SELECT usuario_id, modo_tela, alertas_validade FROM FS_configuracoes WHERE usuario_id = ?");
     $stmtCfg->execute([$uid]);

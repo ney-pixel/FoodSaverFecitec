@@ -1,14 +1,4 @@
--- Receitas geradas por IA que o usuário escolheu favoritar.
---
--- Diferente de FS_biblioteca_receitas (catálogo fixo, compartilhado por
--- todos os usuários), aqui cada linha pertence a UM usuário (tem
--- usuario_id) e só existe porque ele favoritou a receita gerada — a
--- geração em si (ia/gerar_receita.php) não salva nada, só quando o
--- usuário aperta "favoritar" é que a receita é persistida aqui.
---
--- Por isso não precisa de uma tabela de favoritos separada: a própria
--- existência da linha já significa "favoritada". Desfavoritar = apagar
--- a linha (ia/favoritar_receita_ia.php).
+-- tabela das receitas da IA favoritadas
 
 CREATE TABLE IF NOT EXISTS FS_receitas_ia (
   id INT NOT NULL AUTO_INCREMENT,

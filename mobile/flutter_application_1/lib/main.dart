@@ -27,9 +27,6 @@ class AplicativoFoodSaver extends StatelessWidget {
               secondary: verdePrimario,
               surface: cartaoEscuro,
             ),
-        // Ripple/realce sutis na cor da marca — dá feedback tátil
-        // consistente em toda ação (botões, abas, itens de lista) sem
-        // precisar mexer em cada tela.
         splashColor: verdePrimario.withOpacity(0.08),
         highlightColor: verdePrimario.withOpacity(0.04),
         progressIndicatorTheme: const ProgressIndicatorThemeData(color: verdePrimario),
@@ -52,9 +49,7 @@ class AplicativoFoodSaver extends StatelessWidget {
   }
 }
 
-// Decide, ao abrir o app, se já existe uma sessão válida (cookie salvo
-// de um login anterior) — se sim, pula direto pra Home; senão, cai no
-// fluxo de cadastro/login normal.
+//tela inicial (verifica login)
 class TelaInicial extends StatefulWidget {
   const TelaInicial({super.key});
 
@@ -92,7 +87,7 @@ class _TelaInicialState extends State<TelaInicial> {
         MaterialPageRoute(builder: (_) => TelaHome(usuario: usuario)),
       );
     } catch (_) {
-      // Sessão expirada/inválida: limpa o cookie salvo e segue pro cadastro/login.
+      //sessao expirada
       await ApiCliente.encerrarSessaoLocal();
       _irParaCadastro();
     }

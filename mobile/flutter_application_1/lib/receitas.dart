@@ -42,6 +42,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     super.dispose();
   }
 
+  //carregar tudo
   Future<void> _carregarTudo() async {
     setState(() { _carregando = true; _erro = null; });
     try {
@@ -52,6 +53,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     }
   }
 
+  //API: listar biblioteca
   Future<void> _carregarBiblioteca() async {
     final resp = await ApiCliente.get('/biblioteca/listar_biblioteca.php');
     final lista = (resp['receitas'] as List)
@@ -60,15 +62,13 @@ class _TelaReceitasState extends State<TelaReceitas>
     if (mounted) setState(() => _biblioteca = lista);
   }
 
+  //API: listar grupos
   Future<void> _carregarGrupos() async {
     final resp = await ApiCliente.get('/biblioteca/gerenciar_grupo_biblioteca.php');
     final lista = (resp['grupos'] as List).map((j) {
       final grupo = j as Map<String, dynamic>;
       final itens = (grupo['receitas'] as List).map((it) {
         final id = it['id'] as int;
-        // Hidrata com o objeto completo da biblioteca (o endpoint de grupo
-        // só devolve id/título/porções); cai pra um objeto mínimo se por
-        // acaso não achar (não deveria acontecer, biblioteca é fixa).
         return _biblioteca.firstWhere(
           (r) => r.id == id,
           orElse: () => Receita(
@@ -85,6 +85,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     if (mounted) setState(() => _grupos = lista);
   }
 
+  //API: listar estoque
   Future<void> _carregarEstoque() async {
     final resp = await ApiCliente.get('/estoque/listar_alimentos.php');
     final lista = (resp['alimentos'] as List)
@@ -93,6 +94,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     if (mounted) setState(() => _estoque = lista);
   }
 
+  //API: listar receitas da IA favoritadas
   Future<void> _carregarFavoritasIA() async {
     final resp = await ApiCliente.get('/ia/listar_receitas_ia.php');
     final lista = (resp['receitas'] as List)
@@ -108,9 +110,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     );
   }
 
-  // Favoritar/desfavoritar funciona diferente dependendo de onde a receita
-  // veio: biblioteca (catálogo fixo, favorito por linha em FS_biblioteca_favoritos)
-  // ou gerada por IA (só existe no banco — FS_receitas_ia — quando favoritada).
+  //favoritar (biblioteca ou IA)
   Future<void> _alternarFavorito(Receita receita) async {
     if (receita.geradaPorIA) {
       await _alternarFavoritoIA(receita);
@@ -124,6 +124,7 @@ class _TelaReceitasState extends State<TelaReceitas>
     }
   }
 
+  //favoritar receita da IA
   Future<void> _alternarFavoritoIA(Receita receita) async {
     try {
       final corpo = receita.id > 0
@@ -192,7 +193,7 @@ class _TelaReceitasState extends State<TelaReceitas>
                   : TabBarView(
                       controller: _controladorSubabas,
                       children: [
-                        // Criar receitas com IA é exclusivo do Premium.
+                        //so premium
                         ehPremium(widget.usuario)
                             ? _SubabaCriar(estoque: _estoque, aoFavoritar: _alternarFavorito)
                             : BloqueioPremium(
@@ -259,7 +260,7 @@ class _TelaReceitasState extends State<TelaReceitas>
       );
 }
 
-//subaba criar receitas
+//subaba criar receita com IA
 class _SubabaCriar extends StatefulWidget {
   final List<AlimentoEstoque> estoque;
   final Future<void> Function(Receita) aoFavoritar;
@@ -281,12 +282,11 @@ class _SubabaCriarState extends State<_SubabaCriar> {
   int get _totalSelecionados => _ingredientesSelecionados.length;
   List<String> get _nomesSelecionados => _ingredientesSelecionados;
 
-  //alimentos do estoque disponiveis para sugestao em receitas (vencidos nao entram)
+  //alimentos nao vencidos
   List<String> get _alimentosDisponiveis =>
       widget.estoque.where((a) => !a.vencido).map((a) => a.nome).toList();
 
-  //sugestoes filtradas a partir do texto digitado (letras ou silabas), ja
-  //verificando se o alimento existe no estoque e ainda nao foi selecionado
+  //sugestoes da busca
   List<String> get _sugestoes {
     final busca = _controladorBuscaIngrediente.text.trim().toLowerCase();
     if (busca.isEmpty) return [];
@@ -331,8 +331,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     );
   }
 
-  //chama a IA (Gemini, via api/ia/gerar_receita.php) com os ingredientes
-  //selecionados do estoque, porções, nível de fome e observações
+  //gerar receita com IA
   Future<void> _gerarReceita() async {
     setState(() => _gerando = true);
     try {
@@ -355,8 +354,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     }
   }
 
-  // Mostra a receita recém-gerada num painel completo (mesmo modal usado
-  // pela Biblioteca e por Favoritas — ver _abrirDetalheReceita).
+  //mostrar receita gerada
   void _mostrarReceita(Receita receita) =>
       _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
@@ -371,7 +369,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
         const Text('Digite o nome do alimento — buscamos no seu estoque', style: TextStyle(fontSize: 11, color: Colors.white38)),
         const SizedBox(height: 10),
 
-        //barra de pesquisa de alimentos
+        //busca de ingredientes
         Container(
           height: 44,
           decoration: BoxDecoration(color: cartaoEscuro, borderRadius: BorderRadius.circular(12), border: Border.all(color: _focoBuscaIngrediente.hasFocus ? verdePrimario.withOpacity(0.5) : bordaCartao)),
@@ -395,7 +393,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
           ]),
         ),
 
-        //sugestoes com base no que existe no estoque
+        //sugestoes
         if (_controladorBuscaIngrediente.text.isNotEmpty) ...[
           const SizedBox(height: 8),
           Container(
@@ -545,10 +543,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
       );
 }
 
-//subaba favoritas
-// Modal de detalhe de receita — compartilhado entre Criar (IA recém-gerada),
-// Biblioteca e Favoritas, pra abrir sempre a mesma tela completa não
-// importa de onde a receita veio.
+//detalhe da receita
 void _abrirDetalheReceita(BuildContext context, Receita receita, Future<void> Function(Receita) aoFavoritar) {
   bool favoritado = receita.favorita;
 
@@ -744,10 +739,7 @@ class _SubabaFavoritas extends StatelessWidget {
   }
 }
 
-// Mesmo formato de linha da Biblioteca (_CartaoBiblioteca) — ícone, nome,
-// categoria e pílulas — pra abrir a receita completa com um toque. O
-// coração à direita continua permitindo desfavoritar direto da lista,
-// sem precisar abrir o painel.
+//cartao da favorita
 class _CartaoFavorita extends StatelessWidget {
   final Receita receita;
   final VoidCallback aoAbrir;
@@ -1059,11 +1051,7 @@ class _CartaoGrupoReceitas extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-//  Subaba: Biblioteca de Receitas
-//  Catálogo fixo, mantido pelos desenvolvedores, igual para todo mundo.
-//  Filtro por nome/categoria e favoritar direto por aqui.
-// ─────────────────────────────────────────────
+//subaba biblioteca
 class _SubabaBiblioteca extends StatefulWidget {
   final List<Receita> biblioteca;
   final Future<void> Function(Receita) aoFavoritar;
@@ -1076,6 +1064,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
   final _controladorBusca = TextEditingController();
   String _textoBusca = '';
 
+  //filtro da biblioteca
   List<Receita> get _receitasFiltradas {
     var lista = widget.biblioteca;
     if (_textoBusca.isNotEmpty) {
@@ -1100,7 +1089,6 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
     super.dispose();
   }
 
-  // Mesmo modal completo usado em Criar e Favoritas — ver _abrirDetalheReceita.
   void _verReceita(BuildContext context, Receita receita) =>
       _abrirDetalheReceita(context, receita, widget.aoFavoritar);
 
@@ -1110,7 +1098,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
 
     return Column(
       children: [
-        // Busca por nome
+        //busca
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Container(
@@ -1136,7 +1124,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
           ),
         ),
 
-        // Contador de resultados
+        //contador de resultados
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
           child: Row(
@@ -1154,7 +1142,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
           ),
         ),
 
-        // Lista de receitas
+        //lista de receitas
         Expanded(
           child: filtradas.isEmpty
               ? Center(
@@ -1185,7 +1173,7 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
 
 }
 
-// Cartão visual da biblioteca
+//cartao da biblioteca
 class _CartaoBiblioteca extends StatelessWidget {
   final Receita receita;
   final bool isFavorita;

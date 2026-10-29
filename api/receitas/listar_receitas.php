@@ -1,6 +1,5 @@
 <?php
-// Lista as receitas do usuário logado, com os ingredientes vinculados
-// do inventário (mesma relação que existia em perfil.php).
+//listar receitas
 
 require_once __DIR__ . '/../helpers.php';
 

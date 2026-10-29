@@ -1,5 +1,5 @@
 <?php
-// Adiciona manualmente um item à lista de compras do usuário logado.
+//adicionar item na lista de compras
 
 require_once __DIR__ . '/../helpers.php';
 

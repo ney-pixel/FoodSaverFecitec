@@ -1,6 +1,5 @@
 <?php
-// Autentica o usuário e cria a sessão. Reativa a conta automaticamente
-// se ela estava desativada (ativo = 0), igual ao comportamento anterior.
+//login
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -8,7 +7,7 @@ exigirMetodo(['POST']);
 
 $dados = corpoRequisicao();
 $email = strtolower(trim($dados['email'] ?? ''));
-$senha = (string) ($dados['senha'] ?? ''); // senha não é "trimada": espaços podem ser intencionais
+$senha = (string) ($dados['senha'] ?? '');
 
 $erros = [];
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -33,7 +32,7 @@ if (empty($usuario['senha']) || !password_verify($senha, $usuario['senha'])) {
     responder(false, 'Senha incorreta.', ['erros' => ['senha' => 'Senha incorreta.']], 401);
 }
 
-// Se a conta estava desativada, reativa automaticamente ao logar
+//reativa conta desativada
 if ((int) ($usuario['ativo'] ?? 1) === 0) {
     $reativa = $pdo->prepare("UPDATE FS_usuarios SET ativo = 1 WHERE id = ?");
     $reativa->execute([$usuario['id']]);

@@ -1,5 +1,5 @@
 <?php
-// Configuração da IA (Gemini). Este arquivo está no .gitignore — NÃO commitar.
+//chave e modelo da IA
 
 define('GEMINI_API_KEY', 'colar a chave aqui');
 

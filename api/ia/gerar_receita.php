@@ -1,11 +1,5 @@
 <?php
-// Gera uma receita com IA (Gemini) a partir de ingredientes selecionados
-// pelo usuário no próprio estoque, número de porções, nível de fome e
-// observações opcionais.
-//
-// Diferente da Biblioteca (FS_biblioteca_receitas), a receita gerada aqui
-// NÃO é salva no banco — é só exibida na hora. A chave da IA nunca é
-// enviada ao cliente: toda a chamada ao Gemini acontece aqui no servidor.
+//gerar receita com IA
 
 require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../ia_config.php';
@@ -13,7 +7,7 @@ require_once __DIR__ . '/../ia_config.php';
 exigirMetodo(['POST']);
 $uid = exigirLogin();
 
-// Criação de receita com IA é exclusiva do plano Premium.
+//so premium
 $stmtPlano = $pdo->prepare("SELECT plano FROM FS_usuarios WHERE id = ?");
 $stmtPlano->execute([$uid]);
 if ($stmtPlano->fetchColumn() !== 'premium') {
@@ -49,10 +43,7 @@ $prompt = "Você é um chef de cozinha profissional e prático, especialista em 
     . '"ingredientes_necessarios":[lista de strings, só o nome simples de cada ingrediente principal, sem quantidade],'
     . '"modo_preparo":[lista de strings, um passo do preparo por item, em ordem],"dicas":[lista de 1 a 3 strings com dicas úteis]}';
 
-/**
- * Chama o Gemini via cURL e devolve o texto gerado já decodificado como array.
- * Lança RuntimeException com uma mensagem amigável em caso de falha.
- */
+//chamada ao Gemini
 function chamarGeminiParaReceita(string $prompt): array
 {
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
@@ -65,7 +56,6 @@ function chamarGeminiParaReceita(string $prompt): array
         'generationConfig' => [
             'responseMimeType' => 'application/json',
             'temperature'      => 0.9,
-            // Raciocínio curto: a resposta sai bem mais rápido.
             'thinkingConfig'   => ['thinkingLevel' => 'low'],
         ],
     ]);
@@ -114,12 +104,11 @@ try {
     responder(false, 'Não foi possível gerar a receita agora. Tente novamente em instantes.', [], 502);
 }
 
-// Normaliza os campos (garante os tipos certos e preenche o que a IA
-// porventura tenha deixado de fora), pra nunca quebrar o parsing no app.
+//organiza a receita
 $listaOuVazia = fn ($v) => is_array($v) ? array_values(array_map('strval', $v)) : [];
 
 $receita = [
-    'id'                       => 0, // não é salva no banco — sem id de verdade
+    'id'                       => 0,
     'gerada_por_ia'            => true,
     'titulo'                   => (string) ($receitaIA['titulo'] ?? 'Receita sem título'),
     'descricao'                => (string) ($receitaIA['descricao'] ?? ''),

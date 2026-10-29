@@ -1,12 +1,5 @@
 <?php
-// Resumo das movimentações (consumo/desperdício) do usuário logado,
-// usado pelos gráficos da aba Relatórios.
-//
-// Retorna a contagem diária dos últimos 30 dias (para o gráfico de
-// linha) e os totais do período (para a taxa de aproveitamento).
-// Contamos OCORRÊNCIAS de movimentação, não a soma da quantidade:
-// os alimentos usam unidades diferentes (kg, g, L, und) e somar
-// valores brutos de unidades distintas não teria significado.
+//movimentacoes para os graficos
 
 require_once __DIR__ . '/../helpers.php';
 
@@ -44,9 +37,7 @@ for ($i = $dias - 1; $i >= 0; $i--) {
 $totalMovs = $totalConsumo + $totalDesperdicio;
 $taxaAproveitamento = $totalMovs > 0 ? round(($totalConsumo / $totalMovs) * 100, 1) : null;
 
-// Ranking por alimento (nome + unidade, já que o mesmo alimento pode
-// aparecer em unidades diferentes). NULLIF/COALESCE cobre registros
-// antigos que ficaram sem descricao_alimento antes desse campo existir.
+//ranking por alimento
 $nomeSql = "COALESCE(NULLIF(TRIM(descricao_alimento), ''), 'Item removido') AS nome";
 
 $stmtConsumido = $pdo->prepare(

@@ -1,5 +1,5 @@
 <?php
-// Cria um grupo de receitas para o usuário logado.
+//criar grupo de receitas
 
 require_once __DIR__ . '/../helpers.php';
 

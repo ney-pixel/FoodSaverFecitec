@@ -44,7 +44,7 @@ class _TelaHomeState extends State<TelaHome>
     _controladorFade.forward(from: 0);
   }
 
-  // Abas: ícone ativo, ícone inativo, rótulo
+  //abas do menu
   static const _itensNavegacao = [
     (Icons.inventory_2_rounded,          Icons.inventory_2_outlined,          'Estoque'),
     (Icons.restaurant_menu_rounded,      Icons.restaurant_menu_outlined,      'Receitas'),

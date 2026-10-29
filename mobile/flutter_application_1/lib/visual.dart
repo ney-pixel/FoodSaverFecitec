@@ -1,30 +1,26 @@
 import 'package:flutter/material.dart';
 
-//===== Identidade visual do FoodSaver =====
-//paleta principal
+//cores
 const verdePrimario  = Color(0xFF16DB65);
 const verdeEscuro    = Color(0xFF0F9D4F);
 const verdeSuave     = Color(0xFF9CF5C4);
-const roxoIA         = Color(0xFF6C63FF); // cor de destaque para tudo que envolve IA
+const roxoIA         = Color(0xFF6C63FF);
 const roxoIAClaro    = Color(0xFF9B59B6);
 
-//neutros / fundo
+//fundos
 const fundoEscuro    = Color(0xFF0A0A0A);
 const cartaoEscuro   = Color(0xFF141414);
-// Borda quase invisível (branco a ~6%) em vez de cinza chapado — mesma
-// ideia do site (--border: rgba(255,255,255,.05)): os cards parecem
-// "flutuar" em vez de terem uma caixa desenhada em volta.
+//borda
 const bordaCartao    = Color(0x0FFFFFFF);
 
-//gradiente de marca, usado em destaques (logo, botões hero, etc)
+//gradiente
 const gradienteMarca = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [verdePrimario, verdeEscuro],
 );
 
-// Sombras suaves — dão profundidade sem "gritar". Usadas nos componentes
-// compartilhados abaixo (logo, botão principal, cabeçalho, cards).
+//sombras
 const sombraCartao = [
   BoxShadow(color: Color(0x33000000), blurRadius: 18, offset: Offset(0, 8)),
 ];
@@ -86,7 +82,7 @@ class LogoFoodSaver extends StatelessWidget {
   }
 }
 
-//campo de texto default
+//campo de texto
 class CampoTextoApp extends StatefulWidget {
   final String dica;
   final IconData icone;
@@ -158,7 +154,7 @@ class _CampoTextoAppState extends State<CampoTextoApp> {
   }
 }
 
-//botao prota verde
+//botao principal
 class BotaoPrincipal extends StatelessWidget {
   final String rotulo;
   final bool carregando;
@@ -212,7 +208,7 @@ class BotaoPrincipal extends StatelessWidget {
   }
 }
 
-//divisou ou entre os campos
+//divisor "ou"
 class DivisorOu extends StatelessWidget {
   const DivisorOu({super.key});
 
@@ -278,7 +274,7 @@ class BotaoSocial extends StatelessWidget {
   }
 }
 
-//animaçao de entrada fade
+//animacao de entrada
 mixin AnimacaoEntradaMixin<T extends StatefulWidget>
     on State<T>, SingleTickerProviderStateMixin<T> {
   late AnimationController controladorAnimacao;
@@ -309,7 +305,7 @@ mixin AnimacaoEntradaMixin<T extends StatefulWidget>
       );
 }
 
-//healho default
+//cabecalho
 Widget cabecalhoPagina(String titulo, {Widget? acaoTopo}) => Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: const BoxDecoration(

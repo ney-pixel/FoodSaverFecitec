@@ -1,19 +1,12 @@
 <?php
-// Lista os itens da lista de compras do usuário logado.
-//
-// Também mantém a lógica de quantidade mínima:
-//   FS_minimos_alimento (por NOME, não por lote) -> soma todos os lotes de
-//   FS_alimentos com esse nome (convertendo unidade quando possível) ->
-//   quantidade atual < quantidade mínima? -> gera (ou remove, se não for
-//   mais o caso) um item automático em FS_lista_compras.
-// Essa verificação fica só aqui, sem endpoint próprio, conforme pedido.
+//listar lista de compras
 
 require_once __DIR__ . '/../helpers.php';
 
 exigirMetodo(['GET']);
 $uid = exigirLogin();
 
-// 1) Sincroniza itens automáticos com base na quantidade mínima
+//itens automaticos pela quantidade minima
 $stmtMinimos = $pdo->prepare(
     "SELECT nome_alimento, unidade_medida, quantidade_minima FROM FS_minimos_alimento WHERE usuario_id = ?"
 );
@@ -40,8 +33,7 @@ $stmtRemoveAuto = $pdo->prepare(
 $nomesAindaAbaixoDoMinimo = [];
 
 foreach ($minimos as $m) {
-    // Soma todos os lotes desse alimento (mesmo nome, ignorando
-    // maiúsculas/minúsculas) — o mínimo é por alimento, não por lote.
+    //soma dos lotes do alimento
     $stmtLotes->execute([$uid, $m['nome_alimento']]);
     $atual = 0.0;
     foreach ($stmtLotes->fetchAll() as $lote) {
@@ -60,14 +52,12 @@ foreach ($minimos as $m) {
         $deficit = round((float) $m['quantidade_minima'] - $atual, 2);
         $stmtInsereAuto->execute([$uid, $m['nome_alimento'], $deficit, $m['unidade_medida']]);
     } elseif ($abaixoDoMinimo && $existente) {
-        // Já existe um item automático: mantém a quantidade necessária em dia
-        // (ex.: consumiu de novo e o déficit aumentou).
         $deficit = round((float) $m['quantidade_minima'] - $atual, 2);
         if ($deficit !== round((float) $existente['quantidade'], 2)) {
             $stmtAtualizaAuto->execute([$deficit, $existente['id']]);
         }
     } elseif (!$abaixoDoMinimo && $existente) {
-        // Voltou a ficar acima do mínimo: remove o item automático ainda não comprado
+        //acima do minimo: remove item automatico
         $stmtRemoveAuto->execute([$existente['id']]);
     }
 
@@ -76,10 +66,7 @@ foreach ($minimos as $m) {
     }
 }
 
-// 1.1) Limpa itens automáticos "órfãos": o alimento que os gerou não está
-// mais abaixo do mínimo por ter sido excluído ou por ter tido a própria
-// quantidade mínima removida (nesses casos ele nem aparece no laço acima,
-// então o item automático nunca seria reavaliado sem esta checagem extra).
+//limpa itens automaticos orfaos
 $stmtAutosPendentes = $pdo->prepare(
     "SELECT id, nome_alimento FROM FS_lista_compras WHERE usuario_id = ? AND automatico = 1 AND comprado = 0"
 );
@@ -90,7 +77,7 @@ foreach ($stmtAutosPendentes->fetchAll() as $auto) {
     }
 }
 
-// 2) Retorna a lista completa
+//retorna a lista
 $stmt = $pdo->prepare(
     "SELECT id, nome_alimento, quantidade, unidade_medida, automatico, comprado, data_adicao
      FROM FS_lista_compras WHERE usuario_id = ? ORDER BY comprado ASC, data_adicao DESC"

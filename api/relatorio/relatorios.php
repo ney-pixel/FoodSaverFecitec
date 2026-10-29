@@ -1,49 +1,33 @@
 <?php
-// ─────────────────────────────────────────────
-//  Relatórios
-//  GET ?periodo=7 | 30 | 90
-//
-//  Retorna em uma única requisição:
-//   1. resumo_estoque
-//   2. desperdicio_por_dia   (gráfico)
-//   3. top_desperdicados
-//   4. top_consumidos
-//   5. situacao_validades
-//   6. taxa_aproveitamento
-//   7. comparacao_periodo_anterior
-// ─────────────────────────────────────────────
+//relatorios
 
 require_once __DIR__ . '/../helpers.php';
 
 exigirMetodo(['GET']);
 $uid = exigirLogin();
 
-// Período selecionado (dias). Aceita 7, 30 ou 90. Default: 30.
+//periodo (7, 30 ou 90 dias)
 $periodosValidos = [7, 30, 90];
 $periodo = (int) ($_GET['periodo'] ?? 30);
 if (!in_array($periodo, $periodosValidos, true)) {
     $periodo = 30;
 }
 
-// Datas do período atual e anterior
 $hoje         = new DateTime('today');
 $inicioAtual  = (clone $hoje)->modify("-{$periodo} days")->format('Y-m-d');
 $fimAtual     = $hoje->format('Y-m-d');
 $inicioPrev   = (clone $hoje)->modify('-' . ($periodo * 2) . ' days')->format('Y-m-d');
 $fimPrev      = (clone $hoje)->modify("-{$periodo} days")->format('Y-m-d');
 
-// ─────────────────────────────────────────────
-//  1. RESUMO DO ESTOQUE
-// ─────────────────────────────────────────────
+//1. resumo do estoque
 
-// Total de alimentos no estoque
 $stmtTotal = $pdo->prepare(
     "SELECT COUNT(*) AS total FROM FS_alimentos WHERE usuario_id = ?"
 );
 $stmtTotal->execute([$uid]);
 $totalEstoque = (int) $stmtTotal->fetchColumn();
 
-// Vencidos (data_validade < hoje)
+//vencidos
 $stmtVenc = $pdo->prepare(
     "SELECT COUNT(*) FROM FS_alimentos
      WHERE usuario_id = ? AND data_validade < CURDATE()"
@@ -51,7 +35,7 @@ $stmtVenc = $pdo->prepare(
 $stmtVenc->execute([$uid]);
 $vencidos = (int) $stmtVenc->fetchColumn();
 
-// Próximos do vencimento: vencem em até 7 dias (e ainda não venceram)
+//vencem em ate 7 dias
 $stmtProx = $pdo->prepare(
     "SELECT COUNT(*) FROM FS_alimentos
      WHERE usuario_id = ?
@@ -61,7 +45,7 @@ $stmtProx = $pdo->prepare(
 $stmtProx->execute([$uid]);
 $proximosVencimento = (int) $stmtProx->fetchColumn();
 
-// Total desperdiçado (all time)
+//total desperdicado
 $stmtDesp = $pdo->prepare(
     "SELECT COALESCE(SUM(quantidade), 0)
      FROM FS_movimentacoes
@@ -77,9 +61,7 @@ $resumoEstoque = [
     'total_desperdicado'   => $totalDesperdicio,
 ];
 
-// ─────────────────────────────────────────────
-//  2. DESPERDÍCIO POR DIA (período atual)
-// ─────────────────────────────────────────────
+//2. desperdicio por dia
 
 $stmtGraf = $pdo->prepare(
     "SELECT DATE(data_movimentacao) AS dia,
@@ -94,7 +76,6 @@ $stmtGraf = $pdo->prepare(
 );
 $stmtGraf->execute([$uid, $inicioAtual, $fimAtual]);
 
-// Preenche todos os dias do período com 0 para o gráfico não ter lacunas
 $mapaDias = [];
 $cursor = new DateTime($inicioAtual);
 $fim    = new DateTime($fimAtual);
@@ -111,9 +92,7 @@ foreach ($mapaDias as $dia => $total) {
     $desperdicoPorDia[] = ['dia' => $dia, 'total' => $total];
 }
 
-// ─────────────────────────────────────────────
-//  3. ALIMENTOS MAIS DESPERDIÇADOS (período)
-// ─────────────────────────────────────────────
+//3. mais desperdicados
 
 $stmtTopDesp = $pdo->prepare(
     "SELECT m.descricao_alimento AS nome,
@@ -136,9 +115,7 @@ foreach ($topDesperdicados as &$item) {
 }
 unset($item);
 
-// ─────────────────────────────────────────────
-//  4. ALIMENTOS MAIS CONSUMIDOS (período)
-// ─────────────────────────────────────────────
+//4. mais consumidos
 
 $stmtTopCons = $pdo->prepare(
     "SELECT m.descricao_alimento AS nome,
@@ -161,9 +138,7 @@ foreach ($topConsumidos as &$item) {
 }
 unset($item);
 
-// ─────────────────────────────────────────────
-//  5. SITUAÇÃO DAS VALIDADES
-// ─────────────────────────────────────────────
+//5. situacao das validades
 
 $stmtVal = $pdo->prepare(
     "SELECT descricao,
@@ -179,10 +154,10 @@ $stmtVal->execute([$uid]);
 $todosAlimentos = $stmtVal->fetchAll();
 
 $validades = [
-    'vencidos'   => [],   // dias < 0
-    'ate3dias'   => [],   // 0 <= dias <= 3
-    'ate7dias'   => [],   // 4 <= dias <= 7
-    'ok'         => [],   // dias > 7
+    'vencidos'   => [],
+    'ate3dias'   => [],
+    'ate7dias'   => [],
+    'ok'         => [],
 ];
 
 foreach ($todosAlimentos as $a) {
@@ -201,9 +176,7 @@ foreach ($todosAlimentos as $a) {
     else                 $validades['ok'][]         = $item;
 }
 
-// ─────────────────────────────────────────────
-//  6. TAXA DE APROVEITAMENTO (período atual)
-// ─────────────────────────────────────────────
+//6. taxa de aproveitamento
 
 $stmtTaxa = $pdo->prepare(
     "SELECT tipo, SUM(quantidade) AS total
@@ -226,19 +199,16 @@ while ($row = $stmtTaxa->fetch()) {
 $somaAtual = $consumidoAtual + $desperdicadoAtual;
 $taxaAtual = $somaAtual > 0
     ? round(($consumidoAtual / $somaAtual) * 100, 1)
-    : null; // null = sem dados suficientes
+    : null;
 
 $taxaAproveitamento = [
     'consumido'    => $consumidoAtual,
     'desperdicado' => $desperdicadoAtual,
-    'taxa'         => $taxaAtual,      // null se sem dados
+    'taxa'         => $taxaAtual,
 ];
 
-// ─────────────────────────────────────────────
-//  7. COMPARAÇÃO COM PERÍODO ANTERIOR
-// ─────────────────────────────────────────────
+//7. comparacao com periodo anterior
 
-// Desperdício período anterior
 $stmtPrevDesp = $pdo->prepare(
     "SELECT COALESCE(SUM(quantidade), 0)
      FROM FS_movimentacoes
@@ -250,7 +220,6 @@ $stmtPrevDesp = $pdo->prepare(
 $stmtPrevDesp->execute([$uid, $inicioPrev, $fimPrev]);
 $desperdicadoPrev = (float) $stmtPrevDesp->fetchColumn();
 
-// Taxa de aproveitamento período anterior
 $stmtPrevTaxa = $pdo->prepare(
     "SELECT tipo, SUM(quantidade) AS total
      FROM FS_movimentacoes
@@ -273,13 +242,11 @@ $taxaPrev = $somaPrev > 0
     ? round(($consumidoPrev / $somaPrev) * 100, 1)
     : null;
 
-// Variação de desperdício (%)
 $variacaoDesp = null;
 if ($desperdicadoPrev > 0) {
     $variacaoDesp = round((($desperdicadoAtual - $desperdicadoPrev) / $desperdicadoPrev) * 100, 1);
 }
 
-// Variação da taxa de aproveitamento (pontos percentuais)
 $variacaoTaxa = ($taxaAtual !== null && $taxaPrev !== null)
     ? round($taxaAtual - $taxaPrev, 1)
     : null;
@@ -287,15 +254,13 @@ $variacaoTaxa = ($taxaAtual !== null && $taxaPrev !== null)
 $comparacao = [
     'desperdicio_atual'    => $desperdicadoAtual,
     'desperdicio_anterior' => $desperdicadoPrev,
-    'variacao_desperdicio' => $variacaoDesp,   // % (negativo = melhora)
+    'variacao_desperdicio' => $variacaoDesp,
     'taxa_atual'           => $taxaAtual,
     'taxa_anterior'        => $taxaPrev,
-    'variacao_taxa'        => $variacaoTaxa,   // pp (positivo = melhora)
+    'variacao_taxa'        => $variacaoTaxa,
 ];
 
-// ─────────────────────────────────────────────
-//  RESPOSTA FINAL
-// ─────────────────────────────────────────────
+//resposta
 
 responder(true, '', [
     'periodo'              => $periodo,

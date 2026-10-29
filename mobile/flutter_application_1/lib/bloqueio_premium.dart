@@ -3,12 +3,10 @@ import 'visual.dart';
 import 'usuario.dart';
 import 'planos.dart';
 
-// FS_usuarios.plano é um ENUM('gratuito','premium') no banco.
+//verifica premium
 bool ehPremium(Usuario usuario) => usuario.plano.toLowerCase() == 'premium';
 
-// Tela mostrada no lugar de recursos exclusivos do Premium (Relatórios e
-// Criar receitas com IA) quando o usuário está no plano gratuito. O bloqueio
-// que vale de verdade é no backend (ex.: api/ia/gerar_receita.php).
+//tela de bloqueio premium
 class BloqueioPremium extends StatelessWidget {
   final Usuario usuario;
   final String titulo;

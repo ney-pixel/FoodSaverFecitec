@@ -16,7 +16,7 @@ class ItemListaCompras {
     this.automatico = false,
   });
 
-  //monta um item a partir do JSON de compras/listar_compras.php
+  //JSON -> objeto
   factory ItemListaCompras.fromJson(Map<String, dynamic> json) {
     return ItemListaCompras(
       id: '${json['id']}',
