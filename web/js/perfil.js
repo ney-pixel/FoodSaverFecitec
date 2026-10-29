@@ -314,7 +314,7 @@ function filtrarInventario(query) {
   const q = query.toLowerCase().trim();
   document.querySelectorAll('#inventoryGrid .inv-card').forEach((card) => {
     const nome = card.dataset.name || '';
-    card.style.display = nome.includes(q) ? '' : 'none';
+    card.style.display = nome.startsWith(q) ? '' : 'none';
   });
 }
 
@@ -407,7 +407,7 @@ function renderSugestoesCriar() {
   _sugestoesCriarAtual = ESTADO.alimentos
     .filter((a) => !alimentoVencido(a))
     .map((a) => a.nome)
-    .filter((nome) => nome.toLowerCase().includes(busca) && !criarReceitaState.ingredientes.includes(nome));
+    .filter((nome) => nome.toLowerCase().startsWith(busca) && !criarReceitaState.ingredientes.includes(nome));
 
   wrap.classList.remove('hidden');
   wrap.innerHTML = _sugestoesCriarAtual.length === 0
@@ -583,7 +583,7 @@ async function desfavoritarFavoritaPorIndice(i) {
 function renderBiblioteca() {
   const busca = (document.getElementById('bibBusca')?.value || '').trim().toLowerCase();
   const filtradas = busca
-    ? ESTADO.biblioteca.filter((r) => r.titulo.toLowerCase().includes(busca) || r.categoria.toLowerCase().includes(busca))
+    ? ESTADO.biblioteca.filter((r) => r.titulo.toLowerCase().startsWith(busca) || r.categoria.toLowerCase().startsWith(busca))
     : ESTADO.biblioteca;
 
   document.getElementById('bibEmpty').style.display = filtradas.length === 0 ? '' : 'none';

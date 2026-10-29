@@ -39,9 +39,9 @@ class _TelaEstoqueState extends State<TelaEstoque>
             .where((a) => a.status == _rotulosStatus[_indiceFiltroStatus])
             .toList();
     if (_textoBusca.isNotEmpty) {
-      final b = _textoBusca.toLowerCase();
+      final b = _textoBusca.trim().toLowerCase();
       lista = lista
-          .where((a) => a.nome.toLowerCase().contains(b))
+          .where((a) => a.nome.toLowerCase().startsWith(b))
           .toList();
     }
     return lista;

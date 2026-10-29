@@ -65,6 +65,8 @@ function chamarGeminiParaReceita(string $prompt): array
         'generationConfig' => [
             'responseMimeType' => 'application/json',
             'temperature'      => 0.9,
+            // Raciocínio curto: a resposta sai bem mais rápido.
+            'thinkingConfig'   => ['thinkingLevel' => 'low'],
         ],
     ]);
 
@@ -74,7 +76,7 @@ function chamarGeminiParaReceita(string $prompt): array
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => $corpo,
         CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT        => 45,
+        CURLOPT_TIMEOUT        => 50,
     ]);
     $respostaBruta = curl_exec($ch);
     $erroCurl      = curl_error($ch);

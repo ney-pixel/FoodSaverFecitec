@@ -292,7 +292,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
     if (busca.isEmpty) return [];
     return _alimentosDisponiveis
         .where((nome) =>
-            nome.toLowerCase().contains(busca) &&
+            nome.toLowerCase().startsWith(busca) &&
             !_ingredientesSelecionados.contains(nome))
         .toList();
   }
@@ -343,7 +343,7 @@ class _SubabaCriarState extends State<_SubabaCriar> {
             'nivel_fome': _nivelFome[_indiceFome],
             'observacoes': _controladorObservacoes.text.trim(),
           },
-          timeout: const Duration(seconds: 45));
+          timeout: const Duration(seconds: 60));
       if (!mounted) return;
       setState(() => _gerando = false);
       final receita = Receita.fromJson(resp['receita'] as Map<String, dynamic>);
@@ -1079,11 +1079,11 @@ class _SubabaBibliotecaState extends State<_SubabaBiblioteca> {
   List<Receita> get _receitasFiltradas {
     var lista = widget.biblioteca;
     if (_textoBusca.isNotEmpty) {
-      final b = _textoBusca.toLowerCase();
+      final b = _textoBusca.trim().toLowerCase();
       lista = lista.where((r) =>
-          r.nome.toLowerCase().contains(b) ||
-          r.categoria.toLowerCase().contains(b) ||
-          r.ingredientesNecessarios.any((ing) => ing.toLowerCase().contains(b))).toList();
+          r.nome.toLowerCase().startsWith(b) ||
+          r.categoria.toLowerCase().startsWith(b) ||
+          r.ingredientesNecessarios.any((ing) => ing.toLowerCase().startsWith(b))).toList();
     }
     return lista;
   }
